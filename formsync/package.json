@@ -4,6 +4,7 @@
   "description": "FormSync Component 1 - Intelligent Schema Definition & AI Integration",
   "private": true,
   "workspaces": [
+    "packages/form-types",
     "packages/formgen-shared",
     "services/api-gateway",
     "services/schema-enhancement-engine",
