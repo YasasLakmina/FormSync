@@ -33,6 +33,7 @@ import {
   generateIndexCss,
   generateReadme,
 } from "./generators";
+import { buildReactWiredSubmitReplacement } from "@formsync/formgen-shared";
 
 function buildFormModelFromSchema(schema: any): FormModel {
   const raw = schema?.content || schema;
@@ -140,6 +141,7 @@ function buildFormModelFromSchema(schema: any): FormModel {
 const app = express();
 const port = process.env.FORMGEN_SERVICE_PORT || 3014;
 type BackendLanguage = "springBoot" | "nodeExpress" | "dotnetWebApi";
+type FrontendStack = "react" | "htmlBootstrap";
 
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
@@ -149,6 +151,8 @@ const NODE_BACKEND_GENERATOR_URL =
   process.env.NODE_BACKEND_GENERATOR_URL || "http://localhost:3015";
 const DOTNET_BACKEND_GENERATOR_URL =
   process.env.DOTNET_BACKEND_GENERATOR_URL || "http://localhost:3016";
+const STATIC_FRONTEND_GENERATOR_URL =
+  process.env.STATIC_FRONTEND_GENERATOR_URL || "http://localhost:3017";
 
 function toKebabCase(input: string): string {
   return input
@@ -225,110 +229,11 @@ function wireFrontendApp(
   backendPort: number,
 ): string {
   const serializedFieldTypes = JSON.stringify(collectFieldTypeMap(formModel), null, 2);
-  const replacement = `${FORMSYNC_SUBMIT_START}
-    setStatusMessage('');
-    try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:${backendPort}";
-      const API_PATH = import.meta.env.VITE_API_PATH || "${apiPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}";
-      const FIELD_TYPES: Record<string, string> = ${serializedFieldTypes};
-
-      const setDeepValue = (target: Record<string, any>, path: string, value: any) => {
-        const parts = path.split(".");
-        let current: Record<string, any> = target;
-        for (let i = 0; i < parts.length - 1; i++) {
-          const segment = parts[i];
-          if (
-            typeof current[segment] !== "object" ||
-            current[segment] === null ||
-            Array.isArray(current[segment])
-          ) {
-            current[segment] = {};
-          }
-          current = current[segment];
-        }
-        current[parts[parts.length - 1]] = value;
-      };
-
-      const coerceValue = (fieldType: string | undefined, rawValue: FormDataEntryValue) => {
-        if (fieldType === "number") {
-          const value = typeof rawValue === "string" ? rawValue.trim() : String(rawValue);
-          if (!value) return null;
-          const numeric = Number(value);
-          return Number.isNaN(numeric) ? null : numeric;
-        }
-        if (fieldType === "checkbox") {
-          if (typeof rawValue !== "string") return false;
-          return rawValue === "on" || rawValue === "true" || rawValue === "1";
-        }
-        return rawValue;
-      };
-
-      /** Drop "", null, undefined so Jackson never sees empty strings for Java enums or optional dates. */
-      const stripEmptyJsonValues = (value: unknown): unknown => {
-        if (value === "" || value === null || value === undefined) return undefined;
-        if (typeof value !== "object") return value;
-        if (Array.isArray(value)) {
-          return value
-            .map(stripEmptyJsonValues)
-            .filter((v) => v !== undefined);
-        }
-        const obj = value as Record<string, unknown>;
-        const out: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(obj)) {
-          const s = stripEmptyJsonValues(v);
-          if (s === undefined) continue;
-          if (
-            typeof s === "object" &&
-            s !== null &&
-            !Array.isArray(s) &&
-            Object.keys(s as Record<string, unknown>).length === 0
-          ) {
-            continue;
-          }
-          out[k] = s;
-        }
-        return out;
-      };
-
-      const toPayload = (form: HTMLFormElement) => {
-        const payload: Record<string, any> = {};
-        const formData = new FormData(form);
-
-        for (const [key, value] of formData.entries()) {
-          setDeepValue(payload, key, coerceValue(FIELD_TYPES[key], value));
-        }
-
-        const checkboxes = Array.from(
-          form.querySelectorAll<HTMLInputElement>('input[type="checkbox"][name]'),
-        );
-        for (const checkbox of checkboxes) {
-          if (!checkbox.checked) {
-            setDeepValue(payload, checkbox.name, false);
-          }
-        }
-
-        return payload;
-      };
-
-      const payload = toPayload(e.currentTarget);
-      const jsonBody = stripEmptyJsonValues(payload);
-      const response = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(jsonBody !== undefined ? jsonBody : {}),
-      });
-
-      if (!response.ok) {
-        throw new Error(\`Submission failed (\${response.status})\`);
-      }
-
-      alert("Submitted successfully");
-      console.log("Form submitted:", jsonBody !== undefined ? jsonBody : {});
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Submission failed";
-      setStatusMessage(msg);
-    }
-    ${FORMSYNC_SUBMIT_END}`;
+  const replacement = buildReactWiredSubmitReplacement({
+    serializedFieldTypes,
+    apiPath,
+    backendPort,
+  });
 
   const withAsyncSubmit = appTsx.replace(
     "const handleSubmit = (e: FormEvent<HTMLFormElement>) => {",
@@ -351,7 +256,11 @@ function wireFrontendApp(
   );
 }
 
-function generateBundleReadme(backendLanguage: BackendLanguage, backendPort: number): string {
+function generateBundleReadme(
+  backendLanguage: BackendLanguage,
+  backendPort: number,
+  frontendStack: FrontendStack,
+): string {
   const backendLabel =
     backendLanguage === "springBoot" ? "Spring Boot (Java)" :
     backendLanguage === "dotnetWebApi" ? "ASP.NET Core Web API (.NET 8)" :
@@ -369,10 +278,39 @@ function generateBundleReadme(backendLanguage: BackendLanguage, backendPort: num
         ? "cd backend\ndotnet run"
         : "cd backend\nnpm install\nnpm run start";
 
+  const frontendBullets =
+    frontendStack === "htmlBootstrap"
+      ? "- `frontend/` (static HTML + Bootstrap + JavaScript — no build step)"
+      : "- `frontend/` (Vite + React)";
+
+  const frontendSection =
+    frontendStack === "htmlBootstrap"
+      ? `## Run Frontend (static)
+
+\`\`\`bash
+cd frontend
+npx serve .
+\`\`\`
+
+Open the URL shown in the terminal. API URL is embedded in \`frontend/js/app.js\` for fullstack bundles (adjust if needed). Ensure your backend allows **CORS** from the origin you use to open the static files.
+`
+      : `## Run Frontend (Vite + React)
+
+\`\`\`bash
+cd frontend
+npm install
+npm run dev
+\`\`\`
+
+Dev server defaults to \`http://localhost:5170\` (see \`vite.config.ts\`).
+
+Frontend reads backend URL from \`frontend/.env\`.
+`;
+
   return `# Fullstack Generated Project
 
 This package includes:
-- \`frontend/\` (Vite + React)
+${frontendBullets}
 - \`backend/\` (${backendLabel})
 
 ## Prerequisites
@@ -389,18 +327,7 @@ ${backendRun}
 
 Backend default URL: \`http://localhost:${backendPort}\`
 
-## Run Frontend
-
-\`\`\`bash
-cd frontend
-npm install
-npm run dev
-\`\`\`
-
-Dev server defaults to \`http://localhost:5170\` (see \`vite.config.ts\`).
-
-Frontend reads backend URL from \`frontend/.env\`.
-`;
+${frontendSection}`;
 }
 
 function hasPathPrefix(
@@ -520,7 +447,13 @@ app.post("/generate-fullstack", async (req, res) => {
     formModel,
     schema,
     backendLanguage = "springBoot",
-  }: { formModel?: FormModel; schema: any; backendLanguage?: BackendLanguage } = req.body;
+    frontendStack = "react",
+  }: {
+    formModel?: FormModel;
+    schema: any;
+    backendLanguage?: BackendLanguage;
+    frontendStack?: FrontendStack;
+  } = req.body;
 
   if (!schema) {
     return res
@@ -534,6 +467,12 @@ app.post("/generate-fullstack", async (req, res) => {
       .json({ error: "backendLanguage must be springBoot, nodeExpress, or dotnetWebApi" });
   }
 
+  if (!["react", "htmlBootstrap"].includes(frontendStack)) {
+    return res
+      .status(400)
+      .json({ error: "frontendStack must be react or htmlBootstrap" });
+  }
+
   const requestId = crypto.randomUUID();
   const tempDir = path.join(os.tmpdir(), `formgen-fullstack-${requestId}`);
   const frontendDir = path.join(tempDir, "frontend");
@@ -541,27 +480,54 @@ app.post("/generate-fullstack", async (req, res) => {
 
   try {
     await fs.ensureDir(frontendDir);
-    await fs.ensureDir(path.join(frontendDir, "src"));
     await fs.ensureDir(backendDir);
+    if (frontendStack === "react") {
+      await fs.ensureDir(path.join(frontendDir, "src"));
+    }
 
     const effectiveFormModel = formModel || buildFormModelFromSchema(schema);
-    const frontendFiles = generateFrontendFiles(effectiveFormModel);
     const apiPath = getPrimaryApiPath(effectiveFormModel, backendLanguage);
     const backendPort = backendLanguage === "springBoot" ? 8080 : backendLanguage === "dotnetWebApi" ? 5000 : 3600;
 
-    // Patch generated frontend to submit directly to generated backend.
-    frontendFiles["src/App.tsx"] = wireFrontendApp(
-      frontendFiles["src/App.tsx"],
-      apiPath,
-      effectiveFormModel,
-      backendPort,
-    );
-    frontendFiles[".env"] = `VITE_API_URL=http://localhost:${backendPort}\nVITE_API_PATH=${apiPath}\n`;
+    if (frontendStack === "react") {
+      const frontendFiles = generateFrontendFiles(effectiveFormModel);
+      frontendFiles["src/App.tsx"] = wireFrontendApp(
+        frontendFiles["src/App.tsx"],
+        apiPath,
+        effectiveFormModel,
+        backendPort,
+      );
+      frontendFiles[".env"] = `VITE_API_URL=http://localhost:${backendPort}\nVITE_API_PATH=${apiPath}\n`;
 
-    for (const [filePath, content] of Object.entries(frontendFiles)) {
-      const fullPath = path.join(frontendDir, filePath);
-      await fs.ensureDir(path.dirname(fullPath));
-      await fs.writeFile(fullPath, content, "utf8");
+      for (const [filePath, content] of Object.entries(frontendFiles)) {
+        const fullPath = path.join(frontendDir, filePath);
+        await fs.ensureDir(path.dirname(fullPath));
+        await fs.writeFile(fullPath, content, "utf8");
+      }
+    } else {
+      const staticResp = await axios.post(
+        `${STATIC_FRONTEND_GENERATOR_URL}/generate`,
+        {
+          formModel: effectiveFormModel,
+          preview: true,
+          wiring: {
+            apiBaseUrl: `http://localhost:${backendPort}`,
+            apiPath,
+          },
+        },
+        { timeout: 120000 },
+      );
+      const staticFiles = staticResp.data?.files as
+        | Array<{ path: string; content: string }>
+        | undefined;
+      if (!staticFiles || !Array.isArray(staticFiles) || staticFiles.length === 0) {
+        throw new Error("Static frontend generator returned no files");
+      }
+      for (const sf of staticFiles) {
+        const fullPath = path.join(frontendDir, sf.path);
+        await fs.ensureDir(path.dirname(fullPath));
+        await fs.writeFile(fullPath, sf.content, "utf8");
+      }
     }
 
     const targetUrl =
@@ -592,15 +558,15 @@ app.post("/generate-fullstack", async (req, res) => {
 
     await fs.writeFile(
       path.join(tempDir, "README.md"),
-      generateBundleReadme(backendLanguage, backendPort),
+      generateBundleReadme(backendLanguage, backendPort, frontendStack),
       "utf8",
     );
 
     const schemaSlug = effectiveFormModel.name
       .toLowerCase()
       .replace(/\s+/g, "-");
-    /** Fullstack bundle is React + selected backend; FE slug reserved for future stacks. */
-    const frontendSlug = "react";
+    const frontendSlug =
+      frontendStack === "htmlBootstrap" ? "html-bootstrap" : "react";
     res.attachment(
       `${schemaSlug}_fullstack-${frontendSlug}_${backendLanguage}.zip`,
     );
@@ -637,6 +603,8 @@ app.get('/health', (_req, res) => {
 app.listen(port, () => {
   console.log(`🚀 formgen-service listening at http://localhost:${port}`);
   console.log(`   POST /generate-react  — Generate a standalone React app ZIP`);
-  console.log(`   POST /generate-fullstack — Generate frontend + selected backend`);
+  console.log(
+    `   POST /generate-fullstack — Fullstack (frontendStack: react | htmlBootstrap)`,
+  );
   console.log(`   GET  /health          — Health check`);
 });
