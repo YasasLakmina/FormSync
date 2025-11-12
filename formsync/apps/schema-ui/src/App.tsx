@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { LandingPage } from './pages/LandingPage';
 import { EditorPage } from './pages/EditorPage';
 import { GeneratedCodePage } from './pages/GeneratedCodePage';
+import { FormBuilderPage } from './pages/FormBuilderPage';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { PageTransition } from './components/layout/PageTransition';
@@ -15,24 +16,25 @@ function App() {
         <div className="flex flex-col min-h-screen">
           <Navbar />
           <Routes>
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
                 <PageTransition>
                   <LandingPage />
                 </PageTransition>
-              } 
+              }
             />
             <Route path="/editor" element={<EditorPage />} />
+            <Route path="/builder/:schemaId" element={<FormBuilderPage />} />
             <Route path="/generated" element={<GeneratedCodePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Footer />
         </div>
       </Router>
-      
+
       {/* Toast Notifications */}
-      <Toaster 
+      <Toaster
         position="top-right"
         expand={true}
         richColors

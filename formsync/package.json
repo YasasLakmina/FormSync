@@ -10,7 +10,8 @@
   "scripts": {
     "dev:api": "npm run dev --workspace=schema-api",
     "dev:ui": "npm run dev --workspace=schema-ui",
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
+    "dev:formgen-api": "npm run dev --workspace=formgen-api",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\" \"npm run dev:formgen-api\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "eslint . --ext .ts,.tsx",

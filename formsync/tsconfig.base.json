@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -15,8 +18,17 @@
     "sourceMap": true,
     "incremental": true,
     "paths": {
-      "@formsync/plugins": ["./packages/plugins/src"]
+      "@formsync/plugins": [
+        "./packages/plugins/src"
+      ],
+      "@formsync/formgen-core": [
+        "./packages/formgen-core/src"
+      ]
     }
   },
-  "exclude": ["node_modules", "dist", "build"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
 }

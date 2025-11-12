@@ -39,9 +39,9 @@ export const EditorPage: React.FC = () => {
 
   // Handler to update stages from TechnicalEditor
   const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => {
-    setStages(prev => 
-      prev.map(s => 
-        s.name === stageName 
+    setStages(prev =>
+      prev.map(s =>
+        s.name === stageName
           ? { ...s, status, progress: status === 'complete' ? 100 : status === 'loading' ? 50 : 0 }
           : s
       )
@@ -66,7 +66,7 @@ export const EditorPage: React.FC = () => {
     try {
       // Start from Frontend Generation (index 4)
       const generationStages = stages.slice(4);
-      
+
       for (let i = 0; i < generationStages.length; i++) {
         const stageIndex = i + 4; // Offset for actual index
         setStages(prev =>
@@ -89,7 +89,7 @@ export const EditorPage: React.FC = () => {
 
       // Call backend API
       const USE_MOCK = true;
-      const result = USE_MOCK 
+      const result = USE_MOCK
         ? await generationService.generateMock()
         : await generationService.generateAll(currentSchema);
 
@@ -140,10 +140,14 @@ export const EditorPage: React.FC = () => {
                   <Wand2 className="h-4 w-4" />
                   Template Builder
                 </TabsTrigger>
+                <TabsTrigger value="visual-builder" className="flex items-center gap-2" onClick={() => navigate('/builder/current')}>
+                  <Code2 className="h-4 w-4" />
+                  Visual Form Builder
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="technical" className="mt-0">
-                <TechnicalEditor 
+                <TechnicalEditor
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
                   onStageUpdate={handleStageUpdate}
