@@ -1,0 +1,35 @@
+{
+    "name": "backend-dto",
+    "version": "1.0.0",
+    "description": "Schema driven backend generator",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc && mkdir -p dist/core/templates && cp -r src/core/templates/* dist/core/templates/",
+        "start": "node dist/server.js",
+        "dev": "ts-node src/server.ts",
+        "generate": "ts-node src/cli.ts",
+        "demo": "ts-node src/cli.ts demo-schema.json",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "body-parser": "^2.2.1",
+        "cors": "^2.8.5",
+        "express": "^5.2.1",
+        "handlebars": "^4.7.8",
+        "jszip": "^3.10.1",
+        "@formsync/plugins": "*"
+    },
+    "devDependencies": {
+        "@types/body-parser": "^1.19.6",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
+        "@types/handlebars": "^4.1.0",
+        "@types/node": "^20.0.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.0.0"
+    }
+}

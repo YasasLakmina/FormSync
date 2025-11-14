@@ -5,7 +5,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "backend-DTO"
   ],
   "scripts": {
     "dev:api": "npm run dev --workspace=schema-api",
