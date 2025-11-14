@@ -12,7 +12,9 @@ import { FormatParserPlugin } from './interfaces/FormatParserPlugin';
 import { SchemaValidatorPlugin } from './interfaces/SchemaValidatorPlugin';
 import { LLMProviderPlugin } from './interfaces/LLMProviderPlugin';
 
-export type PluginType = 'parser' | 'validator' | 'llm';
+import { BackendGeneratorPlugin } from './interfaces/BackendGeneratorPlugin';
+
+export type PluginType = 'parser' | 'validator' | 'llm' | 'generator';
 
 export interface PluginConfig {
   type: PluginType;
@@ -27,7 +29,9 @@ export class PluginRegistry {
   private validators: Map<string, SchemaValidatorPlugin> = new Map();
   private llmProviders: Map<string, LLMProviderPlugin> = new Map();
 
-  private constructor() {}
+  private generators: Map<string, BackendGeneratorPlugin> = new Map();
+
+  private constructor() { }
 
   /**
    * Get singleton instance of the registry
@@ -61,6 +65,14 @@ export class PluginRegistry {
   registerLLMProvider(plugin: LLMProviderPlugin): void {
     this.llmProviders.set(plugin.name, plugin);
     console.log(`[PluginRegistry] Registered LLM provider: ${plugin.name}`);
+  }
+
+  /**
+   * Register a backend generator plugin
+   */
+  registerGenerator(plugin: BackendGeneratorPlugin): void {
+    this.generators.set(plugin.name, plugin);
+    console.log(`[PluginRegistry] Registered generator: ${plugin.name}`);
   }
 
   /**
@@ -106,6 +118,20 @@ export class PluginRegistry {
   }
 
   /**
+   * Get a specific generator by name
+   */
+  getGenerator(name: string): BackendGeneratorPlugin | undefined {
+    return this.generators.get(name);
+  }
+
+  /**
+   * Get all registered generators
+   */
+  getAllGenerators(): BackendGeneratorPlugin[] {
+    return Array.from(this.generators.values());
+  }
+
+  /**
    * Auto-detect and get the appropriate parser for input
    */
   detectParser(input: string): FormatParserPlugin | undefined {
@@ -124,16 +150,18 @@ export class PluginRegistry {
     this.parsers.clear();
     this.validators.clear();
     this.llmProviders.clear();
+    this.generators.clear();
   }
 
   /**
    * Get registry statistics
    */
-  getStats(): { parsers: number; validators: number; llmProviders: number } {
+  getStats(): { parsers: number; validators: number; llmProviders: number; generators: number } {
     return {
       parsers: this.parsers.size,
       validators: this.validators.size,
       llmProviders: this.llmProviders.size,
+      generators: this.generators.size,
     };
   }
 }
