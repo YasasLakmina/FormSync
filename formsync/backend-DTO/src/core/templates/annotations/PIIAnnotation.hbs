@@ -1,0 +1,19 @@
+package {{packageName}}.security.gdpr;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+/**
+* Marks a field as Personally Identifiable Information (PII).
+* Fields annotated with this should be handled with care regarding GDPR.
+*/
+@Target({FIELD})
+@Retention(RUNTIME)
+@Documented
+public @interface PII {
+String category() default "GENERAL";
+}
