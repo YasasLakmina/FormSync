@@ -1,0 +1,69 @@
+package {{packageName}}.service;
+
+import {{packageName}}.model.{{entityName}};
+import {{packageName}}.dto.{{entityName}}DTO;
+import {{packageName}}.repository.{{entityName}}Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class {{entityName}}Service {
+
+private final {{entityName}}Repository repository;
+
+public {{entityName}}Service({{entityName}}Repository repository) {
+this.repository = repository;
+}
+
+public {{entityName}}DTO create({{entityName}}DTO dto) {
+{{entityName}} entity = mapToEntity(dto);
+// IMPORTANT: Do not build queries via string concatenation. Use Spring Data JPA or parameterized queries for injection
+safety.
+entity = repository.save(entity);
+return mapToDto(entity);
+}
+
+public {{entityName}}DTO update(UUID id, {{entityName}}DTO dto) {
+{{entityName}} entity = repository.findById(id).orElseThrow(() -> new RuntimeException("Entity not found"));
+// Update fields logic here
+// For brevity we just save the mapped new state, in real world you patch fields
+{{entityName}} newDetails = mapToEntity(dto);
+// Copy props... (basic implementation)
+return mapToDto(repository.save(entity));
+}
+
+public void delete(UUID id) {
+repository.deleteById(id);
+}
+
+public {{entityName}}DTO findById(UUID id) {
+return repository.findById(id)
+.map(this::mapToDto)
+.orElse(null);
+}
+
+public List<{{entityName}}DTO> findAll() {
+    return repository.findAll().stream()
+    .map(this::mapToDto)
+    .collect(Collectors.toList());
+    }
+
+    private {{entityName}} mapToEntity({{entityName}}DTO dto) {
+    {{entityName}} entity = new {{entityName}}();
+    // Manual mapping or use MapStruct
+    // {{#each fields}}
+    // entity.set{{capitalizedName}}(dto.get{{capitalizedName}}());
+    // {{/each}}
+    return entity;
+    }
+
+    private {{entityName}}DTO mapToDto({{entityName}} entity) {
+    {{entityName}}DTO dto = new {{entityName}}DTO();
+    // Manual mapping
+    return dto;
+    }
+    }

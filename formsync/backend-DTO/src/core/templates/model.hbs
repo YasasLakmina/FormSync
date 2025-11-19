@@ -1,0 +1,34 @@
+package {{packageName}}.model;
+
+{{#each imports}}
+import {{this}};
+{{/each}}
+
+@Entity
+@Table(name = "{{tableName}}")
+public class {{className}} {
+
+{{#each fields}}
+{{#each comments}}
+{{this}}
+{{/each}}
+{{#each annotations}}
+{{this}}
+{{/each}}
+private {{type}} {{name}};
+
+{{/each}}
+
+public {{className}}() {}
+
+{{#each fields}}
+public {{type}} get{{capitalizedName}}() {
+return {{name}};
+}
+
+public void set{{capitalizedName}}({{type}} {{name}}) {
+this.{{name}} = {{name}};
+}
+
+{{/each}}
+}
