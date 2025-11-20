@@ -47,38 +47,52 @@ export const Canvas: React.FC = () => {
                     </p>
                 )}
 
-                {orderedFields.map((field) => (
-                    <div
-                        key={field.id}
-                        className={`field-item ${selectedFieldId === field.id ? 'selected' : ''}`}
-                        style={{ marginBottom: '1.5rem', cursor: 'pointer' }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            dispatch({ type: 'SELECT_FIELD', payload: field.id });
-                        }}
-                    >
-                        <label className="field-label" style={{ marginBottom: '0.5rem' }}>
-                            {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
-                        </label>
+                {orderedFields.map((field) => {
+                    const overrides = field.ui?.styleOverrides;
+                    const fieldStyles: React.CSSProperties = {
+                        marginBottom: '1.5rem',
+                        cursor: 'pointer',
+                        // @ts-ignore - Dynamic CSS variables
+                        '--field-label-color': overrides?.labelColor,
+                        '--field-input-text-color': overrides?.inputTextColor,
+                        '--field-bg-color': overrides?.backgroundColor,
+                        '--field-border-color': overrides?.borderColor,
+                        '--color-primary': overrides?.focusColor || form.theme.colors.primary, // Override focus color
+                    };
 
-                        {/* Enhanced Placeholder Input Render */}
-                        <div className="field-input-mock" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '0 0.5rem',
-                            color: field.ui?.placeholder ? '#999' : 'transparent',
-                            fontStyle: 'italic'
-                        }}>
-                            {field.ui?.placeholder || 'Input...'}
+                    return (
+                        <div
+                            key={field.id}
+                            className={`field-item ${selectedFieldId === field.id ? 'selected' : ''}`}
+                            style={fieldStyles}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: 'SELECT_FIELD', payload: field.id });
+                            }}
+                        >
+                            <label className="field-label" style={{ marginBottom: '0.5rem' }}>
+                                {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
+                            </label>
+
+                            {/* Enhanced Placeholder Input Render */}
+                            <div className="field-input-mock" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 0.5rem',
+                                color: field.ui?.placeholder ? '#999' : 'transparent',
+                                fontStyle: 'italic'
+                            }}>
+                                {field.ui?.placeholder || 'Input...'}
+                            </div>
+
+                            {field.ui?.helpText && (
+                                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                                    {field.ui.helpText}
+                                </small>
+                            )}
                         </div>
-
-                        {field.ui?.helpText && (
-                            <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
-                                {field.ui.helpText}
-                            </small>
-                        )}
-                    </div>
-                ))}
+                    );
+                })}
 
                 {orderedFields.length === 0 && (
                     <div className="text-muted" style={{ textAlign: 'center', padding: '4rem', border: '2px dashed #eee' }}>

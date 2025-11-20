@@ -89,8 +89,8 @@ body {
 .field-item {
   padding: var(--spacing-unit, 12px);
   margin-bottom: var(--spacing-unit, 12px);
-  background: var(--color-bg, #f8f9fa);
-  border: 1px solid var(--color-border, #eee);
+  background: var(--field-bg-color, var(--color-bg, #f8f9fa));
+  border: 1px solid var(--field-border-color, var(--color-border, #eee));
   border-radius: var(--border-radius, 4px);
   cursor: pointer;
   transition: all 0.2s;
@@ -110,7 +110,7 @@ body {
   display: block;
   font-weight: 500;
   margin-bottom: 0.35rem;
-  color: var(--color-text, inherit);
+  color: var(--field-label-color, var(--color-text, inherit));
 }
 
 .field-input-mock {
@@ -124,10 +124,10 @@ body {
   display: flex;
   align-items: center;
   /* Center placeholder vertically */
-  border: 1px solid var(--color-border, #ddd);
+  border: 1px solid var(--field-border-color, var(--color-border, #ddd));
   border-radius: var(--border-radius, 4px);
   background: var(--color-input-bg, white);
-  color: var(--color-text, inherit);
+  color: var(--field-input-text-color, var(--color-text, inherit));
   pointer-events: none;
 }
 
