@@ -24,7 +24,7 @@ export const Canvas: React.FC = () => {
                     <div
                         key={field.id}
                         className={`field-item ${selectedFieldId === field.id ? 'selected' : ''}`}
-                        style={{ marginBottom: '1.5rem', cursor: 'default' }}
+                        style={{ marginBottom: '1.5rem', cursor: 'pointer' }}
                         onClick={(e) => {
                             e.stopPropagation();
                             dispatch({ type: 'SELECT_FIELD', payload: field.id });
@@ -34,8 +34,16 @@ export const Canvas: React.FC = () => {
                             {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
                         </label>
 
-                        {/* Placeholder Input Render */}
-                        <div className="field-input-mock" />
+                        {/* Enhanced Placeholder Input Render */}
+                        <div className="field-input-mock" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '0 0.5rem',
+                            color: field.ui?.placeholder ? '#999' : 'transparent',
+                            fontStyle: 'italic'
+                        }}>
+                            {field.ui?.placeholder || 'Input...'}
+                        </div>
 
                         {field.ui?.helpText && (
                             <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>

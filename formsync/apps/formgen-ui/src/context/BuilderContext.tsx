@@ -10,7 +10,8 @@ interface BuilderState {
 // --- Action Definitions ---
 type BuilderAction =
     | { type: 'SELECT_FIELD'; payload: string | null }
-    | { type: 'UPDATE_FORM'; payload: FormModel };
+    | { type: 'UPDATE_FORM'; payload: FormModel }
+    | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormModel['fields'][0]> } };
 
 // --- Initial State ---
 // Minimal default state to avoid crashes before data is loaded
@@ -33,6 +34,18 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
             return { ...state, selectedFieldId: action.payload };
         case 'UPDATE_FORM':
             return { ...state, form: action.payload };
+        case 'UPDATE_FIELD':
+            return {
+                ...state,
+                form: {
+                    ...state.form,
+                    fields: state.form.fields.map((field) =>
+                        field.id === action.payload.fieldId
+                            ? { ...field, ...action.payload.updates }
+                            : field
+                    ),
+                },
+            };
         default:
             return state;
     }
