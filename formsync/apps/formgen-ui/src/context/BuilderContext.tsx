@@ -11,7 +11,8 @@ interface BuilderState {
 type BuilderAction =
     | { type: 'SELECT_FIELD'; payload: string | null }
     | { type: 'UPDATE_FORM'; payload: FormModel }
-    | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormModel['fields'][0]> } };
+    | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormModel['fields'][0]> } }
+    | { type: 'UPDATE_THEME'; payload: Partial<FormModel['theme']> };
 
 // --- Initial State ---
 // Minimal default state to avoid crashes before data is loaded
@@ -44,6 +45,14 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
                             ? { ...field, ...action.payload.updates }
                             : field
                     ),
+                },
+            };
+        case 'UPDATE_THEME':
+            return {
+                ...state,
+                form: {
+                    ...state.form,
+                    theme: { ...state.form.theme, ...action.payload },
                 },
             };
         default:

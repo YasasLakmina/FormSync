@@ -10,9 +10,16 @@ export const Canvas: React.FC = () => {
         .map(id => form.fields.find(f => f.id === id))
         .filter(f => !!f);
 
+    // Apply Theme
+    const themeStyles = {
+        '--primary-color': form.theme.primaryColor,
+        '--border-radius': `${form.theme.radius}px`,
+        '--font-family': form.theme.fontFamily,
+    } as React.CSSProperties;
+
     return (
         <div className="canvas-area">
-            <div className="form-preview">
+            <div className="form-preview" style={themeStyles}>
                 <h1 className="form-title">{form.meta?.title || form.name}</h1>
                 {form.meta?.description && (
                     <p className="text-muted" style={{ marginBottom: '2rem' }}>

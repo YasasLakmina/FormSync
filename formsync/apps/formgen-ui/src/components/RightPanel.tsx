@@ -1,6 +1,6 @@
 import React from 'react';
 import { useBuilder } from '../context/BuilderContext';
-import { FieldModel } from '@formsync/formgen-core';
+import { FieldModel, ThemeConfig } from '@formsync/formgen-core';
 
 export const RightPanel: React.FC = () => {
     const { state, dispatch } = useBuilder();
@@ -21,17 +21,71 @@ export const RightPanel: React.FC = () => {
         });
     };
 
+    const handleThemeUpdate = (updates: Partial<ThemeConfig>) => {
+        dispatch({
+            type: 'UPDATE_THEME',
+            payload: updates,
+        });
+    }
+
     if (!selectedField) {
+        // --- Theme Editor ---
         return (
             <div className="panel">
-                <div className="panel-header">Properties</div>
-                <div className="panel-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span className="text-muted">Select a field to view properties</span>
+                <div className="panel-header">Global Theme Settings</div>
+                <div className="panel-content">
+                    <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
+                        Customize the look and feel of your form.
+                    </p>
+
+                    {/* Primary Color */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label className="field-label">Primary Color</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                                type="color"
+                                value={state.form.theme.primaryColor || '#000000'}
+                                onChange={(e) => handleThemeUpdate({ primaryColor: e.target.value })}
+                                style={{ cursor: 'pointer', height: '36px', width: '36px', border: 'none', padding: 0 }}
+                            />
+                            <span className="text-muted">{state.form.theme.primaryColor}</span>
+                        </div>
+                    </div>
+
+                    {/* Border Radius */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label className="field-label">Border Radius: {state.form.theme.radius}px</label>
+                        <input
+                            type="range"
+                            min="0"
+                            max="20"
+                            value={state.form.theme.radius || 4}
+                            onChange={(e) => handleThemeUpdate({ radius: parseInt(e.target.value) })}
+                            style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                    </div>
+
+                    {/* Font Family */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label className="field-label">Typography</label>
+                        <select
+                            className="field-input-mock"
+                            style={{ pointerEvents: 'auto', padding: '0 0.5rem' }}
+                            value={state.form.theme.fontFamily || 'sans-serif'}
+                            onChange={(e) => handleThemeUpdate({ fontFamily: e.target.value })}
+                        >
+                            <option value="Inter, sans-serif">Inter (Default)</option>
+                            <option value="'Courier New', monospace">Monospace</option>
+                            <option value="'Times New Roman', serif">Serif</option>
+                            <option value="Arial, sans-serif">Arial</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         );
     }
 
+    // --- Field Editor ---
     return (
         <div className="panel">
             <div className="panel-header">Properties: {selectedField.key}</div>
