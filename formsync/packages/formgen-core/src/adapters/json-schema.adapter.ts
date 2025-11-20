@@ -137,6 +137,7 @@ export function parseJsonSchemaToFormModel(schema: JsonSchema): FormModel {
             muted: '#6b7280',
             border: '#e5e7eb',
             error: '#ef4444',
+            inputBackground: '#ffffff',
         },
         typography: {
             fontFamily: 'Inter, sans-serif',

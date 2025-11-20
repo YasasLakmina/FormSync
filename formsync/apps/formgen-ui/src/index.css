@@ -114,12 +114,19 @@ body {
 }
 
 .field-input-mock {
+  box-sizing: border-box;
+  /* Fix overflow */
   width: 100%;
   height: calc(var(--spacing-unit, 12px) * 3);
   /* Dynamic height */
+  padding: 0 0.75rem;
+  /* Add horizontal padding */
+  display: flex;
+  align-items: center;
+  /* Center placeholder vertically */
   border: 1px solid var(--color-border, #ddd);
   border-radius: var(--border-radius, 4px);
-  background: var(--color-surface, white);
+  background: var(--color-input-bg, white);
   color: var(--color-text, inherit);
   pointer-events: none;
 }
@@ -130,6 +137,103 @@ body {
   font-size: 0.85em;
 }
 
+/* --- Settings Panel Utilities --- */
+
+.settings-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-group {
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.settings-section-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.control-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+  color: #444;
+}
+
+.control-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.9rem;
+  color: #333;
+  transition: border-color 0.2s;
+}
+
+.control-input:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+textarea.control-input {
+  height: auto;
+  padding: 0.5rem;
+}
+
+/* Color Picker & Range Overrides */
+.color-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 36px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.25rem;
+}
+
+.color-picker {
+  height: 100%;
+  width: 40px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+.color-value {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.range-input {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* --- Code Block --- */
 .code-block {
   background: #1e1e1e;
   color: #d4d4d4;

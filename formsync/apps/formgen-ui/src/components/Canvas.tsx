@@ -26,6 +26,7 @@ export const Canvas: React.FC = () => {
         '--color-muted': form.theme.colors.muted,
         '--color-border': form.theme.colors.border,
         '--color-error': form.theme.colors.error,
+        '--color-input-bg': form.theme.colors.inputBackground,
 
         // Geometry
         '--border-radius': `${form.theme.radius}px`,

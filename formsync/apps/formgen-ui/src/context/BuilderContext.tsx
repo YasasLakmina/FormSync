@@ -33,6 +33,7 @@ const initialState: BuilderState = {
                 muted: '#6b7280',
                 border: '#e5e7eb',
                 error: '#ef4444',
+                inputBackground: '#ffffff',
             },
             typography: {
                 fontFamily: 'Inter, sans-serif',
