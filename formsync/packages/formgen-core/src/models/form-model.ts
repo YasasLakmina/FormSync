@@ -92,6 +92,11 @@ export interface LayoutConfig {
     order: string[];
 }
 
+export interface SubmitConfig {
+    text: string;
+    color?: string;
+}
+
 export interface FormModel {
     id: string;
     name: string;
@@ -103,4 +108,5 @@ export interface FormModel {
     theme: ThemeConfig;
     layout: LayoutConfig;
     fields: FieldModel[];
+    submit?: SubmitConfig;
 }

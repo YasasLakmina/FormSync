@@ -215,6 +215,23 @@ export const RightPanel: React.FC = () => {
                             })}
                         />
                     </div>
+
+                    <h4 className="settings-section-title">Submit Button</h4>
+
+                    <div className="settings-group">
+                        <label className="control-label">Button Text</label>
+                        <input
+                            className="control-input"
+                            value={state.form.submit?.text || 'Submit'}
+                            onChange={(e) => dispatch({
+                                type: 'UPDATE_FORM', // We might need a more specific action or just update the whole form helper
+                                payload: {
+                                    ...state.form,
+                                    submit: { ...state.form.submit, text: e.target.value }
+                                }
+                            })}
+                        />
+                    </div>
                 </div>
             </div>
         );

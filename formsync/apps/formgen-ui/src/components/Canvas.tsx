@@ -106,6 +106,25 @@ export const Canvas: React.FC = () => {
                         Form is empty.
                     </div>
                 )}
+
+                {/* Submit Button */}
+                <div style={{ marginTop: '2rem' }}>
+                    <button
+                        style={{
+                            width: '100%',
+                            padding: 'calc(var(--spacing-unit, 12px) * 1.25)',
+                            backgroundColor: form.submit?.color || 'var(--color-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 'var(--border-radius, 4px)',
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {form.submit?.text || 'Submit'}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -157,5 +157,6 @@ export function parseJsonSchemaToFormModel(schema: JsonSchema): FormModel {
         theme,
         layout,
         fields,
+        submit: { text: 'Submit' }
     };
 }
