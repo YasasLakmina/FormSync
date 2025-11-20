@@ -11,10 +11,29 @@ export const Canvas: React.FC = () => {
         .filter(f => !!f);
 
     // Apply Theme
+    const densityMap = {
+        compact: '8px',
+        normal: '12px',
+        comfortable: '16px',
+    };
+
     const themeStyles = {
-        '--primary-color': form.theme.primaryColor,
+        // Colors
+        '--color-primary': form.theme.colors.primary,
+        '--color-bg': form.theme.colors.background,
+        '--color-surface': form.theme.colors.surface,
+        '--color-text': form.theme.colors.text,
+        '--color-muted': form.theme.colors.muted,
+        '--color-border': form.theme.colors.border,
+        '--color-error': form.theme.colors.error,
+
+        // Geometry
         '--border-radius': `${form.theme.radius}px`,
-        '--font-family': form.theme.fontFamily,
+        '--spacing-unit': densityMap[form.theme.density] || '12px',
+
+        // Typography
+        '--font-family': form.theme.typography.fontFamily,
+        '--font-size-base': `${form.theme.typography.baseFontSize}px`,
     } as React.CSSProperties;
 
     return (

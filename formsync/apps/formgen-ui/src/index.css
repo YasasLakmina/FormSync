@@ -56,72 +56,83 @@ body {
 }
 
 .form-preview {
-  background: white;
+  /* Colors */
+  background: var(--color-surface, white);
+  color: var(--color-text, #111);
+  border: 1px solid var(--color-border, transparent);
+
+  /* Geometry */
   width: 100%;
   max-width: 600px;
   min-height: 80vh;
-  padding: 2rem;
+  padding: calc(var(--spacing-unit, 12px) * 2);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   border-radius: var(--border-radius, 8px);
+
+  /* Typography */
   font-family: var(--font-family, inherit);
+  font-size: var(--font-size-base, 16px);
+
+  transition: all 0.3s ease;
 }
 
 .form-title {
   margin-top: 0;
-  margin-bottom: 2rem;
+  margin-bottom: calc(var(--spacing-unit, 12px) * 2);
   font-size: 1.5rem;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid var(--color-border, #eee);
   padding-bottom: 0.5rem;
-  color: var(--primary-color, #333);
+  color: var(--color-primary, #333);
 }
 
 /* --- Field Items --- */
 .field-item {
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background: #f8f9fa;
-  border: 1px solid #eee;
+  padding: var(--spacing-unit, 12px);
+  margin-bottom: var(--spacing-unit, 12px);
+  background: var(--color-bg, #f8f9fa);
+  border: 1px solid var(--color-border, #eee);
   border-radius: var(--border-radius, 4px);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .field-item:hover {
-  border-color: #ccc;
-  background: #f0f0f0;
+  border-color: var(--color-muted, #ccc);
 }
 
 .field-item.selected {
-  border-color: var(--primary-color, #3b82f6);
-  background: #eff6ff;
-  box-shadow: 0 0 0 1px var(--primary-color, #3b82f6);
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 1px var(--color-primary, #3b82f6);
+  /* Optional: slightly tint background if needed */
 }
 
 .field-label {
   display: block;
   font-weight: 500;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+  color: var(--color-text, inherit);
 }
 
 .field-input-mock {
   width: 100%;
-  height: 36px;
-  border: 1px solid #ddd;
+  height: calc(var(--spacing-unit, 12px) * 3);
+  /* Dynamic height */
+  border: 1px solid var(--color-border, #ddd);
   border-radius: var(--border-radius, 4px);
-  background: white;
+  background: var(--color-surface, white);
+  color: var(--color-text, inherit);
   pointer-events: none;
-  /* Preview only */
 }
 
 /* --- Utilities --- */
 .text-muted {
-  color: #666;
-  font-size: 0.85rem;
+  color: var(--color-muted, #666);
+  font-size: 0.85em;
 }
 
 .code-block {
-  background: #2d2d2d;
-  color: #eee;
+  background: #1e1e1e;
+  color: #d4d4d4;
   padding: 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
