@@ -28,6 +28,15 @@ export const RightPanel: React.FC = () => {
         });
     }
 
+    const handleColorUpdate = (key: keyof ThemeConfig['colors'], value: string) => {
+        handleThemeUpdate({
+            colors: {
+                ...state.form.theme.colors,
+                [key]: value
+            }
+        });
+    }
+
     if (!selectedField) {
         // --- Theme Editor ---
         return (
@@ -38,22 +47,81 @@ export const RightPanel: React.FC = () => {
                         Customize the look and feel of your form.
                     </p>
 
-                    {/* Primary Color */}
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label className="field-label">Primary Color</label>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <input
-                                type="color"
-                                value={state.form.theme.primaryColor || '#000000'}
-                                onChange={(e) => handleThemeUpdate({ primaryColor: e.target.value })}
-                                style={{ cursor: 'pointer', height: '36px', width: '36px', border: 'none', padding: 0 }}
-                            />
-                            <span className="text-muted">{state.form.theme.primaryColor}</span>
+                    {/* Mode & Density */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div>
+                            <label className="field-label">Mode</label>
+                            <select
+                                className="field-input-mock"
+                                style={{ pointerEvents: 'auto', padding: '0 0.5rem' }}
+                                value={state.form.theme.mode}
+                                onChange={(e) => handleThemeUpdate({ mode: e.target.value as any })}
+                            >
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="field-label">Density</label>
+                            <select
+                                className="field-input-mock"
+                                style={{ pointerEvents: 'auto', padding: '0 0.5rem' }}
+                                value={state.form.theme.density}
+                                onChange={(e) => handleThemeUpdate({ density: e.target.value as any })}
+                            >
+                                <option value="compact">Compact</option>
+                                <option value="normal">Normal</option>
+                                <option value="comfortable">Comfortable</option>
+                            </select>
                         </div>
                     </div>
 
+                    <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', borderBottom: '1px solid #eee' }}>Palette</h4>
+
+                    {/* Colors Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div>
+                            <label className="field-label">Primary</label>
+                            <input
+                                type="color"
+                                style={{ width: '100%', height: '36px', cursor: 'pointer' }}
+                                value={state.form.theme.colors.primary}
+                                onChange={(e) => handleColorUpdate('primary', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="field-label">Background</label>
+                            <input
+                                type="color"
+                                style={{ width: '100%', height: '36px', cursor: 'pointer' }}
+                                value={state.form.theme.colors.background}
+                                onChange={(e) => handleColorUpdate('background', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="field-label">Surface</label>
+                            <input
+                                type="color"
+                                style={{ width: '100%', height: '36px', cursor: 'pointer' }}
+                                value={state.form.theme.colors.surface}
+                                onChange={(e) => handleColorUpdate('surface', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="field-label">Text</label>
+                            <input
+                                type="color"
+                                style={{ width: '100%', height: '36px', cursor: 'pointer' }}
+                                value={state.form.theme.colors.text}
+                                onChange={(e) => handleColorUpdate('text', e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <h4 style={{ marginTop: '1.5rem', marginBottom: '1rem', borderBottom: '1px solid #eee' }}>Typography & Shape</h4>
+
                     {/* Border Radius */}
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
                         <label className="field-label">Border Radius: {state.form.theme.radius}px</label>
                         <input
                             type="range"
@@ -66,26 +134,43 @@ export const RightPanel: React.FC = () => {
                     </div>
 
                     {/* Font Family */}
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label className="field-label">Typography</label>
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label className="field-label">Font Family</label>
                         <select
                             className="field-input-mock"
                             style={{ pointerEvents: 'auto', padding: '0 0.5rem' }}
-                            value={state.form.theme.fontFamily || 'sans-serif'}
-                            onChange={(e) => handleThemeUpdate({ fontFamily: e.target.value })}
+                            value={state.form.theme.typography.fontFamily}
+                            onChange={(e) => handleThemeUpdate({
+                                typography: { ...state.form.theme.typography, fontFamily: e.target.value }
+                            })}
                         >
-                            <option value="Inter, sans-serif">Inter (Default)</option>
+                            <option value="Inter, sans-serif">Inter</option>
                             <option value="'Courier New', monospace">Monospace</option>
                             <option value="'Times New Roman', serif">Serif</option>
                             <option value="Arial, sans-serif">Arial</option>
                         </select>
+                    </div>
+
+                    {/* Base Font Size */}
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label className="field-label">Base Size: {state.form.theme.typography.baseFontSize}px</label>
+                        <input
+                            type="range"
+                            min="12"
+                            max="24"
+                            value={state.form.theme.typography.baseFontSize}
+                            onChange={(e) => handleThemeUpdate({
+                                typography: { ...state.form.theme.typography, baseFontSize: parseInt(e.target.value) }
+                            })}
+                            style={{ width: '100%', cursor: 'pointer' }}
+                        />
                     </div>
                 </div>
             </div>
         );
     }
 
-    // --- Field Editor ---
+    // --- Field Editor (Unchanged) ---
     return (
         <div className="panel">
             <div className="panel-header">Properties: {selectedField.key}</div>

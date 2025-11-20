@@ -56,13 +56,25 @@ export interface FieldModel {
 }
 
 export interface ThemeConfig {
-    primaryColor: string;
-    fontFamily: string;
+    mode: 'light' | 'dark';
+    density: 'compact' | 'normal' | 'comfortable';
+    colors: {
+        primary: string;
+        background: string;
+        surface: string;
+        text: string;
+        muted: string;
+        border: string;
+        error: string;
+    };
+    typography: {
+        fontFamily: string;
+        baseFontSize: number;
+    };
     /** consistent radius unit */
     radius: number;
-    background?: string;
-    surface?: string;
-    textColor?: string;
+    // Legacy fallback compatibility optional
+    primaryColor?: string;
 }
 
 export interface LayoutConfig {

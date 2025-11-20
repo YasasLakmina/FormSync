@@ -20,7 +20,24 @@ const DataLoader: React.FC = () => {
                         title: 'Employee Onboarding Form',
                         description: 'Please fill out your details below.'
                     },
-                    theme: { primaryColor: '#3b82f6', fontFamily: 'Inter', radius: 6 },
+                    theme: {
+                        mode: 'light',
+                        density: 'normal',
+                        radius: 6,
+                        colors: {
+                            primary: '#3b82f6',
+                            background: '#ffffff',
+                            surface: '#ffffff',
+                            text: '#111827',
+                            muted: '#6b7280',
+                            border: '#e5e7eb',
+                            error: '#ef4444',
+                        },
+                        typography: {
+                            fontFamily: 'Inter, sans-serif',
+                            baseFontSize: 16,
+                        }
+                    },
                     layout: { order: ['f1', 'f2', 'f3'] },
                     fields: [
                         { id: 'f1', key: 'fullName', type: 'text', label: 'Full Name', required: true },
