@@ -32,6 +32,7 @@ const DataLoader: React.FC = () => {
                             muted: '#6b7280',
                             border: '#e5e7eb',
                             error: '#ef4444',
+                            inputBackground: '#f9fafb',
                         },
                         typography: {
                             fontFamily: 'Inter, sans-serif',

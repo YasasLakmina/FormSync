@@ -66,6 +66,7 @@ export interface ThemeConfig {
         muted: string;
         border: string;
         error: string;
+        inputBackground: string;
     };
     typography: {
         fontFamily: string;
