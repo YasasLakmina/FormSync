@@ -1,0 +1,31 @@
+package com.example.demo.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import java.util.*;
+
+@Data
+@Entity
+@Table(name = "{{toSnakeCase name}}")
+public class {{name}} {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+{{#each fields}}
+    {{#if description}}
+    /**
+     * {{description}}
+     */
+    {{/if}}
+    {{#if constraints.required}}
+    @Column(nullable = false)
+    {{/if}}
+    {{#eq type 'List'}}
+    @ElementCollection
+    {{/eq}}
+    private {{toJavaType type referenceType}} {{name}};
+
+{{/each}}
+}
