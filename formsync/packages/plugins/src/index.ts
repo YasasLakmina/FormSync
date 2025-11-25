@@ -8,7 +8,9 @@
 export * from './interfaces/FormatParserPlugin';
 export * from './interfaces/SchemaValidatorPlugin';
 export * from './interfaces/LLMProviderPlugin';
+export * from './interfaces/RuntimeGeneratorPlugin';
 export * from './interfaces/BackendGeneratorPlugin';
+
 
 // Base classes
 export * from './base/BasePlugin';
