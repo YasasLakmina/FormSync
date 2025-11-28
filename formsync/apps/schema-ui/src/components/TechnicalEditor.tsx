@@ -178,10 +178,41 @@ export const TechnicalEditor: React.FC = () => {
 
   // Undo individual suggestion
   const handleUndoSuggestion = useCallback((index: number) => {
-    if (!appliedSuggestions.has(index)) return;
+    if (!appliedSuggestions.has(index) || !enhancements || !displaySchema) return;
 
-    // Simply use the global undo since suggestions are applied one by one
-    undo();
+    // Get the base schema (before any suggestions)
+    // We need to go back to the schema before AI enhancement
+    const baseSchema = convertedSchema || currentSchema;
+    if (!baseSchema) return;
+
+    // Rebuild schema by applying ALL suggestions EXCEPT this one
+    let rebuiltSchema = JSON.parse(JSON.stringify(baseSchema));
+    
+    enhancements.forEach((enhancement, idx) => {
+      // Apply all applied suggestions except the one we're undoing
+      if (appliedSuggestions.has(idx) && idx !== index) {
+        const pathParts = enhancement.path.split('.');
+        let current = rebuiltSchema;
+        
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          if (!current[pathParts[i]]) {
+            current[pathParts[i]] = {};
+          }
+          current = current[pathParts[i]];
+        }
+
+        const lastKey = pathParts[pathParts.length - 1];
+        
+        if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
+          current[lastKey] = enhancement.newValue;
+        } else if (enhancement.changeType === 'removed') {
+          delete current[lastKey];
+        }
+      }
+    });
+
+    // Update schema
+    setCurrentSchema(rebuiltSchema);
     
     // Remove from applied set
     setAppliedSuggestions(prev => {
@@ -190,8 +221,11 @@ export const TechnicalEditor: React.FC = () => {
       return newSet;
     });
     
+    // Add to history
+    addToHistory(displaySchema, `Undid suggestion at ${enhancements[index].path}`);
+    
     toast.success('Suggestion undone');
-  }, [appliedSuggestions, undo]);
+  }, [appliedSuggestions, enhancements, displaySchema, convertedSchema, currentSchema, setCurrentSchema, addToHistory]);
 
   // Apply individual suggestion
   const handleApplySuggestion = useCallback((index: number) => {
