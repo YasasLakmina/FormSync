@@ -25,7 +25,9 @@ import {
   Loader2,
   Library,
   Undo2,
-  Redo2
+  Redo2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -48,6 +50,7 @@ export const TechnicalEditor: React.FC = () => {
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
   // Individual loading states for each action
   const [convertLoading, setConvertLoading] = useState(false);
@@ -396,7 +399,7 @@ export const TechnicalEditor: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      {/* Top Bar */}
+      {/* Top Bar with Format Selector and Action Buttons */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         {/* Format Selector */}
         <div>
@@ -404,7 +407,7 @@ export const TechnicalEditor: React.FC = () => {
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Action Buttons */}
+        {/* Main Action Buttons */}
         <div className="flex flex-col gap-2">
           <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Actions</h3>
           <div className="flex gap-2 flex-wrap">
@@ -469,86 +472,137 @@ export const TechnicalEditor: React.FC = () => {
             </Button>
           </div>
         </div>
-
-        {/* Quick Actions */}
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Quick Actions</h3>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFileUpload}
-              className="gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              Upload
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTemplates(true)}
-              className="gap-2"
-            >
-              <Library className="h-4 w-4" />
-              Templates
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTreeView(!showTreeView)}
-              className="gap-2"
-            >
-              <TreePine className="h-4 w-4" />
-              Schema Tree
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undo}
-              disabled={historyIndex <= 0}
-              className="gap-2"
-            >
-              <Undo2 className="h-4 w-4" />
-              Undo
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={redo}
-              disabled={historyIndex >= history.length - 1}
-              className="gap-2"
-            >
-              <Redo2 className="h-4 w-4" />
-              Redo
-            </Button>
-          </div>
-        </div>
       </div>
 
-      {/* Main Content - Side by Side Editors */}
-      <div className="flex-1 grid grid-cols-2 gap-4 min-h-[600px]">
-        {/* Left Panel - Input */}
-        <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
-          <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
-            <CardTitle className="text-base">Input ({format.toUpperCase()})</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">
-            <Editor
-              height="100%"
-              language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
-              value={editorValue}
-              onChange={(value) => setEditorValue(value || '')}
-              theme="vs-dark"
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-              }}
-            />
-          </CardContent>
+      {/* Main Content - Sidebar + Editors */}
+      <div className="flex-1 flex gap-4 min-h-[600px]">
+        {/* Left Sidebar - Quick Actions */}
+        <Card className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 ${sidebarExpanded ? 'w-48' : 'w-16'}`}>
+          {/* Expand/Collapse Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className="w-full justify-start gap-2 mb-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+          >
+            {sidebarExpanded ? (
+              <>
+                <ChevronLeft className="h-4 w-4" />
+                <span className="text-xs font-semibold">Collapse</span>
+              </>
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+
+          <div className="border-t border-neutral-300 dark:border-neutral-700 mb-2" />
+
+          {/* Upload */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFileUpload}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Upload File" : undefined}
+          >
+            <Upload className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Upload</span>}
+          </Button>
+
+          {/* Templates */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTemplates(true)}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Templates" : undefined}
+          >
+            <Library className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Templates</span>}
+          </Button>
+
+          {/* Schema Navigator */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTreeView(!showTreeView)}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Schema Navigator" : undefined}
+          >
+            <TreePine className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Navigator</span>}
+          </Button>
+
+          {/* AI Suggestions */}
+          {enhancements && enhancements.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSuggestions(true)}
+              className={`w-full justify-start gap-3 h-10 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative ${!sidebarExpanded && 'px-2'}`}
+              title={!sidebarExpanded ? "View AI Suggestions" : undefined}
+            >
+              <Sparkles className="h-4 w-4 flex-shrink-0 text-purple-600" />
+              {sidebarExpanded && <span className="text-sm">AI Suggestions</span>}
+              <Badge className="absolute -top-1 -right-1 bg-purple-600 text-white px-1.5 py-0.5 text-xs">
+                {enhancements.length}
+              </Badge>
+            </Button>
+          )}
+
+          <div className="border-t border-neutral-300 dark:border-neutral-700 my-2" />
+
+          {/* Undo */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={undo}
+            disabled={historyIndex <= 0}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Undo" : undefined}
+          >
+            <Undo2 className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Undo</span>}
+          </Button>
+
+          {/* Redo */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Redo" : undefined}
+          >
+            <Redo2 className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Redo</span>}
+          </Button>
         </Card>
+
+        {/* Editors Grid */}
+        <div className="flex-1 grid grid-cols-2 gap-4">
+          {/* Left Panel - Input */}
+          <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
+            <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
+              <CardTitle className="text-base">Input ({format.toUpperCase()})</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-0">
+              <Editor
+                height="100%"
+                language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
+                value={editorValue}
+                onChange={(value) => setEditorValue(value || '')}
+                theme="vs-dark"
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                }}
+              />
+            </CardContent>
+          </Card>
 
         {/* Right Panel - Output */}
         <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
@@ -589,19 +643,29 @@ export const TechnicalEditor: React.FC = () => {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
 
-      {/* AI Enhancement Suggestions */}
+      {/* AI Enhancement Suggestions Dialog */}
       {showSuggestions && enhancements && enhancements.length > 0 && (
-        <EnhancementsPanel
-          enhancements={enhancements}
-          onApplySuggestion={handleApplySuggestion}
-          onUndoSuggestion={handleUndoSuggestion}
-          appliedSuggestions={appliedSuggestions}
-          onApplyAll={handleApplyAll}
-          onUndoAll={handleUndoAll}
-          onClose={() => setShowSuggestions(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
+          >
+            <EnhancementsPanel
+              enhancements={enhancements}
+              onApplySuggestion={handleApplySuggestion}
+              onUndoSuggestion={handleUndoSuggestion}
+              appliedSuggestions={appliedSuggestions}
+              onApplyAll={handleApplyAll}
+              onUndoAll={handleUndoAll}
+              onClose={() => setShowSuggestions(false)}
+            />
+          </motion.div>
+        </div>
       )}
 
       {/* Tree View Slide-in */}
