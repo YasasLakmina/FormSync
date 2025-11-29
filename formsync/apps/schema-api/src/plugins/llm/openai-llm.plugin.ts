@@ -42,7 +42,8 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
 
     try {
       const prompt = this.buildPrompt(schema, options);
-      
+
+      // call the model (defensively accept different shapes)
       const response = await this.client!.chat.completions.create({
         model: this.model,
         messages: [
@@ -62,22 +63,67 @@ STRICT RULES YOU MUST FOLLOW:
 
 Return only valid JSON with the enhanced schema and changes array.`,
           },
-          {
-            role: 'user',
-            content: prompt,
-          },
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         response_format: { type: 'json_object' },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{}');
-      
+      // defensive extraction of JSON result
+      let rawText = '';
+      if ((response as any).choices?.[0]?.message?.content) {
+        rawText = (response as any).choices[0].message.content;
+      } else if ((response as any).output) {
+        rawText = JSON.stringify((response as any).output);
+      } else {
+        rawText = JSON.stringify(response);
+      }
+
+      // try to parse — if parse fails, attempt to extract JSON block
+      let parsed: any;
+      try {
+        parsed = typeof rawText === 'string' ? JSON.parse(rawText) : rawText;
+      } catch (e) {
+        const jsonMatch = rawText.match(/(\{[\s\S]*\})/m);
+        if (jsonMatch) {
+          try { parsed = JSON.parse(jsonMatch[1]); } 
+          catch (err) {
+            return {
+              success: false,
+              errors: ['AI returned non-JSON or unparsable JSON. Raw response provided.', rawText],
+              changes: [],
+            };
+          }
+        } else {
+          return {
+            success: false,
+            errors: ['AI returned non-JSON content and no parsable JSON block found. Raw response provided.', rawText],
+            changes: [],
+          };
+        }
+      }
+
+      const enhancedSchema = parsed.schema ?? parsed; // accept either { schema: ... } or direct schema
+      const changesFromModel = parsed.changes ?? [];
+
+      // VALIDATION: compare original schema -> enhancedSchema for invariants
+      const diffs = validateSchemaInvariant(schema, enhancedSchema);
+      if (diffs.length > 0) {
+        return {
+          success: false,
+          errors: ['Enhanced schema violates invariants. See diffs for details.'],
+          changes: diffs,
+        };
+      }
+
+      // SANITIZATION: Ensure every field has description + examples (auto-add placeholders if missing)
+      autoFillMissingMeta(enhancedSchema);
+
       return {
         success: true,
-        enhancedSchema: result.schema || schema,
-        changes: result.changes || [],
-        tokensUsed: response.usage?.total_tokens,
+        enhancedSchema,
+        changes: (changesFromModel.length ? changesFromModel : []),
+        tokensUsed: (response as any).usage?.total_tokens,
         model: this.model,
       };
     } catch (error) {
@@ -178,5 +224,147 @@ REMEMBER:
 - Add description + examples to EVERY field
 - Do NOT modify structure or property names
 - Do NOT replace formats with patterns`;
+  }
+}
+
+// Helper functions for defensive schema validation
+
+function isObject(x: any) {
+  return x && typeof x === 'object' && !Array.isArray(x);
+}
+
+function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array<any> {
+  const diffs: any[] = [];
+
+  if (!isObject(original) || !isObject(enhanced)) {
+    return diffs;
+  }
+
+  // compare required arrays at this level (if present in original)
+  if (Array.isArray(original.required)) {
+    const origReq = original.required.slice().sort();
+    const enhReq = Array.isArray(enhanced.required) ? enhanced.required.slice().sort() : [];
+    if (JSON.stringify(origReq) !== JSON.stringify(enhReq)) {
+      diffs.push({
+        path: path || '/',
+        message: 'required array changed',
+        original: origReq,
+        enhanced: enhReq,
+      });
+    }
+  }
+
+  const origProps = original.properties ?? {};
+  const enhProps = enhanced.properties ?? {};
+  const origKeys = Object.keys(origProps);
+  const enhKeys = Object.keys(enhProps);
+
+  const missingInEnh = origKeys.filter(k => !enhKeys.includes(k));
+  const addedInEnh = enhKeys.filter(k => !origKeys.includes(k));
+  if (missingInEnh.length || addedInEnh.length) {
+    diffs.push({
+      path: path || '/',
+      message: 'properties keys changed',
+      missingInEnhanced: missingInEnh,
+      addedInEnhanced: addedInEnh,
+    });
+    return diffs;
+  }
+
+  for (const key of origKeys) {
+    const origProp = origProps[key];
+    const enhProp = enhProps[key];
+    const propPath = path ? `${path}.properties.${key}` : `properties.${key}`;
+
+    const origType = origProp?.type;
+    const enhType = enhProp?.type;
+    if (origType !== enhType) {
+      diffs.push({
+        path: propPath,
+        message: 'type changed',
+        originalType: origType,
+        enhancedType: enhType,
+      });
+      continue;
+    }
+
+    if (Array.isArray(origProp?.enum)) {
+      const origSet = new Set(origProp.enum);
+      const enhEnum = Array.isArray(enhProp?.enum) ? enhProp.enum : [];
+      const enhSet = new Set(enhEnum);
+      if (origSet.size !== enhSet.size || [...origSet].some(v => !enhSet.has(v))) {
+        diffs.push({
+          path: propPath,
+          message: 'enum values changed',
+          originalEnum: origProp.enum,
+          enhancedEnum: enhEnum,
+        });
+      }
+    }
+
+    if (origProp?.format) {
+      if (enhProp?.format !== origProp.format) {
+        diffs.push({
+          path: propPath,
+          message: 'format changed or removed',
+          originalFormat: origProp.format,
+          enhancedFormat: enhProp?.format ?? null,
+        });
+      }
+    }
+
+    if (origType === 'object') {
+      const childDiffs = validateSchemaInvariant(origProp, enhProp, propPath);
+      diffs.push(...childDiffs);
+    }
+
+    if (origType === 'array') {
+      const origItems = origProp.items ?? {};
+      const enhItems = enhProp.items ?? {};
+      if ((origItems.type ?? null) !== (enhItems.type ?? null)) {
+        diffs.push({
+          path: `${propPath}.items`,
+          message: 'items.type changed',
+          original: origItems.type,
+          enhanced: enhItems.type,
+        });
+      }
+      if (origItems.type === 'object') {
+        const childDiffs = validateSchemaInvariant(origItems, enhItems, `${propPath}.items`);
+        diffs.push(...childDiffs);
+      }
+    }
+  }
+
+  return diffs;
+}
+
+function autoFillMissingMeta(schema: any) {
+  if (!isObject(schema)) return;
+  const props = schema.properties ?? {};
+  for (const [k, v] of Object.entries(props)) {
+    if (!v) continue;
+    if ((v as any).description == null) {
+      (v as any).description = `No description provided for ${k}.`;
+    }
+    if (!Array.isArray((v as any).examples) || (v as any).examples.length === 0) {
+      let example: any = null;
+      switch ((v as any).type) {
+        case 'string': example = ((v as any).format === 'email') ? 'user@example.com' : ((v as any).enum?.[0] ?? `${k} example`); break;
+        case 'number': example = ((v as any).minimum ?? 1); break;
+        case 'array': example = []; break;
+        case 'object': example = {}; break;
+        default: example = null;
+      }
+      (v as any).examples = example != null ? [example] : [];
+    }
+
+    if ((v as any).type === 'object' && (v as any).properties) {
+      autoFillMissingMeta(v);
+    }
+
+    if ((v as any).type === 'array' && (v as any).items && (v as any).items.type === 'object') {
+      autoFillMissingMeta((v as any).items);
+    }
   }
 }
