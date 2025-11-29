@@ -184,7 +184,7 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({ results, onC
                   size="lg"
                 >
                   <Sparkles className="h-5 w-5 mr-2" />
-                  Fix using AI
+                  Quick Fix
                 </Button>
                 <Button
                   onClick={onClose}

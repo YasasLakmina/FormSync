@@ -104,6 +104,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
   /**
    * Parse form-like XML structures
+   * Now handles Groups and Options
    */
   private parseFormXML(data: any): any {
     // Extract the form object
@@ -115,11 +116,12 @@ export class XmlParserPlugin implements FormatParserPlugin {
     
     // Get fields
     const fields = formData.Field || formData.field || [];
-    const fieldArray = Array.isArray(fields) ? fields : [fields];
+    const fieldArray = Array.isArray(fields) ? fields : (fields ? [fields] : []);
 
     const properties: Record<string, any> = {};
     const required: string[] = [];
 
+    // Process top-level fields
     fieldArray.forEach((field: any) => {
       const fieldName = field['@_name'];
       if (!fieldName) {
@@ -127,80 +129,73 @@ export class XmlParserPlugin implements FormatParserPlugin {
         return;
       }
 
-      const fieldType = field['@_type'] || 'text';
-      const isRequired = field['@_required'] === 'true';
-      
-      // Get label - could be element or text
-      const labelValue = field.Label || field.label || field['_text'];
-      const label = typeof labelValue === 'object' ? labelValue._text || fieldName : labelValue || fieldName;
-
-      // Build JSON Schema for this field
-      const fieldSchema: any = {
-        type: this.mapXMLTypeToJSONSchemaType(fieldType),
-        title: label,
-      };
-
-      // Add format for special types
-      if (fieldType === 'email') {
-        fieldSchema.format = 'email';
-      } else if (fieldType === 'url') {
-        fieldSchema.format = 'uri';
-      } else if (fieldType === 'date') {
-        fieldSchema.format = 'date';
-      }
-
-      // Add validation constraints - handle both element and text content
-      const getFieldValue = (field: any, ...keys: string[]): any => {
-        for (const key of keys) {
-          const val = field[key];
-          if (val !== undefined) {
-            return typeof val === 'object' ? val._text : val;
-          }
-        }
-        return undefined;
-      };
-
-      const minLength = getFieldValue(field, 'MinLength', 'minLength');
-      if (minLength !== undefined) {
-        fieldSchema.minLength = parseInt(minLength);
-      }
-
-      const maxLength = getFieldValue(field, 'MaxLength', 'maxLength');
-      if (maxLength !== undefined) {
-        fieldSchema.maxLength = parseInt(maxLength);
-      }
-
-      const min = getFieldValue(field, 'Min', 'min', 'minimum');
-      if (min !== undefined) {
-        fieldSchema.minimum = parseFloat(min);
-      }
-
-      const max = getFieldValue(field, 'Max', 'max', 'maximum');
-      if (max !== undefined) {
-        fieldSchema.maximum = parseFloat(max);
-      }
-
-      const pattern = getFieldValue(field, 'Pattern', 'pattern');
-      if (pattern !== undefined) {
-        fieldSchema.pattern = pattern;
-      }
-
-      // Add description if present
-      const description = getFieldValue(field, 'Description', 'description');
-      if (description) {
-        fieldSchema.description = description;
-      }
-
-      // Add placeholder as example
-      const placeholder = getFieldValue(field, 'Placeholder', 'placeholder');
-      if (placeholder) {
-        fieldSchema.examples = [placeholder];
-      }
-
+      const fieldSchema = this.buildFieldSchema(field);
       properties[fieldName] = fieldSchema;
       
-      if (isRequired) {
+      if (field['@_required'] === 'true') {
         required.push(fieldName);
+      }
+    });
+
+    // Process groups
+    const groups = formData.Group || formData.group || [];
+    const groupArray = Array.isArray(groups) ? groups : (groups ? [groups] : []);
+
+    groupArray.forEach((group: any) => {
+      const groupName = group['@_name'];
+      if (!groupName) {
+        console.warn('Group without name attribute found, skipping');
+        return;
+      }
+
+      const isRepeatable = group['@_repeatable'] === 'true';
+      const groupFields = group.Field || group.field || [];
+      const groupFieldArray = Array.isArray(groupFields) ? groupFields : (groupFields ? [groupFields] : []);
+
+      const groupProperties: Record<string, any> = {};
+      const groupRequired: string[] = [];
+
+      groupFieldArray.forEach((field: any) => {
+        const fieldName = field['@_name'];
+        if (!fieldName) return;
+
+        const fieldSchema = this.buildFieldSchema(field);
+        groupProperties[fieldName] = fieldSchema;
+        
+        if (field['@_required'] === 'true') {
+          groupRequired.push(fieldName);
+        }
+      });
+
+      // Create group schema
+      const groupSchema: any = {
+        type: 'object',
+        properties: groupProperties,
+      };
+
+      if (groupRequired.length > 0) {
+        groupSchema.required = groupRequired;
+      }
+
+      // Add label if present
+      const groupLabel = group['@_label'] || group.Label || group.label;
+      if (groupLabel) {
+        groupSchema.title = typeof groupLabel === 'object' ? groupLabel._text : groupLabel;
+      }
+
+      // If repeatable, wrap in array
+      if (isRepeatable) {
+        properties[groupName] = {
+          type: 'array',
+          items: groupSchema,
+        };
+      } else {
+        properties[groupName] = groupSchema;
+      }
+
+      // Add group to required if it has required fields
+      if (groupRequired.length > 0) {
+        required.push(groupName);
       }
     });
 
@@ -212,6 +207,101 @@ export class XmlParserPlugin implements FormatParserPlugin {
       properties,
       ...(required.length > 0 && { required }),
     };
+  }
+
+  /**
+   * Build JSON Schema for a single field (with Options support)
+   */
+  private buildFieldSchema(field: any): any {
+    const fieldType = field['@_type'] || 'text';
+    
+    // Get label
+    const labelValue = field.Label || field.label || field['_text'];
+    const label = typeof labelValue === 'object' ? labelValue._text || field['@_name'] : labelValue || field['@_name'];
+
+    // Build base schema
+    const fieldSchema: any = {
+      type: this.mapXMLTypeToJSONSchemaType(fieldType),
+      title: label,
+    };
+
+    // Add format for special types
+    if (fieldType === 'email') {
+      fieldSchema.format = 'email';
+    } else if (fieldType === 'url') {
+      fieldSchema.format = 'uri';
+    } else if (fieldType === 'date') {
+      fieldSchema.format = 'date';
+    }
+
+    // Helper to get field values
+    const getFieldValue = (field: any, ...keys: string[]): any => {
+      for (const key of keys) {
+        const val = field[key];
+        if (val !== undefined) {
+          return typeof val === 'object' ? val._text : val;
+        }
+      }
+      return undefined;
+    };
+
+    // Add validation constraints
+    const minLength = getFieldValue(field, 'MinLength', 'minLength');
+    if (minLength !== undefined) {
+      fieldSchema.minLength = parseInt(minLength);
+    }
+
+    const maxLength = getFieldValue(field, 'MaxLength', 'maxLength');
+    if (maxLength !== undefined) {
+      fieldSchema.maxLength = parseInt(maxLength);
+    }
+
+    const min = getFieldValue(field, 'Min', 'min', 'minimum');
+    if (min !== undefined) {
+      fieldSchema.minimum = parseFloat(min);
+    }
+
+    const max = getFieldValue(field, 'Max', 'max', 'maximum');
+    if (max !== undefined) {
+      fieldSchema.maximum = parseFloat(max);
+    }
+
+    const pattern = getFieldValue(field, 'Pattern', 'pattern');
+    if (pattern !== undefined) {
+      fieldSchema.pattern = pattern;
+    }
+
+    // Add description if present
+    const description = getFieldValue(field, 'Description', 'description');
+    if (description) {
+      fieldSchema.description = description;
+    }
+
+    // Add placeholder as example
+    const placeholder = getFieldValue(field, 'Placeholder', 'placeholder');
+    if (placeholder) {
+      fieldSchema.examples = [placeholder];
+    }
+
+    // Handle Options for select/enum fields
+    const options = field.Options || field.options;
+    if (options) {
+      const optionItems = options.Option || options.option || [];
+      const optionArray = Array.isArray(optionItems) ? optionItems : (optionItems ? [optionItems] : []);
+      
+      const enumValues = optionArray.map((opt: any) => {
+        if (typeof opt === 'string') return opt;
+        if (opt['@_value']) return opt['@_value'];
+        if (opt._text) return opt._text;
+        return String(opt);
+      });
+
+      if (enumValues.length > 0) {
+        fieldSchema.enum = enumValues;
+      }
+    }
+
+    return fieldSchema;
   }
 
   /**

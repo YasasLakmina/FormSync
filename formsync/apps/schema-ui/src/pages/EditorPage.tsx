@@ -38,7 +38,7 @@ export const EditorPage: React.FC = () => {
   ]);
 
   // Handler to update stages from TechnicalEditor
-  const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error') => {
+  const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => {
     setStages(prev => 
       prev.map(s => 
         s.name === stageName 

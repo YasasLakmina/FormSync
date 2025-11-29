@@ -34,8 +34,12 @@ export class SchemaService {
    * Auto-detect format and convert to JSON Schema Draft-7
    */
   async convertSchema(dto: ConvertSchemaDto) {
-    // Check cache first
-    const cacheKey = `convert:${Buffer.from(dto.input).toString('base64').slice(0, 32)}`;
+    // Check cache first (v2 cache for normalized schemas)
+    // Use crypto hash to avoid collisions from truncated keys
+    const crypto = await import('crypto');
+    const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');
+    const cacheKey = `v2:convert:${dto.format || 'auto'}:${inputHash}`;
+    
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return { ...cached, fromCache: true };

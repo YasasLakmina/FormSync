@@ -3,10 +3,12 @@
  * 
  * Parses YAML input and converts to JSON Schema Draft-7
  * Uses js-yaml library for parsing
+ * Now supports Form/Field/Group definitions → normalized user payload schema
  */
 
 import { FormatParserPlugin, ParseResult } from '@formsync/plugins';
 import * as yaml from 'js-yaml';
+import { isFormDefinition, convertFormToSchema } from './form-schema-converter';
 
 export class YamlParserPlugin implements FormatParserPlugin {
   readonly name = 'yaml-parser';
@@ -33,6 +35,15 @@ export class YamlParserPlugin implements FormatParserPlugin {
         return {
           success: false,
           errors: ['YAML must parse to an object or array'],
+          detectedFormat: 'yaml',
+        };
+      }
+
+      // Check if it's a form definition first
+      if (isFormDefinition(parsed)) {
+        return {
+          success: true,
+          schema: convertFormToSchema(parsed),
           detectedFormat: 'yaml',
         };
       }
@@ -69,10 +80,14 @@ export class YamlParserPlugin implements FormatParserPlugin {
   }
 
   private normalizeToJsonSchema(schema: any): any {
-    return {
-      $schema: schema.$schema || 'http://json-schema.org/draft-07/schema#',
-      ...schema,
-    };
+    // Deep clone to avoid reference issues
+    const cloned = JSON.parse(JSON.stringify(schema));
+    
+    if (!cloned.$schema) {
+      cloned.$schema = 'http://json-schema.org/draft-07/schema#';
+    }
+    
+    return cloned;
   }
 
   private inferSchemaFromData(data: any): any {

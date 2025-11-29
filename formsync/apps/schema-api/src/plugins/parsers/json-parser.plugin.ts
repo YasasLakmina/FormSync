@@ -3,9 +3,11 @@
  * 
  * Parses JSON input and converts to JSON Schema Draft-7
  * Handles both raw JSON data and existing JSON Schema
+ * Now supports Form/Field/Group definitions → normalized user payload schema
  */
 
 import { FormatParserPlugin, ParseResult } from '@formsync/plugins';
+import { isFormDefinition, convertFormToSchema } from './form-schema-converter';
 
 export class JsonParserPlugin implements FormatParserPlugin {
   readonly name = 'json-parser';
@@ -22,6 +24,15 @@ export class JsonParserPlugin implements FormatParserPlugin {
   async parse(input: string): Promise<ParseResult> {
     try {
       const parsed = JSON.parse(input);
+      
+      // Check if it's a form definition first
+      if (isFormDefinition(parsed)) {
+        return {
+          success: true,
+          schema: convertFormToSchema(parsed),
+          detectedFormat: 'json',
+        };
+      }
       
       // If already a JSON Schema, validate and return
       if (parsed.$schema || parsed.type || parsed.properties) {
@@ -55,11 +66,15 @@ export class JsonParserPlugin implements FormatParserPlugin {
   }
 
   private normalizeToJsonSchema(schema: any): any {
+    // Deep clone the schema to avoid any reference issues
+    const cloned = JSON.parse(JSON.stringify(schema));
+    
     // Ensure it conforms to JSON Schema Draft-7
-    return {
-      $schema: schema.$schema || 'http://json-schema.org/draft-07/schema#',
-      ...schema,
-    };
+    if (!cloned.$schema) {
+      cloned.$schema = 'http://json-schema.org/draft-07/schema#';
+    }
+    
+    return cloned;
   }
 
   /**

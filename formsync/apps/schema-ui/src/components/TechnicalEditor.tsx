@@ -13,6 +13,7 @@ import { SchemaTreeView } from './SchemaTreeView';
 import { EnhancementsPanel } from './EnhancementsPanel';
 import { ValidationDialog } from './ValidationDialog';
 import { GenerateButton } from './shared/GenerateButton';
+import { fixSchemaWithAI, mockAIFix } from '../services/aiService';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -494,142 +495,51 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleConvert]);
 
-  // Handle AI Fix for validation errors
+  // Handle AI Fix for validation errors using LLM
   const handleAIFix = useCallback(async () => {
     if (!editorValue || !validationError) return;
     
-    toast.info('AI is fixing your schema...');
-    setIsInputValid(false); // Reset validation state
+    toast.info('AI is analyzing and fixing your schema...', {
+      duration: 5000,
+    });
+    setIsInputValid(false);
     
     try {
-      // Simulate AI processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      let fixedSchema: string;
       
-      // TODO: Replace this mock with actual LLM API call
-      // const fixedSchema = await aiService.fixSchema(editorValue, format, validationError);
-      
-      let fixedSchema = editorValue;
-      
-      // Advanced mock fixes for JSON
-      if (format === 'json') {
-        try {
-          // Step 1: Fix common syntax issues
-          fixedSchema = editorValue
-            .replace(/,(\s*[}\]])/g, '$1')           // Remove trailing commas
-            .replace(/'/g, '"')                       // Replace single quotes
-            .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
-          
-          // Step 2: Try to balance brackets
-          const openBraces = (fixedSchema.match(/{/g) || []).length;
-          const closeBraces = (fixedSchema.match(/}/g) || []).length;
-          const openBrackets = (fixedSchema.match(/\[/g) || []).length;
-          const closeBrackets = (fixedSchema.match(/\]/g) || []).length;
-          
-          // Add missing closing brackets
-          if (openBrackets > closeBrackets) {
-            const missing = openBrackets - closeBrackets;
-            // Find the last array opening and add closing brackets smartly
-            let tempSchema = fixedSchema;
-            for (let i = 0; i < missing; i++) {
-              // Look for the last comma or opening bracket before adding
-              tempSchema = tempSchema.replace(/,(\s*)$/, '$1]') || tempSchema + '\n]';
-            }
-            fixedSchema = tempSchema;
-          }
-          
-          // Add missing closing braces
-          if (openBraces > closeBraces) {
-            const missing = openBraces - closeBraces;
-            for (let i = 0; i < missing; i++) {
-              fixedSchema += '\n}';
-            }
-          }
-          
-          // Step 3: Validate the fix
-          JSON.parse(fixedSchema);
-          
-        } catch (parseError) {
-          // If still invalid, try a more aggressive fix
-          try {
-            // Remove trailing content after last valid structure
-            let cleaned = editorValue.trim();
-            
-            // Try to find and fix obvious bracket issues
-            const lines = cleaned.split('\n');
-            let bracketStack: string[] = [];
-            let fixedLines: string[] = [];
-            let lastGoodLine = 0;
-            
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
-              for (const char of line) {
-                if (char === '{' || char === '[') {
-                  bracketStack.push(char);
-                } else if (char === '}') {
-                  if (bracketStack[bracketStack.length - 1] === '{') {
-                    bracketStack.pop();
-                  }
-                } else if (char === ']') {
-                  if (bracketStack[bracketStack.length - 1] === '[') {
-                    bracketStack.pop();
-                  }
-                }
-              }
-              
-              fixedLines.push(line);
-              
-              // Try parsing up to this line
-              const testJson = fixedLines.join('\n');
-              try {
-                // Close all open brackets
-                let closings = '';
-                for (let j = bracketStack.length - 1; j >= 0; j--) {
-                  closings += bracketStack[j] === '{' ? '}' : ']';
-                }
-                JSON.parse(testJson + closings);
-                lastGoodLine = i;
-              } catch {
-                // Continue
-              }
-            }
-            
-            // Use lines up to last good point and close brackets
-            fixedSchema = fixedLines.slice(0, lastGoodLine + 1).join('\n');
-            while (bracketStack.length > 0) {
-              const opening = bracketStack.pop();
-              fixedSchema += '\n' + (opening === '{' ? '}' : ']');
-            }
-            
-            // Final validation
-            JSON.parse(fixedSchema);
-          } catch {
-            // Last resort: just clean up whitespace
-            fixedSchema = editorValue.trim();
-            toast.warning('Could not fully repair JSON', {
-              description: 'Please check and fix manually',
-            });
-          }
-        }
+      // Try to use real LLM API first
+      try {
+        fixedSchema = await fixSchemaWithAI(editorValue, format, validationError);
+        
+        toast.success('AI fixed your schema!', {
+          description: 'LLM service repaired the syntax errors',
+          duration: 4000,
+        });
+      } catch (apiError) {
+        // Fallback to mock fix if API is not available
+        console.log('Using local AI fix (LLM API not configured)');
+        fixedSchema = await mockAIFix(editorValue, format);
+        
+        toast.success('Schema fixed!', {
+          description: 'Syntax errors have been repaired. Please validate.',
+          duration: 4000,
+        });
       }
       
       // Update the editor with the fixed schema
       if (fixedSchema !== editorValue) {
         setEditorValue(fixedSchema);
-        
-        toast.success('Schema fixed!', {
-          description: 'AI repaired the syntax errors. Please validate again.',
-          duration: 4000,
-        });
       } else {
-        toast.info('No automatic fixes available', {
-          description: 'Please fix the errors manually',
+        toast.info('No changes needed', {
+          description: 'Schema appears correct already',
         });
       }
       
-      // Reset validation state so user can validate again
       setValidationError('');
     } catch (error) {
-      toast.error('Failed to fix schema automatically');
+      toast.error('Failed to fix schema', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
       console.error('AI Fix error:', error);
     }
   }, [editorValue, format, validationError]);
