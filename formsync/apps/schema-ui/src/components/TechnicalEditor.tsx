@@ -1,22 +1,36 @@
 /**
- * Technical Editor Component - Enhanced Version with Sprint 1 Features
+ * Technical Editor Component - Simplified Working Version
  * 
- * New Features:
- * - Export/Download (JSON, YAML, TypeScript, Clipboard)
- * - Keyboard shortcuts
- * - Suggestion filtering and sorting
- * - Full undo/redo history
+ * Clean layout with visible convert button and both editors
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useSchemaStore } from '../stores/schemaStore';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Label } from './ui/label';
-import { Loader2, CheckCircle, AlertCircle, Sparkles, Check, Plus, Download, Copy, Filter, Undo2, Redo2, Library, Upload, Link2 } from 'lucide-react';
+import { FormatSelector, type FormatType } from './FormatSelector';
 import { TemplateLibrary } from './TemplateLibrary';
-import * as yaml from 'js-yaml';
+import { SchemaTreeView } from './SchemaTreeView';
+import { EnhancementsPanel } from './EnhancementsPanel';
+import { ValidationDialog } from './ValidationDialog';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { 
+  Zap,
+  CheckCircle, 
+  Sparkles,
+  Upload,
+  X,
+  TreePine,
+  Loader2,
+  Library,
+  Undo2,
+  Redo2,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 // History entry for undo/redo
 interface HistoryEntry {
@@ -26,35 +40,100 @@ interface HistoryEntry {
 }
 
 export const TechnicalEditor: React.FC = () => {
-  const [format, setFormat] = useState<'json' | 'yaml' | 'xml'>('json');
+  // State
+  const [format, setFormat] = useState<FormatType>('json');
   const [editorValue, setEditorValue] = useState('');
-  const [originalInput, setOriginalInput] = useState('');
+  const [showTreeView, setShowTreeView] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
-  
-  // New state for Sprint 1 features
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [filterType, setFilterType] = useState<'all' | 'added' | 'modified' | 'removed'>('all');
-  const [filterArea, setFilterArea] = useState<'all' | 'naming' | 'validation' | 'accessibility' | 'descriptions'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
+  // Individual loading states for each action
+  const [convertLoading, setConvertLoading] = useState(false);
+  const [validateLoading, setValidateLoading] = useState(false);
+  const [enhanceLoading, setEnhanceLoading] = useState(false);
+
+  // Store
   const {
     currentSchema,
     convertedSchema,
     enhancedSchema,
-    validationResults,
     enhancements,
+    validationResults,
     loading,
-    error,
     convertSchema,
     enhanceSchema,
     validateSchema,
     setCurrentSchema,
     clearError,
   } = useSchemaStore();
+
+  // Computed - prioritize currentSchema so applied suggestions show immediately
+  const displaySchema = currentSchema || convertedSchema;
+
+  // Handlers
+  const handleConvert = useCallback(async () => {
+    if (!editorValue.trim()) {
+      toast.error('Please enter some code to convert');
+      return;
+    }
+
+    clearError();
+    setConvertLoading(true);
+    try {
+      await convertSchema(editorValue, format);
+      toast.success('Schema converted successfully!');
+    } catch (error) {
+      toast.error('Failed to convert schema');
+    } finally {
+      setConvertLoading(false);
+    }
+  }, [editorValue, format, convertSchema, clearError]);
+
+  const handleValidate = useCallback(async () => {
+    if (!displaySchema) {
+      toast.error('No schema to validate');
+      return;
+    }
+
+    clearError();
+    setValidateLoading(true);
+    try {
+      await validateSchema(displaySchema);
+      // Show validation dialog instead of just toast
+      setShowValidationDialog(true);
+    } catch (error) {
+      toast.error('Validation failed');
+    } finally {
+      setValidateLoading(false);
+    }
+  }, [displaySchema, clearError, validateSchema]);
+
+  const handleEnhance = useCallback(async () => {
+    if (!displaySchema) {
+      toast.error('No schema to enhance');
+      return;
+    }
+
+    clearError();
+    setEnhanceLoading(true);
+    try {
+      await enhanceSchema(displaySchema);
+      // Just show the suggestions panel, don't auto-apply
+      setShowSuggestions(true);
+      toast.success('AI suggestions generated!', {
+        description: 'Review and apply suggestions below',
+      });
+    } catch (error) {
+      toast.error('Failed to generate suggestions');
+    } finally {
+      setEnhanceLoading(false);
+    }
+  }, [displaySchema, clearError, enhanceSchema]);
 
   // Add to history when schema changes
   const addToHistory = useCallback((schema: any, action: string) => {
@@ -64,11 +143,9 @@ export const TechnicalEditor: React.FC = () => {
       action,
     };
     
-    // Remove any history after current index
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newEntry);
     
-    // Limit history to 50 entries
     if (newHistory.length > 50) {
       newHistory.shift();
     }
@@ -84,6 +161,9 @@ export const TechnicalEditor: React.FC = () => {
       const previousEntry = history[previousIndex];
       setCurrentSchema(previousEntry.schema);
       setHistoryIndex(previousIndex);
+      toast.success('Undone');
+    } else {
+      toast.info('Nothing to undo');
     }
   }, [history, historyIndex, setCurrentSchema]);
 
@@ -94,474 +174,422 @@ export const TechnicalEditor: React.FC = () => {
       const nextEntry = history[nextIndex];
       setCurrentSchema(nextEntry.schema);
       setHistoryIndex(nextIndex);
+      toast.success('Redone');
+    } else {
+      toast.info('Nothing to redo');
     }
   }, [history, historyIndex, setCurrentSchema]);
 
-  // Export functions
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(currentSchema, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'schema.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // Undo individual suggestion
+  const handleUndoSuggestion = useCallback((index: number) => {
+    if (!appliedSuggestions.has(index) || !enhancements || !displaySchema) return;
 
-  const downloadYAML = () => {
-    const yamlStr = yaml.dump(currentSchema);
-    const blob = new Blob([yamlStr], { type: 'text/yaml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'schema.yaml';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    // Get the base schema (before any suggestions)
+    // We need to go back to the schema before AI enhancement
+    const baseSchema = convertedSchema || currentSchema;
+    if (!baseSchema) return;
 
-  const downloadTypeScript = () => {
-    const tsInterface = generateTypeScriptInterface(currentSchema);
-    const blob = new Blob([tsInterface], { type: 'text/typescript' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'schema.ts';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    // Rebuild schema by applying ALL suggestions EXCEPT this one
+    let rebuiltSchema = JSON.parse(JSON.stringify(baseSchema));
+    
+    enhancements.forEach((enhancement, idx) => {
+      // Apply all applied suggestions except the one we're undoing
+      if (appliedSuggestions.has(idx) && idx !== index) {
+        const pathParts = enhancement.path.split('.');
+        let current = rebuiltSchema;
+        
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          if (!current[pathParts[i]]) {
+            current[pathParts[i]] = {};
+          }
+          current = current[pathParts[i]];
+        }
 
-  const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(JSON.stringify(currentSchema, null, 2));
-    // You could add a toast notification here
-  };
+        const lastKey = pathParts[pathParts.length - 1];
+        
+        if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
+          current[lastKey] = enhancement.newValue;
+        } else if (enhancement.changeType === 'removed') {
+          delete current[lastKey];
+        }
+      }
+    });
 
-  // Import from file
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    // Update schema
+    setCurrentSchema(rebuiltSchema);
+    
+    // Remove from applied set
+    setAppliedSuggestions(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(index);
+      return newSet;
+    });
+    
+    // Add to history
+    addToHistory(displaySchema, `Undid suggestion at ${enhancements[index].path}`);
+    
+    toast.success('Suggestion undone');
+  }, [appliedSuggestions, enhancements, displaySchema, convertedSchema, currentSchema, setCurrentSchema, addToHistory]);
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const content = event.target?.result as string;
-      const extension = file.name.split('.').pop()?.toLowerCase();
+  // Apply individual suggestion
+  const handleApplySuggestion = useCallback((index: number) => {
+    if (!enhancements || !displaySchema) return;
+
+    const enhancement = enhancements[index];
+    const updatedSchema = JSON.parse(JSON.stringify(displaySchema));
+
+    // Apply the enhancement based on path
+    const pathParts = enhancement.path.split('.');
+    let current = updatedSchema;
+    
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      if (!current[pathParts[i]]) {
+        current[pathParts[i]] = {};
+      }
+      current = current[pathParts[i]];
+    }
+
+    const lastKey = pathParts[pathParts.length - 1];
+    
+    if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
+      current[lastKey] = enhancement.newValue;
+    } else if (enhancement.changeType === 'removed') {
+      delete current[lastKey];
+    }
+
+    // Add to history before making changes
+    addToHistory(displaySchema, `Applied: ${enhancement.reason}`);
+    
+    // Update schema
+    setCurrentSchema(updatedSchema);
+    
+    // Mark as applied
+    setAppliedSuggestions(prev => new Set(prev).add(index));
+    
+    toast.success('Suggestion applied!');
+  }, [enhancements, displaySchema, setCurrentSchema, addToHistory]);
+
+  // Apply all suggestions
+  const handleApplyAll = useCallback(() => {
+    if (!enhancements || enhancements.length === 0 || !displaySchema) return;
+
+    // Start with current schema
+    let updatedSchema = JSON.parse(JSON.stringify(displaySchema));
+
+    // Apply each unapplied suggestion sequentially
+    const unappliedIndices: number[] = [];
+    enhancements.forEach((enhancement, index) => {
+      if (!appliedSuggestions.has(index)) {
+        unappliedIndices.push(index);
+        
+        // Apply the enhancement
+        const pathParts = enhancement.path.split('.');
+        let current = updatedSchema;
+        
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          if (!current[pathParts[i]]) {
+            current[pathParts[i]] = {};
+          }
+          current = current[pathParts[i]];
+        }
+
+        const lastKey = pathParts[pathParts.length - 1];
+        
+        if (enhancement.changeType === 'added' || enhancement.changeType === 'modified') {
+          current[lastKey] = enhancement.newValue;
+        } else if (enhancement.changeType === 'removed') {
+          delete current[lastKey];
+        }
+      }
+    });
+
+    if (unappliedIndices.length > 0) {
+      // Add to history
+      addToHistory(displaySchema, `Applied ${unappliedIndices.length} suggestions`);
       
-      let detectedFormat: 'json' | 'yaml' | 'xml' = 'json';
-      if (extension === 'yaml' || extension === 'yml') detectedFormat = 'yaml';
-      else if (extension === 'xml') detectedFormat = 'xml';
+      // Update schema
+      setCurrentSchema(updatedSchema);
       
-      setFormat(detectedFormat);
-      setEditorValue(content);
-      setOriginalInput(content);
-      await convertSchema(content, detectedFormat);
+      // Mark all as applied
+      setAppliedSuggestions(new Set(enhancements.map((_, idx) => idx)));
+      
+      toast.success(`Applied ${unappliedIndices.length} suggestions!`);
+    } else {
+      toast.info('All suggestions already applied');
+    }
+  }, [enhancements, appliedSuggestions, displaySchema, setCurrentSchema, addToHistory]);
+
+  // Undo all applied suggestions
+  const handleUndoAll = useCallback(() => {
+    const appliedCount = appliedSuggestions.size;
+    
+    if (appliedCount === 0) {
+      toast.info('No suggestions to undo');
+      return;
+    }
+
+    // Call undo for each applied suggestion
+    let successfulUndos = 0;
+    for (let i = 0; i < appliedCount; i++) {
+      if (historyIndex > 0) {
+        const previousIndex = historyIndex - 1 - i; // Account for already undone steps
+        if (previousIndex >= 0 && history[previousIndex]) {
+          setCurrentSchema(history[previousIndex].schema);
+          successfulUndos++;
+        }
+      }
+    }
+
+    if (successfulUndos > 0) {
+      setHistoryIndex(historyIndex - successfulUndos);
+      setAppliedSuggestions(new Set());
+      toast.success(`Undone ${successfulUndos} suggestion${successfulUndos > 1 ? 's' : ''}!`);
+    } else {
+      toast.error('Cannot undo - please use individual undo buttons');
+    }
+  }, [appliedSuggestions, historyIndex, history, setCurrentSchema]);
+
+  const handleFileUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.yaml,.yml,.xml';
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        setEditorValue(content);
+        
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        if (ext === 'yaml' || ext === 'yml') setFormat('yaml');
+        else if (ext === 'xml') setFormat('xml');
+        else setFormat('json');
+        
+        toast.success('File uploaded');
+      };
+      reader.readAsText(file);
     };
-    reader.readAsText(file);
-  };
-
-  // Import from URL
-  const handleImportFromURL = async () => {
-    if (!importUrl) return;
     
-    try {
-      const response = await fetch(`http://localhost:3000/schema/import-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: importUrl })
-      });
-      
-      const data = await response.json();
-      if (data.schema) {
-        setCurrentSchema(data.schema);
-        addToHistory(data.schema, 'Imported from URL');
-        setShowImportDialog(false);
-        setImportUrl('');
-      }
-    } catch (error) {
-      console.error('Import failed:', error);
-    }
-  };
+    input.click();
+  }, []);
 
-  // Apply template from library
-  const handleSelectTemplate = (schema: any) => {
+  const handleTemplateSelect = useCallback((schema: any) => {
+    // Set the schema as currentSchema so it displays in the right editor immediately
     setCurrentSchema(schema);
-    addToHistory(schema, 'Applied template');
-  };
-
-  // Generate TypeScript interface from JSON Schema
-  const generateTypeScriptInterface = (schema: any, interfaceName = 'Schema'): string => {
-    const lines: string[] = [];
-    lines.push(`export interface ${interfaceName} {`);
-    
-    if (schema.properties) {
-      Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
-        const required = schema.required?.includes(key);
-        const optional = required ? '' : '?';
-        const tsType = jsonSchemaTypeToTS(prop);
-        const description = prop.description ? `  /** ${prop.description} */\n` : '';
-        lines.push(`${description}  ${key}${optional}: ${tsType};`);
-      });
-    }
-    
-    lines.push('}');
-    return lines.join('\n');
-  };
-
-  const jsonSchemaTypeToTS = (prop: any): string => {
-    if (prop.type === 'string') return 'string';
-    if (prop.type === 'number' || prop.type === 'integer') return 'number';
-    if (prop.type === 'boolean') return 'boolean';
-    if (prop.type === 'array') {
-      const itemType = prop.items ? jsonSchemaTypeToTS(prop.items) : 'any';
-      return `${itemType}[]`;
-    }
-    if (prop.type === 'object') {
-      if (prop.properties) {
-        const nested: string[] = [];
-        Object.entries(prop.properties).forEach(([key, value]: [string, any]) => {
-          nested.push(`${key}: ${jsonSchemaTypeToTS(value)}`);
-        });
-        return `{ ${nested.join('; ')} }`;
-      }
-      return 'Record<string, any>';
-    }
-    return 'any';
-  };
+    toast.success('Template loaded!', {
+      description: 'Schema is ready to use',
+    });
+  }, [setCurrentSchema]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S - Download
-      if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        downloadJSON();
-      }
-      // Ctrl+C - Copy (when not in editor)
-      if (e.ctrlKey && e.key === 'c' && document.activeElement?.tagName !== 'TEXTAREA') {
-        copyToClipboard();
-      }
-      // Ctrl+Z - Undo
-      if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
-        e.preventDefault();
-        undo();
-      }
-      // Ctrl+Shift+Z - Redo
-      if (e.ctrlKey && e.shiftKey && e.key === 'z') {
-        e.preventDefault();
-        redo();
-      }
-      // Ctrl+Enter - Convert
       if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
         handleConvert();
-      }
-      // Ctrl+K - Ask AI
-      if (e.ctrlKey && e.key === 'k') {
-        e.preventDefault();
-        handleEnhance();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSchema, undo, redo]);
-
-  const handleConvert = async () => {
-    setOriginalInput(editorValue);
-    await convertSchema(editorValue, format);
-  };
-
-  const handleEnhance = async () => {
-    const schema = currentSchema || JSON.parse(editorValue);
-    setAppliedSuggestions(new Set());
-    await enhanceSchema(schema, {
-      focusAreas: ['naming', 'validation', 'accessibility', 'descriptions'],
-    });
-  };
-
-  const handleValidate = async () => {
-    const schema = currentSchema || JSON.parse(editorValue);
-    await validateSchema(schema);
-  };
-
-  const toggleSuggestion = (index: number, enhancement: any) => {
-    if (!currentSchema) return;
-
-    const isCurrentlyApplied = appliedSuggestions.has(index);
-    const updatedSchema = JSON.parse(JSON.stringify(currentSchema));
-    const pathParts = enhancement.path.split('.');
-    
-    let target = updatedSchema;
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      if (!target[pathParts[i]]) {
-        target[pathParts[i]] = {};
-      }
-      target = target[pathParts[i]];
-    }
-    
-    const lastKey = pathParts[pathParts.length - 1];
-    
-    if (isCurrentlyApplied) {
-      if (enhancement.changeType === 'added') {
-        delete target[lastKey];
-      } else if (enhancement.changeType === 'modified') {
-        target[lastKey] = enhancement.originalValue;
-      } else if (enhancement.changeType === 'removed') {
-        target[lastKey] = enhancement.originalValue;
-      }
-      
-      const newApplied = new Set(appliedSuggestions);
-      newApplied.delete(index);
-      setAppliedSuggestions(newApplied);
-      addToHistory(updatedSchema, `Reverted: ${enhancement.path}`);
-    } else {
-      if (enhancement.changeType === 'added') {
-        target[lastKey] = enhancement.newValue;
-      } else if (enhancement.changeType === 'modified') {
-        target[lastKey] = enhancement.newValue;
-      } else if (enhancement.changeType === 'removed') {
-        delete target[lastKey];
-      }
-      
-      setAppliedSuggestions(new Set([...appliedSuggestions, index]));
-      addToHistory(updatedSchema, `Applied: ${enhancement.path}`);
-    }
-    
-    setCurrentSchema(updatedSchema);
-  };
-
-  const applyAllSuggestions = () => {
-    if (enhancedSchema) {
-      setCurrentSchema(enhancedSchema);
-      setAppliedSuggestions(new Set(enhancements.map((_, i) => i)));
-      addToHistory(enhancedSchema, 'Applied all suggestions');
-    }
-  };
-
-  useEffect(() => {
-    if (currentSchema) {
-      setEditorValue(JSON.stringify(currentSchema, null, 2));
-    }
-  }, [currentSchema]);
-
-  // Filter suggestions
-  const filteredEnhancements = enhancements.filter((change) => {
-    if (filterType !== 'all' && change.changeType !== filterType) return false;
-    if (searchTerm && !change.path.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
-
-  const showComparison = originalInput && convertedSchema;
+  }, [handleConvert]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 h-full">
-      {/* Header Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Schema Editor</CardTitle>
-          <CardDescription>Edit your schema in JSON, YAML, or XML format</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Format Selector */}
-          <div className="flex gap-2 items-center flex-wrap">
-            <Label className="self-center">Format:</Label>
-            <div className="flex gap-1">
-              {(['json', 'yaml', 'xml'] as const).map((fmt) => (
-                <Button
-                  key={fmt}
-                  size="sm"
-                  variant={format === fmt ? 'default' : 'outline'}
-                  onClick={() => setFormat(fmt)}
-                >
-                  {fmt.toUpperCase()}
-                </Button>
-              ))}
-            </div>
-
-            {/* Import & Template Buttons */}
-            <div className="flex gap-1 ml-2">
-              <Button
-                onClick={() => setShowTemplateLibrary(true)}
-                variant="outline"
-                size="sm"
-                title="Choose from templates"
-              >
-                <Library className="mr-2 h-4 w-4" />
-                Templates
-              </Button>
-              
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  title="Upload file"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </Button>
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                accept=".json,.yaml,.yml,.xml"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              
-              <Button
-                onClick={() => setShowImportDialog(true)}
-                variant="outline"
-                size="sm"
-                title="Import from URL"
-              >
-                <Link2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2 ml-auto flex-wrap">
-              <Button onClick={handleConvert} disabled={loading || !editorValue} size="sm">
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Convert <span className="hidden md:inline ml-1">to JSON Schema</span>
-              </Button>
-              <Button 
-                onClick={handleEnhance} 
-                disabled={loading || !currentSchema}
-                variant="secondary"
-                size="sm"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Ask AI
-              </Button>
-              <Button 
-                onClick={handleValidate} 
-                disabled={loading || !currentSchema}
-                variant="outline"
-                size="sm"
-              >
-                Validate
-              </Button>
-            </div>
-          </div>
-
-          {/* Export/Download Bar */}
-          {currentSchema && (
-            <div className="flex gap-2 items-center border-t pt-4">
-              <Label className="text-sm font-semibold">Export:</Label>
-              <Button onClick={downloadJSON} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                JSON
-              </Button>
-              <Button onClick={downloadYAML} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                YAML
-              </Button>
-              <Button onClick={downloadTypeScript} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                TypeScript
-              </Button>
-              <Button onClick={copyToClipboard} variant="outline" size="sm">
-                <Copy className="mr-2 h-4 w-4" />
-                Copy
-              </Button>
-
-              {/* Undo/Redo */}
-              <div className="flex gap-1 ml-auto">
-                <Button 
-                  onClick={undo} 
-                  disabled={historyIndex <= 0}
-                  variant="ghost"
-                  size="sm"
-                  title="Undo (Ctrl+Z)"
-                >
-                  <Undo2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  onClick={redo} 
-                  disabled={historyIndex >= history.length - 1}
-                  variant="ghost"
-                  size="sm"
-                  title="Redo (Ctrl+Shift+Z)"
-                >
-                  <Redo2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Error Display */}
-          {error && (
-            <div className="p-4 bg-destructive/10 text-destructive rounded-md flex justify-between items-start">
-              <div className="flex gap-2">
-                <AlertCircle className="h-5 w-5 mt-0.5" />
-                <span>{error}</span>
-              </div>
-              <Button size="sm" variant="ghost" onClick={clearError}>
-                ×
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Split View: Original vs Converted */}
-      {showComparison ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Original {format.toUpperCase()} Input</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-md overflow-hidden">
-                <Editor
-                  height="500px"
-                  language={format === 'yaml' ? 'yaml' : format === 'xml' ? 'xml' : 'json'}
-                  value={originalInput}
-                  theme="vs-dark"
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                Converted JSON Schema
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-md overflow-hidden">
-                <Editor
-                  height="500px"
-                  language="json"
-                  value={editorValue}
-                  onChange={(value) => setEditorValue(value || '')}
-                  theme="vs-dark"
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    formatOnPaste: true,
-                    formatOnType: true,
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+    <div className="flex flex-col gap-4 h-full">
+      {/* Top Bar with Format Selector and Action Buttons */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        {/* Format Selector */}
+        <div>
+          <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Input Format</h3>
+          <FormatSelector selected={format} onChange={setFormat} />
         </div>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Input Editor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-md overflow-hidden">
+
+        {/* Main Action Buttons */}
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">Actions</h3>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={handleConvert}
+              size="lg"
+              disabled={convertLoading}
+              variant="outline"
+              className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+            >
+              {convertLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-5 w-5 text-blue-600" />
+                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleValidate}
+              size="lg"
+              disabled={validateLoading || !displaySchema}
+              variant="outline"
+              className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
+            >
+              {validateLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validating...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validate</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleEnhance}
+              size="lg"
+              disabled={enhanceLoading || !displaySchema}
+              variant="outline"
+              className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+            >
+              {enhanceLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">Enhancing...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">AI Enhance</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content - Sidebar + Editors */}
+      <div className="flex-1 flex gap-4 min-h-[600px] relative">
+        {/* Left Sidebar - Quick Actions (positioned to not affect layout) */}
+        <Card className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-16'}`}>
+          {/* Expand/Collapse Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className="w-full justify-start gap-2 mb-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+          >
+            {sidebarExpanded ? (
+              <>
+                <ChevronLeft className="h-4 w-4" />
+                <span className="text-xs font-semibold">Collapse</span>
+              </>
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+
+          <div className="border-t border-neutral-300 dark:border-neutral-700 mb-2" />
+
+          {/* Upload */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFileUpload}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Upload File" : undefined}
+          >
+            <Upload className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Upload</span>}
+          </Button>
+
+          {/* Templates */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTemplates(true)}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Templates" : undefined}
+          >
+            <Library className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Templates</span>}
+          </Button>
+
+          {/* Schema Navigator */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTreeView(!showTreeView)}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Schema Navigator" : undefined}
+          >
+            <TreePine className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Navigator</span>}
+          </Button>
+
+          {/* AI Suggestions */}
+          {enhancements && enhancements.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSuggestions(true)}
+              className={`w-full justify-start gap-3 h-10 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative ${!sidebarExpanded && 'px-2'}`}
+              title={!sidebarExpanded ? "View AI Suggestions" : undefined}
+            >
+              <Sparkles className="h-4 w-4 flex-shrink-0 text-purple-600" />
+              {sidebarExpanded && <span className="text-sm">AI Suggestions</span>}
+              <Badge className="absolute -top-1 -right-1 bg-purple-600 text-white px-1.5 py-0.5 text-xs">
+                {enhancements.length}
+              </Badge>
+            </Button>
+          )}
+
+          <div className="border-t border-neutral-300 dark:border-neutral-700 my-2" />
+
+          {/* Undo */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={undo}
+            disabled={historyIndex <= 0}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Undo" : undefined}
+          >
+            <Undo2 className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Undo</span>}
+          </Button>
+
+          {/* Redo */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={redo}
+            disabled={historyIndex >= history.length - 1}
+            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
+            title={!sidebarExpanded ? "Redo" : undefined}
+          >
+            <Redo2 className="h-4 w-4 flex-shrink-0" />
+            {sidebarExpanded && <span className="text-sm">Redo</span>}
+          </Button>
+        </Card>
+
+        {/* Editors Grid */}
+        <div className="flex-1 grid grid-cols-2 gap-4">
+          {/* Left Panel - Input */}
+          <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
+            <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
+              <CardTitle className="text-base">Input ({format.toUpperCase()})</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-0">
               <Editor
-                height="500px"
-                language={format === 'yaml' ? 'yaml' : format === 'xml' ? 'xml' : 'json'}
+                height="100%"
+                language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
                 value={editorValue}
                 onChange={(value) => setEditorValue(value || '')}
                 theme="vs-dark"
@@ -569,224 +597,114 @@ export const TechnicalEditor: React.FC = () => {
                   minimap: { enabled: false },
                   fontSize: 14,
                   lineNumbers: 'on',
-                  formatOnPaste: true,
-                  formatOnType: true,
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
                 }}
               />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
 
-      {/* Validation Results */}
-      {validationResults && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {validationResults.valid ? (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-destructive" />
+        {/* Right Panel - Output */}
+        <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
+          <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">JSON Schema (Output)</CardTitle>
+              {displaySchema && (
+                <Badge variant="success" className="text-xs">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Valid
+                </Badge>
               )}
-              Validation Results
-            </CardTitle>
-            <CardDescription>
-              {validationResults.summary.errors} errors, {validationResults.summary.warnings} warnings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {validationResults.results.map((result: any, idx: number) => (
-                <div key={idx} className="space-y-1">
-                  <div className="font-semibold text-sm">{result.validatorName}</div>
-                  {result.issues.map((issue: any, issueIdx: number) => (
-                    <div
-                      key={issueIdx}
-                      className={`text-sm p-2 rounded ${
-                        issue.severity === 'error'
-                          ? 'bg-destructive/10 text-destructive'
-                          : issue.severity === 'warning'
-                          ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
-                          : 'bg-blue-500/10 text-blue-700 dark:text-blue-400'
-                      }`}
-                    >
-                      <div className="font-medium">
-                        [{issue.severity.toUpperCase()}] {issue.path}
-                      </div>
-                      <div>{issue.message}</div>
-                      {issue.suggestion && (
-                        <div className="text-xs mt-1 opacity-75">💡 {issue.suggestion}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Interactive AI Enhancement Suggestions */}
-      {enhancements.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between flex-wrap gap-2">
-              <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                AI Enhancement Suggestions ({filteredEnhancements.length})
-              </span>
-              <Button size="sm" onClick={applyAllSuggestions} variant="secondary">
-                <Check className="mr-2 h-4 w-4" />
-                Apply All
-              </Button>
-            </CardTitle>
-            <CardDescription>
-              Click individual suggestions to apply them one-by-one
-            </CardDescription>
-
-            {/* Filtering Controls */}
-            <div className="flex gap-2 items-center flex-wrap pt-4 border-t">
-              <Filter className="h-4 w-4" />
-              <Label className="text-xs">Filter:</Label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as any)}
-                className="text-xs border rounded px-2 py-1"
-              >
-                <option value="all">All Types</option>
-                <option value="added">Added</option>
-                <option value="modified">Modified</option>
-                <option value="removed">Removed</option>
-              </select>
-
-              <input
-                type="text"
-                placeholder="Search path..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="text-xs border rounded px-2 py-1 flex-1 min-w-[200px]"
+          </CardHeader>
+          <CardContent className="flex-1 p-0">
+            {displaySchema ? (
+              <Editor
+                height="100%"
+                language="json"
+                value={JSON.stringify(displaySchema, null, 2)}
+                theme="vs-dark"
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                }}
               />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredEnhancements.map((change, idx) => {
-                const originalIndex = enhancements.indexOf(change);
-                const isApplied = appliedSuggestions.has(originalIndex);
-                return (
-                  <div
-                    key={idx}
-                    className={`border rounded-lg p-4 transition-all ${
-                      isApplied
-                        ? 'bg-green-50 dark:bg-green-950/20 border-green-500 cursor-pointer'
-                        : 'bg-card hover:bg-accent/50 cursor-pointer'
-                    }`}
-                    onClick={() => toggleSuggestion(originalIndex, change)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm flex items-center gap-2">
-                          {change.path}
-                          {isApplied && (
-                            <span className="flex items-center gap-1 text-green-600 text-xs">
-                              <Check className="h-4 w-4" />
-                              Applied
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {change.changeType.toUpperCase()}
-                        </div>
-                        <div className="text-sm mt-2">{change.reason}</div>
-                        {change.changeType === 'modified' && (
-                          <div className="mt-2 text-xs space-y-1 font-mono">
-                            <div className="text-red-600 dark:text-red-400">
-                              - {JSON.stringify(change.originalValue)}
-                            </div>
-                            <div className="text-green-600 dark:text-green-400">
-                              + {JSON.stringify(change.newValue)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={isApplied ? 'outline' : 'default'}
-                        className="ml-4"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSuggestion(originalIndex, change);
-                        }}
-                      >
-                        {isApplied ? (
-                          <>
-                            <AlertCircle className="h-4 w-4 mr-1" />
-                            Undo
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Apply
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-neutral-500">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">📄</div>
+                  <p className="font-semibold">No schema yet</p>
+                  <p className="text-sm mt-1">Converted schema will appear here</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+        </div>
+      </div>
+
+      {/* AI Enhancement Suggestions Dialog */}
+      {showSuggestions && enhancements && enhancements.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
+          >
+            <EnhancementsPanel
+              enhancements={enhancements}
+              onApplySuggestion={handleApplySuggestion}
+              onUndoSuggestion={handleUndoSuggestion}
+              appliedSuggestions={appliedSuggestions}
+              onApplyAll={handleApplyAll}
+              onUndoAll={handleUndoAll}
+              onClose={() => setShowSuggestions(false)}
+            />
+          </motion.div>
+        </div>
       )}
+
+      {/* Tree View Slide-in */}
+      <AnimatePresence>
+        {showTreeView && displaySchema && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="fixed right-0 top-0 bottom-0 w-96 bg-white dark:bg-neutral-900 shadow-2xl z-50 overflow-auto"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold">Schema Navigator</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowTreeView(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <SchemaTreeView schema={displaySchema} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Template Library Modal */}
-      {showTemplateLibrary && (
+      {showTemplates && (
         <TemplateLibrary
-          onSelectTemplate={handleSelectTemplate}
-          onClose={() => setShowTemplateLibrary(false)}
+          onClose={() => setShowTemplates(false)}
+          onSelectTemplate={handleTemplateSelect}
         />
       )}
 
-      {/* Import from URL Dialog */}
-      {showImportDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Import from URL</CardTitle>
-              <CardDescription>Enter the URL of a schema to import</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="import-url">Schema URL</Label>
-                <input
-                  id="import-url"
-                  type="url"
-                  placeholder="https://example.com/schema.json"
-                  value={importUrl}
-                  onChange={(e) => setImportUrl(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowImportDialog(false);
-                    setImportUrl('');
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleImportFromURL}
-                  disabled={!importUrl}
-                >
-                  Import
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Validation Results Dialog */}
+      {showValidationDialog && validationResults && (
+        <ValidationDialog
+          results={Array.isArray(validationResults) ? validationResults : validationResults.issues || []}
+          onClose={() => setShowValidationDialog(false)}
+        />
       )}
     </div>
   );

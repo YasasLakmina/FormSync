@@ -1,67 +1,93 @@
 /**
- * Main App Component
+ * Main App Component with Routing
  * 
- * Root component with tab navigation between Technical Editor and Template Builder
+ * Premium UI with landing page and editor navigation
  */
 
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { LandingPage } from './pages/LandingPage';
 import { TechnicalEditor } from './components/TechnicalEditor';
 import { TemplateBuilder } from './components/TemplateBuilder';
+import { Navbar } from './components/layout/Navbar';
+import { Footer } from './components/layout/Footer';
+import { PageTransition } from './components/layout/PageTransition';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { Code2, Wand2 } from 'lucide-react';
+
+// Editor Page Component
+const EditorPage: React.FC = () => {
+  return (
+    <PageTransition>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        {/* Main Content */}
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+              Schema Editor
+            </h1>
+            <p className="text-neutral-600 dark:text-neutral-400">
+              Create, convert, and enhance your JSON schemas with AI assistance
+            </p>
+          </div>
+
+          <Tabs defaultValue="technical" className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+              <TabsTrigger value="technical" className="flex items-center gap-2">
+                <Code2 className="h-4 w-4" />
+                Technical Editor
+              </TabsTrigger>
+              <TabsTrigger value="builder" className="flex items-center gap-2">
+                <Wand2 className="h-4 w-4" />
+                Template Builder
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="technical" className="fade-in-up">
+              <TechnicalEditor />
+            </TabsContent>
+
+            <TabsContent value="builder" className="fade-in-up">
+              <TemplateBuilder />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
+    </PageTransition>
+  );
+};
 
 function App() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">FormSync</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Component 1: Intelligent Schema Definition & AI Integration
-              </p>
-            </div>
-            <div className="text-right text-sm text-muted-foreground">
-              <div>Research Project</div>
-              <div className="text-xs">JSON Schema Draft-7</div>
-            </div>
-          </div>
+    <>
+      <Router>
+        <div className="flex flex-col min-h-screen">
+          <Navbar />
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <PageTransition>
+                  <LandingPage />
+                </PageTransition>
+              } 
+            />
+            <Route path="/editor" element={<EditorPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <Footer />
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="technical" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
-            <TabsTrigger value="technical" className="flex items-center gap-2">
-              <Code2 className="h-4 w-4" />
-              Technical Editor
-            </TabsTrigger>
-            <TabsTrigger value="builder" className="flex items-center gap-2">
-              <Wand2 className="h-4 w-4" />
-              Template Builder
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="technical" className="min-h-[600px]">
-            <TechnicalEditor />
-          </TabsContent>
-
-          <TabsContent value="builder" className="min-h-[600px]">
-            <TemplateBuilder />
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t mt-12">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>FormSync - Dual-path schema creation with plugin architecture and AI integration</p>
-        </div>
-      </footer>
-    </div>
+      </Router>
+      
+      {/* Toast Notifications */}
+      <Toaster 
+        position="top-right"
+        expand={true}
+        richColors
+        closeButton
+      />
+    </>
   );
 }
 

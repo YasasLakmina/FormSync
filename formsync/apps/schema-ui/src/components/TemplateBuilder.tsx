@@ -1,100 +1,68 @@
 /**
- * Template Builder Component
+ * Template Builder Component - Sprint 4 Version
  * 
- * Drag-and-drop form builder for non-technical users
- * Features:
- * - Stepper UI for guided form creation
- * - Field type selection and configuration
- * - Validation options
- * - Accessibility settings
- * - Generate JSON Schema button
+ * Simple visual schema builder for creating templates
  */
 
 import React, { useState } from 'react';
-import { useSchemaStore } from '../stores/schemaStore';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Label } from './ui/label';
-import { Plus, Trash2, FileJson } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { Plus, Save, FileJson, Trash2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
-interface FieldDefinition {
+interface SchemaField {
   id: string;
   name: string;
   type: string;
-  title: string;
-  description: string;
   required: boolean;
-  validation?: Record<string, any>;
-  accessibility?: Record<string, string>;
+  description?: string;
 }
 
 export const TemplateBuilder: React.FC = () => {
-  const [fields, setFields] = useState<FieldDefinition[]>([]);
-  const [currentField, setCurrentField] = useState<Partial<FieldDefinition>>({
-    type: 'string',
-    required: false,
-  });
-  
-  const { setCurrentSchema } = useSchemaStore();
-
-  const fieldTypes = [
-    { value: 'string', label: 'Text' },
-    { value: 'number', label: 'Number' },
-    { value: 'integer', label: 'Integer' },
-    { value: 'boolean', label: 'Boolean' },
-    { value: 'array', label: 'Array' },
-    { value: 'object', label: 'Object' },
-  ];
+  const [fields, setFields] = useState<SchemaField[]>([]);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState('string');
 
   const addField = () => {
-    if (!currentField.name) {
-      alert('Please enter a field name');
+    if (!newFieldName.trim()) {
+      toast.error('Please enter a field name');
       return;
     }
 
-    const newField: FieldDefinition = {
+    const newField: SchemaField = {
       id: Date.now().toString(),
-      name: currentField.name,
-      type: currentField.type || 'string',
-      title: currentField.title || currentField.name,
-      description: currentField.description || '',
-      required: currentField.required || false,
-      validation: currentField.validation,
-      accessibility: currentField.accessibility,
+      name: newFieldName,
+      type: newFieldType,
+      required: false,
     };
 
     setFields([...fields, newField]);
-    setCurrentField({ type: 'string', required: false });
+    setNewFieldName('');
+    toast.success('Field added');
   };
 
   const removeField = (id: string) => {
-    setFields(fields.filter((f) => f.id !== id));
+    setFields(fields.filter(f => f.id !== id));
+    toast.success('Field removed');
+  };
+
+  const toggleRequired = (id: string) => {
+    setFields(fields.map(f => 
+      f.id === id ? { ...f, required: !f.required } : f
+    ));
   };
 
   const generateSchema = () => {
-    const properties: Record<string, any> = {};
+    const properties: any = {};
     const required: string[] = [];
 
-    fields.forEach((field) => {
-      const property: any = {
+    fields.forEach(field => {
+      properties[field.name] = {
         type: field.type,
-        title: field.title,
+        ...(field.description && { description: field.description }),
       };
-
-      if (field.description) {
-        property.description = field.description;
-      }
-
-      if (field.validation) {
-        Object.assign(property, field.validation);
-      }
-
-      if (field.accessibility) {
-        property['x-accessibility'] = field.accessibility;
-      }
-
-      properties[field.name] = property;
-
       if (field.required) {
         required.push(field.name);
       }
@@ -104,240 +72,175 @@ export const TemplateBuilder: React.FC = () => {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties,
-      required,
+      ...(required.length > 0 && { required }),
     };
 
-    setCurrentSchema(schema);
-    alert('Schema generated! Switch to Technical Editor to view and enhance.');
+    return schema;
+  };
+
+  const handleSave = () => {
+    const schema = generateSchema();
+    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'schema.json';
+    a.click();
+    toast.success('Schema downloaded');
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Field Builder */}
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Field</CardTitle>
-            <CardDescription>Configure form fields without writing code</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Field Name */}
-            <div className="space-y-2">
-              <Label htmlFor="fieldName">Field Name *</Label>
-              <input
-                id="fieldName"
-                type="text"
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="e.g., email, firstName, age"
-                value={currentField.name || ''}
-                onChange={(e) => setCurrentField({ ...currentField, name: e.target.value })}
-              />
-            </div>
+    <div className="h-full flex gap-4">
+      {/* Left Panel - Field Library */}
+      <Card className="w-80 glass border-2 border-neutral-200 dark:border-neutral-700">
+        <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Add New Field
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <div>
+            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+              Field Name *
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., email, username"
+              value={newFieldName}
+              onChange={(e) => setNewFieldName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addField()}
+              className="w-full px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            />
+          </div>
 
-            {/* Field Type */}
-            <div className="space-y-2">
-              <Label htmlFor="fieldType">Field Type</Label>
-              <select
-                id="fieldType"
-                className="w-full px-3 py-2 border rounded-md"
-                value={currentField.type}
-                onChange={(e) => setCurrentField({ ...currentField, type: e.target.value })}
-              >
-                {fieldTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+              Field Type *
+            </label>
+            <select
+              value={newFieldType}
+              onChange={(e) => setNewFieldType(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            >
+              <option value="string">String</option>
+              <option value="number">Number</option>
+              <option value="boolean">Boolean</option>
+              <option value="array">Array</option>
+              <option value="object">Object</option>
+            </select>
+          </div>
 
-            {/* Field Title */}
-            <div className="space-y-2">
-              <Label htmlFor="fieldTitle">Display Title</Label>
-              <input
-                id="fieldTitle"
-                type="text"
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="Label shown to users"
-                value={currentField.title || ''}
-                onChange={(e) => setCurrentField({ ...currentField, title: e.target.value })}
-              />
-            </div>
+          <Button
+            onClick={addField}
+            variant="gradient"
+            size="lg"
+            className="w-full gap-2 py-6 text-base font-semibold hover:scale-105 transition-all"
+          >
+            <Plus className="h-5 w-5" />
+            Add Field to Schema
+          </Button>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="fieldDesc">Description</Label>
-              <textarea
-                id="fieldDesc"
-                className="w-full px-3 py-2 border rounded-md"
-                rows={2}
-                placeholder="Help text for this field"
-                value={currentField.description || ''}
-                onChange={(e) => setCurrentField({ ...currentField, description: e.target.value })}
-              />
-            </div>
+          <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+              Press <kbd className="px-2 py-1 bg-neutral-100 dark:bg-neutral-700 rounded">Enter</kbd> to quickly add
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-            {/* Required Checkbox */}
-            <div className="flex items-center gap-2">
-              <input
-                id="fieldRequired"
-                type="checkbox"
-                checked={currentField.required || false}
-                onChange={(e) => setCurrentField({ ...currentField, required: e.target.checked })}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="fieldRequired" className="cursor-pointer">
-                Required field
-              </Label>
-            </div>
-
-            {/* Validation (Simplified) */}
-            {currentField.type === 'string' && (
-              <div className="space-y-2">
-                <Label>Validation (Optional)</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min length"
-                    className="px-3 py-2 border rounded-md"
-                    onChange={(e) =>
-                      setCurrentField({
-                        ...currentField,
-                        validation: {
-                          ...currentField.validation,
-                          minLength: parseInt(e.target.value) || undefined,
-                        },
-                      })
-                    }
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max length"
-                    className="px-3 py-2 border rounded-md"
-                    onChange={(e) =>
-                      setCurrentField({
-                        ...currentField,
-                        validation: {
-                          ...currentField.validation,
-                          maxLength: parseInt(e.target.value) || undefined,
-                        },
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Accessibility */}
-            <div className="space-y-2">
-              <Label htmlFor="ariaLabel">ARIA Label (Accessibility)</Label>
-              <input
-                id="ariaLabel"
-                type="text"
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="Screen reader label"
-                onChange={(e) =>
-                  setCurrentField({
-                    ...currentField,
-                    accessibility: {
-                      ...currentField.accessibility,
-                      'aria-label': e.target.value,
-                    },
-                  })
-                }
-              />
-            </div>
-
-            <Button onClick={addField} className="w-full">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Field
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fields List & Schema Generation */}
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Form Fields ({fields.length})</span>
-              <Button onClick={generateSchema} disabled={fields.length === 0} size="sm">
-                <FileJson className="mr-2 h-4 w-4" />
-                Generate Schema
-              </Button>
+      {/* Center Panel - Canvas */}
+      <Card className="flex-1 glass border-2 border-neutral-200 dark:border-neutral-700">
+        <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileJson className="h-5 w-5" />
+              Schema Fields ({fields.length})
             </CardTitle>
-            <CardDescription>Your form structure</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {fields.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">
-                No fields added yet. Start by adding a field on the left.
+            <Button
+              onClick={handleSave}
+              variant="gradient"
+              size="sm"
+              className="gap-2"
+              disabled={fields.length === 0}
+            >
+              <Save className="h-4 w-4" />
+              Download Schema
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {fields.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-primary mb-6">
+                <FileJson className="h-12 w-12 text-white" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                {fields.map((field) => (
-                  <div
-                    key={field.id}
-                    className="border rounded-lg p-4 flex justify-between items-start hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm flex items-center gap-2">
-                        {field.title || field.name}
-                        {field.required && (
-                          <span className="text-xs bg-primary/20 px-2 py-0.5 rounded">
-                            Required
-                          </span>
-                        )}
+              <p className="text-xl font-bold text-neutral-700 dark:text-neutral-200 mb-2">No Fields Yet</p>
+              <p className="text-sm text-neutral-500">Add fields from the left panel to build your schema</p>
+              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-primary-50 dark:bg-primary-950/30 rounded-lg">
+                <span className="text-sm text-primary-700 dark:text-primary-300">← Start by adding your first field</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {fields.map((field, index) => (
+                <motion.div
+                  key={field.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="glass p-5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 hover:border-primary-400 dark:hover:border-primary-600 hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        {field.name[0].toUpperCase()}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        <span className="font-mono bg-muted px-1 rounded">{field.name}</span>
-                        <span className="mx-2">•</span>
-                        <span>{field.type}</span>
+                      <div>
+                        <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">{field.name}</div>
+                        <div className="text-sm text-neutral-500">
+                          Type: <span className="text-primary-600 dark:text-primary-400 font-semibold">{field.type}</span>
+                        </div>
                       </div>
-                      {field.description && (
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {field.description}
-                        </div>
-                      )}
-                      {Object.keys(field.validation || {}).length > 0 && (
-                        <div className="text-xs mt-2 flex gap-1 flex-wrap">
-                          {Object.entries(field.validation || {}).map(([key, value]) => (
-                            <span key={key} className="bg-blue-500/10 px-2 py-0.5 rounded">
-                              {key}: {value}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeField(field.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Instructions */}
-        <Card className="bg-primary/5">
-          <CardHeader>
-            <CardTitle className="text-sm">💡 How to use</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <p>1. Add fields using the form on the left</p>
-            <p>2. Configure validation and accessibility options</p>
-            <p>3. Click "Generate Schema" to create a JSON Schema</p>
-            <p>4. Switch to Technical Editor to view, validate, or enhance with AI</p>
-          </CardContent>
-        </Card>
-      </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        size="sm"
+                        variant={field.required ? 'gradient' : 'outline'}
+                        onClick={() => toggleRequired(field.id)}
+                        className="min-w-[100px]"
+                      >
+                        {field.required ? '✓ Required' : 'Optional'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeField(field.id)}
+                        className="hover:bg-red-100 dark:hover:bg-red-950/30"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Right Panel - Preview */}
+      <Card className="w-96 glass">
+        <CardHeader>
+          <CardTitle className="text-lg">Schema Preview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="text-xs bg-neutral-900 text-green-400 p-4 rounded-lg overflow-auto max-h-[600px]">
+            {JSON.stringify(generateSchema(), null, 2)}
+          </pre>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -8,7 +8,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, X, Type, Hash, ToggleLeft, List, Package, Circle } from 'lucide-react';
 
 interface TreeNode {
   path: string;
@@ -111,19 +111,20 @@ export const SchemaTreeView: React.FC<SchemaTreeViewProps> = ({
   };
 
   const getTypeIcon = (type: string) => {
+    const iconClass = "h-3.5 w-3.5";
     switch (type) {
       case 'string':
-        return '📝';
+        return <Type className={iconClass} />;
       case 'number':
-        return '🔢';
+        return <Hash className={iconClass} />;
       case 'boolean':
-        return '✓';
+        return <ToggleLeft className={iconClass} />;
       case 'array':
-        return '📊';
+        return <List className={iconClass} />;
       case 'object':
-        return '📦';
+        return <Package className={iconClass} />;
       default:
-        return '•';
+        return <Circle className={iconClass} />;
     }
   };
 
@@ -185,7 +186,7 @@ export const SchemaTreeView: React.FC<SchemaTreeViewProps> = ({
           )}
 
           {/* Type Icon */}
-          <span className="flex-shrink-0 text-sm">{getTypeIcon(node.type)}</span>
+          <span className={`flex-shrink-0 ${getTypeColor(node.type)}`}>{getTypeIcon(node.type)}</span>
 
           {/* Key */}
           <span className="font-medium text-sm">{node.key}</span>
