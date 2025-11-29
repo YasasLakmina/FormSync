@@ -48,6 +48,11 @@ export const TechnicalEditor: React.FC = () => {
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  
+  // Individual loading states for each action
+  const [convertLoading, setConvertLoading] = useState(false);
+  const [validateLoading, setValidateLoading] = useState(false);
+  const [enhanceLoading, setEnhanceLoading] = useState(false);
 
   // Store
   const {
@@ -74,60 +79,56 @@ export const TechnicalEditor: React.FC = () => {
       return;
     }
 
+    clearError();
+    setConvertLoading(true);
     try {
-      clearError();
-      // Correct API call - just pass the string and format
       await convertSchema(editorValue, format);
       toast.success('Schema converted successfully!');
-    } catch (err) {
-      console.error('Conversion error:', err);
-      toast.error('Conversion failed', {
-        description: err instanceof Error ? err.message : 'Unknown error',
-      });
+    } catch (error) {
+      toast.error('Failed to convert schema');
+    } finally {
+      setConvertLoading(false);
     }
   }, [editorValue, format, convertSchema, clearError]);
 
   const handleValidate = useCallback(async () => {
     if (!displaySchema) {
-      toast.error('No schema to validate', {
-        description: 'Please convert a schema first',
-      });
+      toast.error('No schema to validate');
       return;
     }
 
+    clearError();
+    setValidateLoading(true);
     try {
-      clearError();
       await validateSchema(displaySchema);
       // Show validation dialog instead of just toast
       setShowValidationDialog(true);
-    } catch (err) {
-      console.error('Validation error:', err);
-      toast.error('Validation error');
+    } catch (error) {
+      toast.error('Validation failed');
+    } finally {
+      setValidateLoading(false);
     }
   }, [displaySchema, clearError, validateSchema]);
 
   const handleEnhance = useCallback(async () => {
     if (!displaySchema) {
-      toast.error('No schema to enhance', {
-        description: 'Please convert a schema first',
-      });
+      toast.error('No schema to enhance');
       return;
     }
 
+    clearError();
+    setEnhanceLoading(true);
     try {
-      clearError();
       await enhanceSchema(displaySchema);
-      // Just show suggestions panel - DON'T auto-apply to schema
+      // Just show the suggestions panel, don't auto-apply
       setShowSuggestions(true);
-      setAppliedSuggestions(new Set()); // Reset applied suggestions
-      toast.success('AI suggestions ready!', {
+      toast.success('AI suggestions generated!', {
         description: 'Review and apply suggestions below',
       });
-    } catch (err) {
-      console.error('Enhancement error:', err);
-      toast.error('Enhancement failed', {
-        description: 'AI service may be unavailable',
-      });
+    } catch (error) {
+      toast.error('Failed to generate suggestions');
+    } finally {
+      setEnhanceLoading(false);
     }
   }, [displaySchema, clearError, enhanceSchema]);
 
@@ -410,11 +411,11 @@ export const TechnicalEditor: React.FC = () => {
             <Button
               onClick={handleConvert}
               size="lg"
-              disabled={loading}
+              disabled={convertLoading}
               variant="outline"
               className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
             >
-              {loading ? (
+              {convertLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
@@ -430,11 +431,11 @@ export const TechnicalEditor: React.FC = () => {
             <Button
               onClick={handleValidate}
               size="lg"
-              disabled={loading || !displaySchema}
+              disabled={validateLoading || !displaySchema}
               variant="outline"
               className="gap-2 border-2 hover:bg-green-50 dark:hover:bg-green-950/20"
             >
-              {loading ? (
+              {validateLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin text-green-600" />
                   <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validating...</span>
@@ -450,11 +451,11 @@ export const TechnicalEditor: React.FC = () => {
             <Button
               onClick={handleEnhance}
               size="lg"
-              disabled={loading || !displaySchema}
+              disabled={enhanceLoading || !displaySchema}
               variant="outline"
               className="gap-2 border-2 hover:bg-purple-50 dark:hover:bg-purple-950/20"
             >
-              {loading ? (
+              {enhanceLoading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
                   <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">Enhancing...</span>
