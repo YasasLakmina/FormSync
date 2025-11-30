@@ -111,7 +111,7 @@ export const EditorPage: React.FC = () => {
     }
   };
 
-  const handleNextToFormBuilder = () => {
+  const handleNextToFormBuilder = async () => {
     console.log('[handleNextToFormBuilder] Called', { currentSchema: currentSchema, validationResults });
 
     // Ensure we have a converted schema  
@@ -124,23 +124,44 @@ export const EditorPage: React.FC = () => {
     // If currentSchema exists, conversion was successful, which means validation passed
 
     try {
-      // Encode schema as URL parameter (different origins have separate localStorage)
-      const schemaToStore = JSON.stringify(currentSchema);
-      console.log('[handleNextToFormBuilder] Encoding schema for URL:', schemaToStore.substring(0, 100) + '...');
+      // Save schema to API and get an ID
+      const schemaApiUrl = 'http://localhost:3000/schema';
+      console.log('[handleNextToFormBuilder] Saving schema to API...');
 
-      // Base64 encode the schema to safely pass in URL
-      const encodedSchema = btoa(encodeURIComponent(schemaToStore));
+      const response = await fetch(schemaApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: currentSchema.title || 'Untitled Schema',
+          description: currentSchema.description || 'Schema from Schema UI',
+          content: currentSchema,
+          sourceFormat: 'json',
+          status: 'validated',
+          userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // Demo user ID
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('[handleNextToFormBuilder] API Error Response:', errorData);
+        throw new Error(`API returned ${response.status}: ${errorData}`);
+      }
+
+      const savedSchema = await response.json();
+      console.log('[handleNextToFormBuilder] Schema saved with ID:', savedSchema.id);
 
       // Show success message
-      toast.success('Schema encoded, navigating to Form Builder...');
+      toast.success('Schema saved, navigating to Form Builder...');
 
-      // Navigate to Form Builder with schema in URL parameter
+      // Navigate to Form Builder with schema ID
       const formBuilderUrl = import.meta.env.VITE_FORMGEN_UI_URL || 'http://localhost:5175';
-      const urlWithSchema = `${formBuilderUrl}?schema=${encodedSchema}`;
-      console.log('[handleNextToFormBuilder] Navigating to Form Builder with schema parameter');
-      window.location.href = urlWithSchema;
+      const urlWithSchemaId = `${formBuilderUrl}?schemaId=${savedSchema.id}`;
+      console.log('[handleNextToFormBuilder] Navigating to Form Builder with schema ID');
+      window.location.href = urlWithSchemaId;
     } catch (error) {
-      toast.error('Failed to encode schema. Please try again.');
+      toast.error('Failed to save schema to API. Please try again.');
       console.error('[handleNextToFormBuilder] Error:', error);
     }
   };

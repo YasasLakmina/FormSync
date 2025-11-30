@@ -4,60 +4,77 @@ import { BuilderLayout } from './components/BuilderLayout';
 import { parseJsonSchemaToFormModel } from '@formsync/formgen-core';
 import './index.css';
 
-// Schema Loader - Checks for schema from Schema UI (localStorage handoff)
+// Schema Loader - Fetches schema from API using ID from URL
 const SchemaLoader: React.FC = () => {
     const { dispatch } = useBuilder();
 
     useEffect(() => {
-        // Check for schema handoff from Schema UI
-        const handoffSchema = localStorage.getItem('formsync:schema-handoff');
+        // Check for schema ID in URL parameter (e.g., ?schemaId=abc123)
+        const urlParams = new URLSearchParams(window.location.search);
+        const schemaId = urlParams.get('schemaId');
 
-        if (handoffSchema) {
-            try {
-                // Parse the JSON schema
-                const jsonSchema = JSON.parse(handoffSchema);
+        if (schemaId) {
+            // Fetch schema from API
+            const fetchSchema = async () => {
+                try {
+                    console.log(`📡 Fetching schema from API with ID: ${schemaId}`);
 
-                // Convert JSON Schema to FormModel using the adapter
-                const formModel = parseJsonSchemaToFormModel(jsonSchema);
+                    const response = await fetch(`http://localhost:3000/schema/${schemaId}`);
 
-                // Dispatch to context
-                dispatch({
-                    type: 'UPDATE_FORM',
-                    payload: formModel
-                });
+                    if (!response.ok) {
+                        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+                    }
 
-                // Clear localStorage after successful load (one-time handoff)
-                localStorage.removeItem('formsync:schema-handoff');
+                    const schemaData = await response.json();
+                    console.log('📋 Fetched Schema Data:', schemaData);
 
-                // Show success message (using a simple approach without toast library)
-                console.log('✅ Schema loaded from Schema UI successfully');
+                    // Extract the JSON Schema content
+                    const jsonSchema = schemaData.content;
+                    console.log('📋 JSON Schema:', jsonSchema);
 
-                // Optional: Add a visual indicator in the UI
-                const notification = document.createElement('div');
-                notification.textContent = '✅ Schema loaded from Schema UI';
-                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-family: Inter, sans-serif; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 3000);
+                    // Convert JSON Schema to FormModel using the adapter
+                    const formModel = parseJsonSchemaToFormModel(jsonSchema);
+                    console.log('🔄 Converted FormModel:', formModel);
 
-            } catch (error) {
-                console.error('Failed to load schema from Schema UI:', error);
+                    // Dispatch to context
+                    dispatch({
+                        type: 'UPDATE_FORM',
+                        payload: formModel
+                    });
+                    console.log('✅ Dispatched FormModel to context');
 
-                // Clear bad data
-                localStorage.removeItem('formsync:schema-handoff');
+                    // Clean up URL (remove schema parameter)
+                    window.history.replaceState({}, '', window.location.pathname);
 
-                // Show error and load demo form
-                const notification = document.createElement('div');
-                notification.textContent = `❌ Failed to load schema: ${error instanceof Error ? error.message : 'Invalid JSON'}`;
-                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 24px; border-radius: 8px; font-family: Inter, sans-serif; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 4000);
+                    // Show success message
+                    console.log('✅ Schema loaded from API successfully');
 
-                // Load demo form as fallback
-                loadDemoForm(dispatch);
-            }
+                    // Optional: Add a visual indicator in the UI
+                    const notification = document.createElement('div');
+                    notification.textContent = '✅ Schema loaded from API';
+                    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-family: Inter, sans-serif; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 3000);
+
+                } catch (error) {
+                    console.error('Failed to load schema from API:', error);
+
+                    // Show error and load demo form
+                    const notification = document.createElement('div');
+                    notification.textContent = `❌ Failed to load schema: ${error instanceof Error ? error.message : 'API Error'}`;
+                    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ef4444; color: white; padding: 12px 24px; border-radius: 8px; font-family: Inter, sans-serif; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 4000);
+
+                    // Load demo form as fallback
+                    loadDemoForm(dispatch);
+                }
+            };
+
+            fetchSchema();
         } else {
-            // No schema from Schema UI - load demo form for development
-            console.log('ℹ️ No schema found from Schema UI, loading demo form');
+            // No schema ID from Schema UI - load demo form for development
+            console.log('ℹ️ No schema ID found, loading demo form');
             loadDemoForm(dispatch);
         }
     }, [dispatch]);
