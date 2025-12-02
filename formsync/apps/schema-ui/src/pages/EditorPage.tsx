@@ -39,9 +39,9 @@ export const EditorPage: React.FC = () => {
 
   // Handler to update stages from TechnicalEditor
   const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => {
-    setStages(prev => 
-      prev.map(s => 
-        s.name === stageName 
+    setStages(prev =>
+      prev.map(s =>
+        s.name === stageName
           ? { ...s, status, progress: status === 'complete' ? 100 : status === 'loading' ? 50 : 0 }
           : s
       )
@@ -55,8 +55,13 @@ export const EditorPage: React.FC = () => {
       return;
     }
 
-    if (!validationResults || !validationResults.isValid) {
-      toast.error('Please validate your schema first by clicking the Validate button');
+    if (!validationResults) {
+      toast.error('Validation results missing. Please click Validate then try again.');
+      return;
+    }
+
+    if (!validationResults.valid) {
+      toast.error('Schema validation failed. Please fix the errors shown in the editor.');
       return;
     }
 
@@ -66,7 +71,7 @@ export const EditorPage: React.FC = () => {
     try {
       // Start from Frontend Generation (index 4)
       const generationStages = stages.slice(4);
-      
+
       for (let i = 0; i < generationStages.length; i++) {
         const stageIndex = i + 4; // Offset for actual index
         setStages(prev =>
@@ -89,7 +94,7 @@ export const EditorPage: React.FC = () => {
 
       // Call backend API
       const USE_MOCK = true;
-      const result = USE_MOCK 
+      const result = USE_MOCK
         ? await generationService.generateMock()
         : await generationService.generateAll(currentSchema);
 
@@ -143,7 +148,7 @@ export const EditorPage: React.FC = () => {
               </TabsList>
 
               <TabsContent value="technical" className="mt-0">
-                <TechnicalEditor 
+                <TechnicalEditor
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
                   onStageUpdate={handleStageUpdate}
