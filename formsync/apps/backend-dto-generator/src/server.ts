@@ -31,6 +31,11 @@ const schemaClient = new SchemaApiClient({
 app.post('/generate', async (req, res) => {
     let { schema, schemaId, config } = req.body;
 
+    // Allow passing schema directly in body
+    if (!schema && !schemaId && (req.body.type || req.body.properties || req.body.$schema)) {
+        schema = req.body;
+    }
+
     // Fetch schema if ID provided
     if (schemaId && !schema) {
         try {
@@ -70,6 +75,37 @@ app.post('/generate', async (req, res) => {
         };
 
         await generator.generate(schema, genConfig);
+
+        // CHECK PREVIEW MODE
+        if (req.body.preview) {
+            const files: Array<{ path: string, content: string }> = [];
+
+            // Recursive function to read files
+            const readFiles = async (dir: string) => {
+                const entries = await fs.readdir(dir, { withFileTypes: true });
+                for (const entry of entries) {
+                    const fullPath = path.join(dir, entry.name);
+                    if (entry.isDirectory()) {
+                        await readFiles(fullPath);
+                    } else {
+                        const content = await fs.readFile(fullPath, 'utf8');
+                        const relativePath = path.relative(tempDir, fullPath);
+                        files.push({ path: relativePath, content });
+                    }
+                }
+            };
+
+            await readFiles(tempDir);
+
+            res.json({
+                success: true,
+                files: files
+            });
+
+            // Cleanup after sending response
+            fs.remove(tempDir).catch(err => console.error(`[${requestId}] Cleanup failed:`, err));
+            return;
+        }
 
         // 3. Zip the output
         const archive = await zipService.zipDirectory(tempDir);
