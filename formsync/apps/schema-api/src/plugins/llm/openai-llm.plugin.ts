@@ -42,30 +42,126 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
 
     try {
       const prompt = this.buildPrompt(schema, options);
-      
+
+      // call the model (defensively accept different shapes)
       const response = await this.client!.chat.completions.create({
         model: this.model,
         messages: [
           {
             role: 'system',
-            content: 'You are a JSON Schema expert. Enhance the provided schema with better naming, validation rules, accessibility metadata, and descriptions. Return only valid JSON with the enhanced schema and a changes array.',
+            content: `You are a robust, conservative JSON Schema fixer/normalizer for JSON Schema Draft-07.
+You will receive a single object named inputSchema (a JSON Schema).
+
+Your job: produce a high-quality, non-destructive "fixed" schema by applying only safe normalization and metadata-filling rules. Never invent or remove business fields or change enums/types. Return JSON only.
+
+OUTPUT FORMAT (required)
+Return a single JSON object:
+{
+  "schema": { ...the fixed schema... },
+  "changes": [
+    { "path": "properties.email.format", "changeType": "added", "originalValue": null, "newValue": "email", "reason": "Added email format" }
+  ]
+}
+
+PROCESSING RULES (STRICT — must follow)
+
+A. Absolute invariants — do NOT change:
+  1. Property keys (names/casing) — do not rename, remove or add property keys
+  2. Enum values and order — must remain exactly as input
+  3. Existing required arrays — do not remove or add required entries
+  4. Object ↔ array structure — do not convert object to array or vice-versa
+  5. Types — preserve existing types (string stays string, number stays number)
+
+B. Allowed safe corrections (apply ONLY when clearly needed):
+  1. Date fields: If property name/title contains "date" and lacks format, add "format": "date"
+  2. Email fields: If name/title contains "email" and format missing, add "format": "email"
+  3. Numbers: Preserve minimum/maximum. Add realistic examples if missing
+  4. Arrays: If array is required and minItems missing, set "minItems": 1
+
+C. Metadata to add to every property (recursively):
+  1. Description: If missing, add one-sentence description from property name
+  2. Examples: If missing, add 1-2 realistic examples based on type/format:
+       - email → ["user@example.com"]
+       - date → ["1990-01-01"]
+       - number → [1] or use minimum
+       - enum → [firstEnumValue]
+  3. x-accessibility: If exists as string, convert to object: { "label": "<string>", "hint": "" }
+
+D. Postal code & phone heuristics:
+  1. postalCode: Add pattern ^[0-9A-Za-z \\-]{1,10}$ if missing and maxLength exists
+  2. phone: Add example like "123-456-7890"
+
+E. Nested structures:
+  1. Apply rules recursively to nested properties and items.properties
+  2. Do not overwrite existing description, examples, format, pattern
+
+F. Validation:
+  1. After fixes, ensure invariants (A) still hold
+  2. If any fix would violate invariants, skip it and note in changes as "rejected"
+
+Return only the JSON object with "schema" and "changes" keys.`,
           },
-          {
-            role: 'user',
-            content: prompt,
-          },
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         response_format: { type: 'json_object' },
       });
 
-      const result = JSON.parse(response.choices[0].message.content || '{}');
-      
+      // defensive extraction of JSON result
+      let rawText = '';
+      if ((response as any).choices?.[0]?.message?.content) {
+        rawText = (response as any).choices[0].message.content;
+      } else if ((response as any).output) {
+        rawText = JSON.stringify((response as any).output);
+      } else {
+        rawText = JSON.stringify(response);
+      }
+
+      // try to parse — if parse fails, attempt to extract JSON block
+      let parsed: any;
+      try {
+        parsed = typeof rawText === 'string' ? JSON.parse(rawText) : rawText;
+      } catch (e) {
+        const jsonMatch = rawText.match(/(\{[\s\S]*\})/m);
+        if (jsonMatch) {
+          try { parsed = JSON.parse(jsonMatch[1]); } 
+          catch (err) {
+            return {
+              success: false,
+              errors: ['AI returned non-JSON or unparsable JSON. Raw response provided.', rawText],
+              changes: [],
+            };
+          }
+        } else {
+          return {
+            success: false,
+            errors: ['AI returned non-JSON content and no parsable JSON block found. Raw response provided.', rawText],
+            changes: [],
+          };
+        }
+      }
+
+      const enhancedSchema = parsed.schema ?? parsed; // accept either { schema: ... } or direct schema
+      const changesFromModel = parsed.changes ?? [];
+
+      // VALIDATION: compare original schema -> enhancedSchema for invariants
+      const diffs = validateSchemaInvariant(schema, enhancedSchema);
+      if (diffs.length > 0) {
+        return {
+          success: false,
+          errors: ['Enhanced schema violates invariants. See diffs for details.'],
+          changes: diffs,
+        };
+      }
+
+      // SANITIZATION: Ensure every field has description + examples (auto-add placeholders if missing)
+      autoFillMissingMeta(enhancedSchema);
+
       return {
         success: true,
-        enhancedSchema: result.schema || schema,
-        changes: result.changes || [],
-        tokensUsed: response.usage?.total_tokens,
+        enhancedSchema,
+        changes: (changesFromModel.length ? changesFromModel : []),
+        tokensUsed: (response as any).usage?.total_tokens,
         model: this.model,
       };
     } catch (error) {
@@ -88,102 +184,155 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
   }
 
   private buildPrompt(schema: any, options?: EnhancementOptions): string {
-    const focusAreas = options?.focusAreas || ['naming', 'validation', 'accessibility', 'descriptions'];
-    
-    return `You are a JSON Schema enhancement expert. Your task is to analyze a JSON Schema and suggest improvements.
+    return `Please fix and normalize this JSON Schema following the rules provided in the system prompt.
 
-**CRITICAL INSTRUCTIONS - READ CAREFULLY**:
-1. **DO NOT MODIFY THE SCHEMA** - Return the ORIGINAL schema completely unchanged in the "schema" field
-2. **ALL ENHANCEMENTS GO IN THE "changes" ARRAY** - Each enhancement should be a separate item in the changes array
-3. **NEVER put suggestions, descriptions, or placeholder text directly into the schema values**
-4. **Each change must have a clear path, original value, new value, change type, and reason**
-
-Original Schema to analyze:
+Input Schema (inputSchema):
 ${JSON.stringify(schema, null, 2)}
 
-Focus Areas: ${focusAreas.join(', ')}
+Focus areas: ${options?.focusAreas?.join(', ') || 'all'}
 
-Enhancement Guidelines:
-${focusAreas.includes('naming') ? '- Suggest adding clear "title" properties for better field labels (DO NOT modify field names)' : ''}
-${focusAreas.includes('validation') ? '- Suggest adding validation rules: pattern for emails, minLength/maxLength for text, minimum/maximum for numbers, etc.' : ''}
-${focusAreas.includes('accessibility') ? '- Suggest adding "title" and "description" properties for screen reader support' : ''}
-${focusAreas.includes('descriptions') ? '- Suggest adding helpful "description" properties explaining field purpose' : ''}
-
-**RESPONSE FORMAT**:
-{
-  "schema": <RETURN THE ORIGINAL SCHEMA EXACTLY AS PROVIDED - DO NOT MODIFY IT>,
-  "changes": [
-    <LIST OF INDIVIDUAL ENHANCEMENT SUGGESTIONS - EACH AS A SEPARATE ITEM>
-  ]
+Return the result in the specified JSON format with "schema" and "changes" keys.`;
+  }
 }
 
-**CHANGES ARRAY FORMAT - EACH ITEM MUST FOLLOW THIS STRUCTURE**:
-{
-  "path": "properties.fieldName.propertyToAdd",
-  "originalValue": null,  // or the existing value if modifying
-  "newValue": "the suggested value",
-  "changeType": "added",  // or "modified" or "removed"
-  "reason": "Brief explanation of why this enhancement improves the schema"
+// Helper functions for defensive schema validation
+
+function isObject(x: any) {
+  return x && typeof x === 'object' && !Array.isArray(x);
 }
 
-**EXAMPLES OF CORRECT CHANGES**:
+function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array<any> {
+  const diffs: any[] = [];
 
-Example 1 - Adding a title:
-{
-  "path": "properties.username.title",
-  "originalValue": null,
-  "newValue": "Username",
-  "changeType": "added",
-  "reason": "Added user-friendly label for better accessibility"
+  if (!isObject(original) || !isObject(enhanced)) {
+    return diffs;
+  }
+
+  // compare required arrays at this level (if present in original)
+  if (Array.isArray(original.required)) {
+    const origReq = original.required.slice().sort();
+    const enhReq = Array.isArray(enhanced.required) ? enhanced.required.slice().sort() : [];
+    if (JSON.stringify(origReq) !== JSON.stringify(enhReq)) {
+      diffs.push({
+        path: path || '/',
+        message: 'required array changed',
+        original: origReq,
+        enhanced: enhReq,
+      });
+    }
+  }
+
+  const origProps = original.properties ?? {};
+  const enhProps = enhanced.properties ?? {};
+  const origKeys = Object.keys(origProps);
+  const enhKeys = Object.keys(enhProps);
+
+  const missingInEnh = origKeys.filter(k => !enhKeys.includes(k));
+  const addedInEnh = enhKeys.filter(k => !origKeys.includes(k));
+  if (missingInEnh.length || addedInEnh.length) {
+    diffs.push({
+      path: path || '/',
+      message: 'properties keys changed',
+      missingInEnhanced: missingInEnh,
+      addedInEnhanced: addedInEnh,
+    });
+    return diffs;
+  }
+
+  for (const key of origKeys) {
+    const origProp = origProps[key];
+    const enhProp = enhProps[key];
+    const propPath = path ? `${path}.properties.${key}` : `properties.${key}`;
+
+    const origType = origProp?.type;
+    const enhType = enhProp?.type;
+    if (origType !== enhType) {
+      diffs.push({
+        path: propPath,
+        message: 'type changed',
+        originalType: origType,
+        enhancedType: enhType,
+      });
+      continue;
+    }
+
+    if (Array.isArray(origProp?.enum)) {
+      const origSet = new Set(origProp.enum);
+      const enhEnum = Array.isArray(enhProp?.enum) ? enhProp.enum : [];
+      const enhSet = new Set(enhEnum);
+      if (origSet.size !== enhSet.size || [...origSet].some(v => !enhSet.has(v))) {
+        diffs.push({
+          path: propPath,
+          message: 'enum values changed',
+          originalEnum: origProp.enum,
+          enhancedEnum: enhEnum,
+        });
+      }
+    }
+
+    if (origProp?.format) {
+      if (enhProp?.format !== origProp.format) {
+        diffs.push({
+          path: propPath,
+          message: 'format changed or removed',
+          originalFormat: origProp.format,
+          enhancedFormat: enhProp?.format ?? null,
+        });
+      }
+    }
+
+    if (origType === 'object') {
+      const childDiffs = validateSchemaInvariant(origProp, enhProp, propPath);
+      diffs.push(...childDiffs);
+    }
+
+    if (origType === 'array') {
+      const origItems = origProp.items ?? {};
+      const enhItems = enhProp.items ?? {};
+      if ((origItems.type ?? null) !== (enhItems.type ?? null)) {
+        diffs.push({
+          path: `${propPath}.items`,
+          message: 'items.type changed',
+          original: origItems.type,
+          enhanced: enhItems.type,
+        });
+      }
+      if (origItems.type === 'object') {
+        const childDiffs = validateSchemaInvariant(origItems, enhItems, `${propPath}.items`);
+        diffs.push(...childDiffs);
+      }
+    }
+  }
+
+  return diffs;
 }
 
-Example 2 - Adding a description:
-{
-  "path": "properties.email.description",
-  "originalValue": null,
-  "newValue": "User's email address for account communication",
-  "changeType": "added",
-  "reason": "Added description to clarify field purpose"
-}
+function autoFillMissingMeta(schema: any) {
+  if (!isObject(schema)) return;
+  const props = schema.properties ?? {};
+  for (const [k, v] of Object.entries(props)) {
+    if (!v) continue;
+    if ((v as any).description == null) {
+      (v as any).description = `No description provided for ${k}.`;
+    }
+    if (!Array.isArray((v as any).examples) || (v as any).examples.length === 0) {
+      let example: any = null;
+      switch ((v as any).type) {
+        case 'string': example = ((v as any).format === 'email') ? 'user@example.com' : ((v as any).enum?.[0] ?? `${k} example`); break;
+        case 'number': example = ((v as any).minimum ?? 1); break;
+        case 'array': example = []; break;
+        case 'object': example = {}; break;
+        default: example = null;
+      }
+      (v as any).examples = example != null ? [example] : [];
+    }
 
-Example 3 - Adding email validation:
-{
-  "path": "properties.email.pattern",
-  "originalValue": null,
-  "newValue": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$",
-  "changeType": "added",
-  "reason": "Added regex pattern to validate email format"
-}
+    if ((v as any).type === 'object' && (v as any).properties) {
+      autoFillMissingMeta(v);
+    }
 
-Example 4 - Adding minLength:
-{
-  "path": "properties.password.minLength",
-  "originalValue": null,
-  "newValue": 8,
-  "changeType": "added",
-  "reason": "Added minimum length requirement for password security"
-}
-
-Example 5 - Adding x-accessibility metadata:
-{
-  "path": "properties.age.x-accessibility",
-  "originalValue": null,
-  "newValue": {
-    "label": "Age in years",
-    "hint": "Enter your age as a number"
-  },
-  "changeType": "added",
-  "reason": "Added accessibility metadata for screen readers and assistive technologies"
-}
-
-**VALIDATION CHECKLIST** (verify before responding):
-✓ The "schema" field contains the ORIGINAL schema unchanged
-✓ The "changes" array contains multiple individual suggestions
-✓ Each change has all required fields: path, originalValue, newValue, changeType, reason
-✓ No suggestions are embedded in the schema itself
-✓ Each enhancement is a separate item in the changes array
-✓ Paths are in dot notation format (e.g., "properties.fieldName.title")
-
-Now analyze the provided schema and return your response in the exact JSON format specified above.`;
+    if ((v as any).type === 'array' && (v as any).items && (v as any).items.type === 'object') {
+      autoFillMissingMeta((v as any).items);
+    }
   }
 }
