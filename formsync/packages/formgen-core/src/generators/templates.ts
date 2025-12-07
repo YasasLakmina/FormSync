@@ -151,10 +151,10 @@ export function generateIndexCss(formModel: FormModel): string {
 }
 
 body {
-  font-family: ${theme.typography.fontFamily};
-  font-size: ${theme.typography.baseFontSize}px;
-  background-color: ${theme.colors.background};
-  color: ${theme.colors.text};
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   line-height: 1.5;
 }
 
