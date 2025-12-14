@@ -1,6 +1,6 @@
 /**
  * Schema DTOs (Data Transfer Objects)
- * 
+ *
  * Validation and type definitions for schema-related requests
  */
 

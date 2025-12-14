@@ -1,13 +1,13 @@
 /**
  * Schema Suggestion Types
- * 
+ *
  * Type definitions for the AI-driven Suggestion Engine
- * 
+ *
  * Design Decision:
  * Suggestions are PROPOSED improvements that require human approval.
  * They are NOT auto-applied, preserving human-in-the-loop control
  * and ensuring academic defensibility of the AI system.
- * 
+ *
  * Key Architectural Principles:
  * 1. AI suggests, humans decide
  * 2. All suggestion applications are deterministic and reversible
@@ -17,7 +17,7 @@
 
 /**
  * Categories of schema improvements
- * 
+ *
  * - validation: Rules that constrain values (minLength, pattern, etc.)
  * - accessibility: Metadata for assistive technologies
  * - structure: Changes to schema organization (NOT field additions/removals)
@@ -27,7 +27,7 @@ export type SuggestionCategory = 'validation' | 'accessibility' | 'structure' | 
 
 /**
  * Represents a single AI-generated suggestion
- * 
+ *
  * Lifecycle:
  * 1. Created by AI during enhancement (applied: false)
  * 2. User reviews and applies (applied: true)
@@ -55,7 +55,7 @@ export interface SchemaSuggestion {
   /**
    * The rule/property to add
    * Example: { "minLength": 1 } or { "pattern": "^[a-z]+$" }
-   * 
+   *
    * Note: This is a partial schema fragment to be merged into the target path
    */
   rule: Record<string, any>;
@@ -76,7 +76,9 @@ export interface SchemaSuggestion {
    * Optional: Which quality dimensions this suggestion impacts
    * Used for explaining score changes when suggestion is applied
    */
-  impactedDimensions?: Array<'structure' | 'validation' | 'accessibility' | 'consistency' | 'improvement'>;
+  impactedDimensions?: Array<
+    'structure' | 'validation' | 'accessibility' | 'consistency' | 'improvement'
+  >;
 
   /**
    * Optional: Estimated score improvement if applied

@@ -1,6 +1,6 @@
 /**
  * Frontend Integration Test Example
- * 
+ *
  * This file demonstrates how to test the suggestion-driven enhancement workflow
  * Run this in your browser console or create a proper test file
  */
@@ -18,7 +18,7 @@ const mockSuggestions = [
     description: 'Add email to required fields for user validation',
     applied: false,
     impactedDimensions: ['validation'],
-    estimatedImpact: 1.5
+    estimatedImpact: 1.5,
   },
   {
     id: 'sug_2',
@@ -28,7 +28,7 @@ const mockSuggestions = [
     description: 'Add email format constraint',
     applied: false,
     impactedDimensions: ['validation'],
-    estimatedImpact: 0.5
+    estimatedImpact: 0.5,
   },
   {
     id: 'sug_3',
@@ -38,16 +38,16 @@ const mockSuggestions = [
     description: 'Add accessibility metadata for age field',
     applied: false,
     impactedDimensions: ['metadata', 'accessibility'],
-    estimatedImpact: 1.0
-  }
+    estimatedImpact: 1.0,
+  },
 ];
 
 const mockEnhancedSchema = {
   type: 'object',
   properties: {
     email: { type: 'string' },
-    age: { type: 'number' }
-  }
+    age: { type: 'number' },
+  },
 };
 
 const mockQuality = {
@@ -56,9 +56,9 @@ const mockQuality = {
     validation: 7.0,
     accessibility: 6.0,
     structure: 8.0,
-    metadata: 9.0
+    metadata: 9.0,
   },
-  issues: []
+  issues: [],
 };
 
 // ============================================
@@ -90,19 +90,19 @@ async function testSuggestionWorkflow() {
   console.log('✨ Step 3: Apply Suggestion #1');
   const suggestion1 = mockSuggestions[0];
   console.log(`Applying: ${suggestion1.description}`);
-  
+
   // Mock API response for apply
   const applyResponse = {
     schema: {
       ...mockEnhancedSchema,
-      required: ['email']
+      required: ['email'],
     },
     suggestion: { ...suggestion1, applied: true },
     quality: {
       score: 9.0, // Score increased
-      breakdown: { ...mockQuality.breakdown, validation: 8.5 }
+      breakdown: { ...mockQuality.breakdown, validation: 8.5 },
     },
-    scoreDelta: 1.5 // Quality improvement
+    scoreDelta: 1.5, // Quality improvement
   };
 
   console.log('Response:');
@@ -117,7 +117,7 @@ async function testSuggestionWorkflow() {
     schema: mockEnhancedSchema, // Reverted
     suggestion: { ...suggestion1, applied: false },
     quality: mockQuality, // Back to original
-    scoreDelta: -1.5 // Score decreased
+    scoreDelta: -1.5, // Score decreased
   };
 
   console.log('Response:');
@@ -231,7 +231,7 @@ function testStateManagement() {
     aiChanges: [],
     qualityMetrics: null,
     loading: false,
-    error: null
+    error: null,
   };
   console.log(JSON.stringify(initialState, null, 2));
   console.log('');
@@ -241,18 +241,16 @@ function testStateManagement() {
     currentSchema: mockEnhancedSchema,
     baseSchema: mockEnhancedSchema, // Saved for deterministic apply/undo
     suggestions: mockSuggestions,
-    aiChanges: [
-      { path: 'properties.email.type', value: 'string', changeType: 'added' }
-    ],
+    aiChanges: [{ path: 'properties.email.type', value: 'string', changeType: 'added' }],
     qualityMetrics: {
       qualityScore: 7.5,
       qualityBreakdown: mockQuality.breakdown,
       issues: [],
       appliedSuggestionsCount: 0,
-      totalSuggestionsCount: 3
+      totalSuggestionsCount: 3,
     },
     loading: false,
-    error: null
+    error: null,
   };
   console.log(JSON.stringify(afterEnhance, null, 2));
   console.log('');
@@ -262,18 +260,14 @@ function testStateManagement() {
     ...afterEnhance,
     currentSchema: {
       ...mockEnhancedSchema,
-      required: ['email']
+      required: ['email'],
     },
-    suggestions: [
-      { ...mockSuggestions[0], applied: true },
-      mockSuggestions[1],
-      mockSuggestions[2]
-    ],
+    suggestions: [{ ...mockSuggestions[0], applied: true }, mockSuggestions[1], mockSuggestions[2]],
     qualityMetrics: {
       ...afterEnhance.qualityMetrics,
       qualityScore: 9.0,
-      appliedSuggestionsCount: 1
-    }
+      appliedSuggestionsCount: 1,
+    },
   };
   console.log(JSON.stringify(afterApply, null, 2));
   console.log('');
@@ -294,13 +288,13 @@ async function runAllTests() {
 
   await testSuggestionWorkflow();
   console.log('─────────────────────────────────────────────\n');
-  
+
   await testComponentInteraction();
   console.log('─────────────────────────────────────────────\n');
-  
+
   await testErrorHandling();
   console.log('─────────────────────────────────────────────\n');
-  
+
   testStateManagement();
   console.log('─────────────────────────────────────────────\n');
 
@@ -319,7 +313,7 @@ if (typeof module !== 'undefined' && module.exports) {
     runAllTests,
     mockSuggestions,
     mockEnhancedSchema,
-    mockQuality
+    mockQuality,
   };
 }
 

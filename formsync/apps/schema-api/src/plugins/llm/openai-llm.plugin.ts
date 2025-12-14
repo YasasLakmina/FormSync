@@ -1,20 +1,25 @@
 /**
  * OpenAI LLM Provider Plugin
- * 
+ *
  * Uses OpenAI GPT models to enhance JSON Schemas
  * Improvements include: better field naming, validation rules,
  * accessibility metadata, and descriptions
- * 
+ *
  * Design Decision: Uses OpenAI-compatible API format to allow
  * easy swapping with other providers (Azure OpenAI, Groq, local models, etc.)
- * 
+ *
  * NOTE:
  * This plugin is a low-level LLM provider (transport layer).
  * Domain-specific schema intelligence is implemented in SchemaEnhancerService
  * for reusability, explainability, and quality scoring.
  */
 
-import { LLMProviderPlugin, EnhancementResult, EnhancementOptions, SchemaEnhancement } from '@formsync/plugins';
+import {
+  LLMProviderPlugin,
+  EnhancementResult,
+  EnhancementOptions,
+  SchemaEnhancement,
+} from '@formsync/plugins';
 import OpenAI from 'openai';
 
 export class OpenAILLMPlugin implements LLMProviderPlugin {
@@ -29,9 +34,9 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
 
     if (apiKey) {
       // Initialize with custom base URL if provided (for Groq, etc.)
-      this.client = new OpenAI({ 
+      this.client = new OpenAI({
         apiKey,
-        ...(baseURL && { baseURL })
+        ...(baseURL && { baseURL }),
       });
     }
   }
@@ -209,7 +214,7 @@ Before returning:
 - JSON is valid
 - Return JSON ONLY`,
           },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.2,
         response_format: { type: 'json_object' },
@@ -232,8 +237,9 @@ Before returning:
       } catch (e) {
         const jsonMatch = rawText.match(/(\{[\s\S]*\})/m);
         if (jsonMatch) {
-          try { parsed = JSON.parse(jsonMatch[1]); } 
-          catch (err) {
+          try {
+            parsed = JSON.parse(jsonMatch[1]);
+          } catch (err) {
             return {
               success: false,
               errors: ['AI returned non-JSON or unparsable JSON. Raw response provided.', rawText],
@@ -243,7 +249,10 @@ Before returning:
         } else {
           return {
             success: false,
-            errors: ['AI returned non-JSON content and no parsable JSON block found. Raw response provided.', rawText],
+            errors: [
+              'AI returned non-JSON content and no parsable JSON block found. Raw response provided.',
+              rawText,
+            ],
             changes: [],
           };
         }
@@ -253,7 +262,7 @@ Before returning:
       const suggestionsFromModel = parsed.suggestions ?? []; // Extract suggestions
 
       // No invariant validation needed since we're not modifying the schema
-      
+
       return {
         success: true,
         enhancedSchema: schema, // Return original schema unchanged
@@ -325,8 +334,8 @@ function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array
   const origKeys = Object.keys(origProps);
   const enhKeys = Object.keys(enhProps);
 
-  const missingInEnh = origKeys.filter(k => !enhKeys.includes(k));
-  const addedInEnh = enhKeys.filter(k => !origKeys.includes(k));
+  const missingInEnh = origKeys.filter((k) => !enhKeys.includes(k));
+  const addedInEnh = enhKeys.filter((k) => !origKeys.includes(k));
   if (missingInEnh.length || addedInEnh.length) {
     diffs.push({
       path: path || '/',
@@ -358,7 +367,7 @@ function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array
       const origSet = new Set(origProp.enum);
       const enhEnum = Array.isArray(enhProp?.enum) ? enhProp.enum : [];
       const enhSet = new Set(enhEnum);
-      if (origSet.size !== enhSet.size || [...origSet].some(v => !enhSet.has(v))) {
+      if (origSet.size !== enhSet.size || [...origSet].some((v) => !enhSet.has(v))) {
         diffs.push({
           path: propPath,
           message: 'enum values changed',
@@ -416,11 +425,23 @@ function autoFillMissingMeta(schema: any) {
     if (!Array.isArray((v as any).examples) || (v as any).examples.length === 0) {
       let example: any = null;
       switch ((v as any).type) {
-        case 'string': example = ((v as any).format === 'email') ? 'user@example.com' : ((v as any).enum?.[0] ?? `${k} example`); break;
-        case 'number': example = ((v as any).minimum ?? 1); break;
-        case 'array': example = []; break;
-        case 'object': example = {}; break;
-        default: example = null;
+        case 'string':
+          example =
+            (v as any).format === 'email'
+              ? 'user@example.com'
+              : ((v as any).enum?.[0] ?? `${k} example`);
+          break;
+        case 'number':
+          example = (v as any).minimum ?? 1;
+          break;
+        case 'array':
+          example = [];
+          break;
+        case 'object':
+          example = {};
+          break;
+        default:
+          example = null;
       }
       (v as any).examples = example != null ? [example] : [];
     }

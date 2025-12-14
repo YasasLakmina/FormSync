@@ -1,14 +1,14 @@
 /**
  * LLMProviderPlugin Interface
- * 
+ *
  * Plugins that implement this interface use AI/LLM services to enhance
  * JSON Schemas with better naming, validations, accessibility metadata, etc.
- * 
+ *
  * Design Decision: The plugin returns:
  * 1. Enhanced schema (with SAFE auto-fixes applied)
  * 2. List of auto-applied changes
  * 3. List of SUGGESTIONS (not auto-applied, require human approval)
- * 
+ *
  * This ensures human-in-the-loop AI governance and academic defensibility.
  */
 
@@ -30,7 +30,9 @@ export interface SchemaSuggestion {
   rule: Record<string, any>; // Rule to apply (e.g., { "minLength": 1 })
   description: string; // Human-readable explanation
   applied: boolean; // Whether suggestion has been applied
-  impactedDimensions?: Array<'structure' | 'validation' | 'accessibility' | 'consistency' | 'improvement'>;
+  impactedDimensions?: Array<
+    'structure' | 'validation' | 'accessibility' | 'consistency' | 'improvement'
+  >;
   estimatedImpact?: number; // Optional: estimated score improvement
 }
 

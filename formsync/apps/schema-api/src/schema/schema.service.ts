@@ -1,6 +1,6 @@
 /**
  * Schema Service
- * 
+ *
  * Business logic for schema operations:
  * - Format conversion using parser plugins
  * - Schema validation using validator plugins
@@ -32,7 +32,7 @@ export class SchemaService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly qualityEngine: SchemaQualityEngine,
-    private readonly enhancerService: SchemaEnhancerService,
+    private readonly enhancerService: SchemaEnhancerService
   ) {}
 
   /**
@@ -50,22 +50,22 @@ export class SchemaService {
     return {
       // Base enhanced schema (with safe auto-fixes ONLY)
       enhancedSchema: result.enhancedSchema,
-      
+
       // Auto-applied safe changes
       changes: result.changes,
-      
+
       // NEW: AI suggestions (NOT auto-applied)
       suggestions: result.suggestions,
-      
+
       // Quality metrics for CURRENT state (before suggestions)
       qualityScore: result.quality.score,
       qualityBreakdown: result.quality.breakdown,
       issues: result.quality.issues,
-      
+
       // Metadata
       model: result.model,
       tokensUsed: result.tokensUsed,
-      
+
       // Statistics
       metrics: {
         totalChanges: result.changes.length,
@@ -107,24 +107,24 @@ export class SchemaService {
     return {
       // Updated schema state
       schema: result.schema,
-      
+
       // Updated suggestion (with toggled applied flag)
       suggestion: result.suggestion,
-      
+
       // Recalculated quality metrics
       qualityScore: result.quality.score,
       qualityBreakdown: result.quality.breakdown,
       issues: result.quality.issues,
-      
+
       // Score change
       scoreDelta: result.scoreDelta,
-      
+
       // Context
       action: dto.action,
-      
+
       // Statistics
       metrics: {
-        appliedSuggestions: dto.allSuggestions.filter(s => 
+        appliedSuggestions: dto.allSuggestions.filter((s) =>
           s.id === dto.suggestion.id ? result.suggestion.applied : s.applied
         ).length,
         totalSuggestions: dto.allSuggestions.length,
@@ -183,7 +183,7 @@ export class SchemaService {
     const crypto = await import('crypto');
     const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');
     const cacheKey = `v2:convert:${dto.format || 'auto'}:${inputHash}`;
-    
+
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return { ...cached, fromCache: true };
@@ -208,7 +208,6 @@ export class SchemaService {
     if (!parser) {
       throw new BadRequestException('Could not detect format or find suitable parser');
     }
-
 
     console.log('[SchemaService] Using parser:', parser.name);
     const result = await parser.parse(dto.input);

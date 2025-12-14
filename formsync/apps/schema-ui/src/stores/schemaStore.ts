@@ -1,6 +1,6 @@
 /**
  * Schema Store (Zustand)
- * 
+ *
  * Global state management for schemas, conversion, validation, and AI enhancement
  */
 
@@ -87,7 +87,10 @@ interface SchemaStore {
   setCurrentSchema: (schema: any) => void;
   convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<void>;
   enhanceSchema: (schema: any, options?: any) => Promise<void>;
-  applySuggestion: (suggestion: SchemaSuggestion, action: 'apply' | 'undo') => Promise<number | undefined>;
+  applySuggestion: (
+    suggestion: SchemaSuggestion,
+    action: 'apply' | 'undo'
+  ) => Promise<number | undefined>;
   recalculateQuality: () => Promise<void>;
   validateSchema: (schema: any, validators?: string[]) => Promise<void>;
   loadSchemas: (userId?: string) => Promise<void>;
@@ -138,7 +141,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
     try {
       const response = await schemaApi.enhance({ schema, ...options });
       const data = response.data;
-      
+
       set({
         enhancedSchema: data.enhancedSchema,
         baseSchema: data.enhancedSchema, // Store base schema (with auto-fixes, no suggestions)
@@ -148,13 +151,14 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
         aiChanges: data.changes || [], // Store auto-applied changes
         qualityMetrics: {
           qualityScore: data.quality?.score || data.qualityScore || 0,
-          qualityBreakdown: data.quality?.breakdown || data.qualityBreakdown || {
-            structure: 0,
-            validation: 0,
-            accessibility: 0,
-            consistency: 0,
-            improvement: 0,
-          },
+          qualityBreakdown: data.quality?.breakdown ||
+            data.qualityBreakdown || {
+              structure: 0,
+              validation: 0,
+              accessibility: 0,
+              consistency: 0,
+              improvement: 0,
+            },
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
           metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
@@ -174,7 +178,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
   applySuggestion: async (suggestion, action) => {
     const state = get();
     set({ loading: true, error: null });
-    
+
     try {
       const response = await schemaApi.applySuggestion({
         baseSchema: state.baseSchema,
@@ -187,7 +191,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       const data = response.data;
 
       // Update the suggestion in the list
-      const updatedSuggestions = state.suggestions.map(s =>
+      const updatedSuggestions = state.suggestions.map((s) =>
         s.id === suggestion.id ? data.suggestion : s
       );
 
@@ -200,7 +204,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
           issues: data.quality?.issues || data.issues || [],
           explanations: state.qualityMetrics?.explanations || [],
           metrics: state.qualityMetrics?.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
-          appliedSuggestionsCount: updatedSuggestions.filter(s => s.applied).length,
+          appliedSuggestionsCount: updatedSuggestions.filter((s) => s.applied).length,
           totalSuggestionsCount: updatedSuggestions.length,
         },
         loading: false,
@@ -219,7 +223,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
   recalculateQuality: async () => {
     const state = get();
     set({ loading: true, error: null });
-    
+
     try {
       const response = await schemaApi.recalculateQuality({
         baseSchema: state.baseSchema,

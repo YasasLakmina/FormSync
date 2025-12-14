@@ -1,6 +1,6 @@
 /**
  * Schema Enhancement Engine Service
- * 
+ *
  * This service encapsulates domain-specific schema intelligence including:
  * - Validation normalization
  * - Accessibility enrichment
@@ -8,12 +8,12 @@
  * - Quality scoring
  * - Explainability
  * - Suggestion management (NEW)
- * 
+ *
  * Design Decision:
  * The underlying LLM plugin (e.g., OpenAI) handles model communication,
  * while this service provides reusable, explainable schema reasoning.
  * This separation ensures the AI logic is portable across different LLM providers.
- * 
+ *
  * UPDATED FOR SUGGESTION-DRIVEN MODEL:
  * - AI returns safe auto-fixes AND suggestions separately
  * - Quality scoring is based on CURRENT state (base + applied suggestions)
@@ -26,11 +26,11 @@ import { OpenAILLMPlugin } from '../plugins/llm/openai-llm.plugin';
 import { EnhancementOptions } from '@formsync/plugins';
 import { SchemaQualityEngine } from './schema-quality-engine';
 import { SchemaSuggestionEngine } from './schema-suggestion.engine';
-import { 
+import {
   EnhancementResultWithSuggestions,
   SchemaSuggestion,
   ApplySuggestionRequest,
-  ApplySuggestionResult
+  ApplySuggestionResult,
 } from './schema-suggestion.types';
 
 export interface SchemaEnhancementEngineResult {
@@ -57,7 +57,7 @@ export class SchemaEnhancerService {
   /**
    * Enhance a JSON Schema using AI with explainability and quality metrics
    * (UPDATED for suggestion-driven model)
-   * 
+   *
    * Returns:
    * - Enhanced schema (with safe auto-fixes ONLY)
    * - List of auto-applied changes
@@ -68,14 +68,11 @@ export class SchemaEnhancerService {
     schema: any,
     options?: EnhancementOptions
   ): Promise<EnhancementResultWithSuggestions> {
-
     // Delegate to LLM provider for raw AI enhancement + suggestions
     const result = await this.llmPlugin.enhanceSchema(schema, options);
 
     if (!result.success) {
-      throw new Error(
-        result.errors?.join(', ') || 'Schema enhancement failed'
-      );
+      throw new Error(result.errors?.join(', ') || 'Schema enhancement failed');
     }
 
     // Extract results
@@ -108,12 +105,12 @@ export class SchemaEnhancerService {
   /**
    * Apply or undo a suggestion and recalculate quality score
    * (NEW method for suggestion-driven model)
-   * 
+   *
    * This method:
    * 1. Applies/undos the suggestion deterministically
    * 2. Recalculates quality score based on new state
    * 3. Returns updated schema, suggestion, and quality metrics
-   * 
+   *
    * CRITICAL: No AI call - completely deterministic
    */
   applySuggestion(
@@ -123,21 +120,17 @@ export class SchemaEnhancerService {
     aiChanges: any[],
     action: 'apply' | 'undo'
   ): ApplySuggestionResult {
-    
     // Validate suggestion
     this.suggestionEngine.validateSuggestion(suggestion);
 
     // Calculate the CURRENT schema state (base + all previously applied suggestions)
-    const currentSchema = this.suggestionEngine.getCurrentSchemaState(
-      baseSchema,
-      allSuggestions
-    );
+    const currentSchema = this.suggestionEngine.getCurrentSchemaState(baseSchema, allSuggestions);
 
     // Get quality score BEFORE this operation
     const beforeQuality = this.qualityEngine.evaluate(
       currentSchema,
       aiChanges,
-      allSuggestions.filter(s => s.applied),
+      allSuggestions.filter((s) => s.applied),
       allSuggestions
     );
 
@@ -160,7 +153,7 @@ export class SchemaEnhancerService {
     }
 
     // Update the suggestion list
-    const updatedSuggestions = allSuggestions.map(s =>
+    const updatedSuggestions = allSuggestions.map((s) =>
       s.id === suggestion.id ? updatedSuggestion : s
     );
 
@@ -168,7 +161,7 @@ export class SchemaEnhancerService {
     const afterQuality = this.qualityEngine.evaluate(
       updatedSchema,
       aiChanges,
-      updatedSuggestions.filter(s => s.applied),
+      updatedSuggestions.filter((s) => s.applied),
       updatedSuggestions
     );
 
@@ -190,26 +183,19 @@ export class SchemaEnhancerService {
   /**
    * Recalculate quality score for current schema state
    * (NEW helper method)
-   * 
+   *
    * Used when frontend needs to refresh quality metrics without
    * making any changes to suggestions.
    */
-  recalculateQuality(
-    baseSchema: any,
-    allSuggestions: SchemaSuggestion[],
-    aiChanges: any[]
-  ) {
+  recalculateQuality(baseSchema: any, allSuggestions: SchemaSuggestion[], aiChanges: any[]) {
     // Get current schema state
-    const currentSchema = this.suggestionEngine.getCurrentSchemaState(
-      baseSchema,
-      allSuggestions
-    );
+    const currentSchema = this.suggestionEngine.getCurrentSchemaState(baseSchema, allSuggestions);
 
     // Calculate quality
     return this.qualityEngine.evaluate(
       currentSchema,
       aiChanges,
-      allSuggestions.filter(s => s.applied),
+      allSuggestions.filter((s) => s.applied),
       allSuggestions
     );
   }

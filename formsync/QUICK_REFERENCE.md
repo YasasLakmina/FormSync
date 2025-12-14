@@ -4,15 +4,15 @@
 
 ### 1. Two Types of AI Output
 
-| Type | Auto-Applied? | Examples | User Action Required? |
-|------|---------------|----------|----------------------|
-| **Safe Auto-Fixes** | ✅ Yes | descriptions, examples, x-accessibility, email format | ❌ No |
-| **Suggestions** | ❌ No | minLength, pattern, minimum, maximum | ✅ Yes |
+| Type                | Auto-Applied? | Examples                                              | User Action Required? |
+| ------------------- | ------------- | ----------------------------------------------------- | --------------------- |
+| **Safe Auto-Fixes** | ✅ Yes        | descriptions, examples, x-accessibility, email format | ❌ No                 |
+| **Suggestions**     | ❌ No         | minLength, pattern, minimum, maximum                  | ✅ Yes                |
 
 ### 2. Suggestion Lifecycle
 
 ```
-Created (applied: false) 
+Created (applied: false)
     ↓
 User reviews
     ↓
@@ -42,6 +42,7 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 **What it does:** Initial AI enhancement
 
 **Returns:**
+
 - Enhanced schema (with auto-fixes)
 - List of auto-applied changes
 - List of suggestions (NOT applied)
@@ -50,9 +51,12 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 **AI Call:** ✅ Yes (once)
 
 **Example Response:**
+
 ```json
 {
-  "enhancedSchema": { /* ... */ },
+  "enhancedSchema": {
+    /* ... */
+  },
   "suggestions": [
     {
       "id": "val-user-name-1734123456",
@@ -74,6 +78,7 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 **What it does:** Apply or undo a suggestion, recalculate quality
 
 **Parameters:**
+
 - `baseSchema` - Original enhanced schema
 - `suggestion` - The suggestion to apply/undo
 - `allSuggestions` - All suggestions with current states
@@ -81,6 +86,7 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 - `action` - "apply" or "undo"
 
 **Returns:**
+
 - Updated schema
 - Updated suggestion (toggled applied flag)
 - Recalculated quality score
@@ -89,10 +95,15 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 **AI Call:** ❌ No (deterministic)
 
 **Example Response:**
+
 ```json
 {
-  "schema": { /* updated */ },
-  "suggestion": { /* applied: true */ },
+  "schema": {
+    /* updated */
+  },
+  "suggestion": {
+    /* applied: true */
+  },
   "qualityScore": 76,
   "scoreDelta": +8
 }
@@ -105,11 +116,13 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 **What it does:** Refresh quality score without changes
 
 **Parameters:**
+
 - `baseSchema`
 - `allSuggestions` (with current applied states)
 - `aiChanges`
 
 **Returns:**
+
 - Current quality score
 - Breakdown by dimension
 - Issues list
@@ -125,12 +138,12 @@ Improvement (10)    = min(autoFixes, 5) + (appliedSuggestions/total * 5)
 
 ```typescript
 interface SchemaSuggestion {
-  id: string;                    // Unique identifier
-  path: string;                  // JSON path (e.g., "properties.user.properties.name")
+  id: string; // Unique identifier
+  path: string; // JSON path (e.g., "properties.user.properties.name")
   category: 'validation' | 'accessibility' | 'structure' | 'metadata';
-  rule: Record<string, any>;     // What to apply (e.g., { "minLength": 1 })
-  description: string;           // Human-readable explanation
-  applied: boolean;              // Current state
+  rule: Record<string, any>; // What to apply (e.g., { "minLength": 1 })
+  description: string; // Human-readable explanation
+  applied: boolean; // Current state
   impactedDimensions?: string[]; // Which quality dimensions this affects
 }
 ```
@@ -139,13 +152,13 @@ interface SchemaSuggestion {
 
 ```typescript
 interface QualityResult {
-  score: number;                 // 0-100
+  score: number; // 0-100
   breakdown: {
-    structure: number;           // 0-25
-    validation: number;          // 0-25
-    accessibility: number;       // 0-20
-    consistency: number;         // 0-20
-    improvement: number;         // 0-10
+    structure: number; // 0-25
+    validation: number; // 0-25
+    accessibility: number; // 0-20
+    consistency: number; // 0-20
+    improvement: number; // 0-10
   };
   issues: string[];
   appliedSuggestionsCount?: number;
@@ -157,14 +170,14 @@ interface QualityResult {
 
 ## File Locations
 
-| File | Purpose |
-|------|---------|
-| `apps/schema-api/src/schema/schema-suggestion.types.ts` | Type definitions |
+| File                                                     | Purpose          |
+| -------------------------------------------------------- | ---------------- |
+| `apps/schema-api/src/schema/schema-suggestion.types.ts`  | Type definitions |
 | `apps/schema-api/src/schema/schema-suggestion.engine.ts` | Apply/undo logic |
-| `apps/schema-api/src/schema/schema-quality-engine.ts` | Quality scoring |
-| `apps/schema-api/src/schema/schema-enhancer.service.ts` | Orchestration |
-| `apps/schema-api/src/plugins/llm/openai-llm.plugin.ts` | AI provider |
-| `apps/schema-api/src/schema/schema.controller.ts` | API endpoints |
+| `apps/schema-api/src/schema/schema-quality-engine.ts`    | Quality scoring  |
+| `apps/schema-api/src/schema/schema-enhancer.service.ts`  | Orchestration    |
+| `apps/schema-api/src/plugins/llm/openai-llm.plugin.ts`   | AI provider      |
+| `apps/schema-api/src/schema/schema.controller.ts`        | API endpoints    |
 
 ---
 
@@ -175,7 +188,7 @@ interface QualityResult {
 ```typescript
 const response = await fetch('/schema/enhance', {
   method: 'POST',
-  body: JSON.stringify({ schema: originalSchema })
+  body: JSON.stringify({ schema: originalSchema }),
 });
 
 const { enhancedSchema, suggestions, qualityScore } = await response.json();
@@ -191,8 +204,8 @@ const response = await fetch('/schema/suggestion/apply', {
     suggestion: suggestions[0],
     allSuggestions: suggestions,
     aiChanges: originalChanges,
-    action: 'apply'
-  })
+    action: 'apply',
+  }),
 });
 
 const { schema, qualityScore, scoreDelta } = await response.json();
@@ -209,8 +222,8 @@ const response = await fetch('/schema/suggestion/apply', {
     suggestion: appliedSuggestion,
     allSuggestions: suggestions,
     aiChanges: originalChanges,
-    action: 'undo'  // ← Different action
-  })
+    action: 'undo', // ← Different action
+  }),
 });
 ```
 
@@ -218,23 +231,23 @@ const response = await fetch('/schema/suggestion/apply', {
 
 ## Quality Score Interpretation
 
-| Score | Rating | Meaning |
-|-------|--------|---------|
+| Score  | Rating    | Meaning                                      |
+| ------ | --------- | -------------------------------------------- |
 | 90-100 | Excellent | All fields validated, documented, accessible |
-| 70-89 | Good | Most improvements applied, minor gaps |
-| 50-69 | Fair | Basic structure, limited validations |
-| 0-49 | Poor | Missing metadata, no validations |
+| 70-89  | Good      | Most improvements applied, minor gaps        |
+| 50-69  | Fair      | Basic structure, limited validations         |
+| 0-49   | Poor      | Missing metadata, no validations             |
 
 ---
 
 ## Suggestion Categories
 
-| Category | What It Includes | Auto-Applied? |
-|----------|------------------|---------------|
-| `validation` | minLength, pattern, minimum, maximum, minItems | ❌ No |
-| `accessibility` | Additional a11y metadata | Depends (normalization is auto, additions are suggested) |
-| `structure` | Schema organization improvements | ❌ No |
-| `metadata` | Descriptions, examples | ✅ Yes (auto-fixes) |
+| Category        | What It Includes                               | Auto-Applied?                                            |
+| --------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| `validation`    | minLength, pattern, minimum, maximum, minItems | ❌ No                                                    |
+| `accessibility` | Additional a11y metadata                       | Depends (normalization is auto, additions are suggested) |
+| `structure`     | Schema organization improvements               | ❌ No                                                    |
+| `metadata`      | Descriptions, examples                         | ✅ Yes (auto-fixes)                                      |
 
 ---
 
@@ -343,6 +356,7 @@ After 3 suggestions (3/3):
 ## Academic Keywords
 
 This implementation demonstrates:
+
 - **Human-in-the-Loop AI** (HITL)
 - **Explainable AI** (XAI)
 - **Deterministic Operations**
@@ -381,6 +395,7 @@ This implementation demonstrates:
 ## Support
 
 For questions or issues:
+
 1. Check the examples in `SUGGESTION_MODEL_EXAMPLES.md`
 2. Review architecture in `ARCHITECTURE_DOCUMENTATION.md`
 3. Examine inline code comments in implementation files

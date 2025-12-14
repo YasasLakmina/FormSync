@@ -1,6 +1,6 @@
 /**
  * API Client
- * 
+ *
  * Axios-based HTTP client for communicating with the NestJS backend
  */
 
@@ -101,38 +101,31 @@ export interface RecalculateQualityRequest {
 
 export const schemaApi = {
   // Convert schema
-  convert: (data: ConvertSchemaRequest) => 
-    apiClient.post('/schema/convert', data),
+  convert: (data: ConvertSchemaRequest) => apiClient.post('/schema/convert', data),
 
   // Enhance with AI
-  enhance: (data: EnhanceSchemaRequest) => 
-    apiClient.post('/schema/enhance', data),
+  enhance: (data: EnhanceSchemaRequest) => apiClient.post('/schema/enhance', data),
 
   // Apply or undo a suggestion
-  applySuggestion: (data: ApplySuggestionRequest) => 
+  applySuggestion: (data: ApplySuggestionRequest) =>
     apiClient.post('/schema/suggestion/apply', data),
 
   // Recalculate quality score
-  recalculateQuality: (data: RecalculateQualityRequest) => 
+  recalculateQuality: (data: RecalculateQualityRequest) =>
     apiClient.post('/schema/quality/recalculate', data),
 
   // Validate schema
-  validate: (data: ValidateSchemaRequest) => 
-    apiClient.post('/schema/validate', data),
+  validate: (data: ValidateSchemaRequest) => apiClient.post('/schema/validate', data),
 
   // CRUD operations
-  create: (data: CreateSchemaRequest) => 
-    apiClient.post('/schema', data),
+  create: (data: CreateSchemaRequest) => apiClient.post('/schema', data),
 
-  getById: (id: string) => 
-    apiClient.get(`/schema/${id}`),
+  getById: (id: string) => apiClient.get(`/schema/${id}`),
 
-  list: (params?: { userId?: string; status?: string; tags?: string }) => 
+  list: (params?: { userId?: string; status?: string; tags?: string }) =>
     apiClient.get('/schema', { params }),
 
-  update: (id: string, data: UpdateSchemaRequest) => 
-    apiClient.put(`/schema/${id}`, data),
+  update: (id: string, data: UpdateSchemaRequest) => apiClient.put(`/schema/${id}`, data),
 
-  delete: (id: string) => 
-    apiClient.delete(`/schema/${id}`),
+  delete: (id: string) => apiClient.delete(`/schema/${id}`),
 };

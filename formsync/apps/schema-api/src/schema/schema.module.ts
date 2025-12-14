@@ -1,6 +1,6 @@
 /**
  * Schema Module
- * 
+ *
  * Feature module for schema CRUD, conversion, validation, and AI enhancement
  */
 
@@ -25,7 +25,7 @@ import { PluginsModule } from '../plugins/plugins.module';
     SchemaSuggestionEngine, // NEW
     ImportService,
     PrismaService,
-    RedisService
+    RedisService,
   ],
 })
 export class SchemaModule {}

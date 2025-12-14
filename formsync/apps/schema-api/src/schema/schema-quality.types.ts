@@ -1,6 +1,6 @@
 /**
  * Schema Quality Types
- * 
+ *
  * Type definitions for the Schema Quality Scoring Engine
  */
 

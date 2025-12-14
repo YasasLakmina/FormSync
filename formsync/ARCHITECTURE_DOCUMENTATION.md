@@ -64,6 +64,7 @@ interface LLMProviderPlugin {
 ```
 
 **Benefits:**
+
 - Easy to add new providers
 - Domain logic (SchemaEnhancerService) is provider-agnostic
 - Testing: can mock LLM responses
@@ -80,6 +81,7 @@ Controller → Service → Engine/Plugin
 ```
 
 **Responsibilities:**
+
 - **Controller:** Request validation, response formatting
 - **Service:** Workflow orchestration, error handling
 - **Engine:** Core algorithms (scoring, suggestion management)
@@ -94,8 +96,8 @@ Controller → Service → Engine/Plugin
 interface SchemaSuggestion {
   id: string;
   path: string;
-  rule: Record<string, any>;  // What to apply
-  applied: boolean;            // Current state
+  rule: Record<string, any>; // What to apply
+  applied: boolean; // Current state
 }
 
 // Apply: merge rule into path
@@ -103,6 +105,7 @@ interface SchemaSuggestion {
 ```
 
 **Benefits:**
+
 - Operations are idempotent
 - History tracking possible
 - Undo is trivial (no complex diff logic)
@@ -120,6 +123,7 @@ undoSuggestion()  → getCurrentSchemaState() → evaluate()
 ```
 
 **Benefits:**
+
 - Score always reflects current state
 - No stale data
 - Simple mental model
@@ -218,6 +222,7 @@ B. SAFE AUTO-FIXES (apply directly to schema):
 ```
 
 **Rationale:**
+
 - These changes are **non-destructive**
 - They **improve metadata** without changing business logic
 - They are **universally applicable**
@@ -235,6 +240,7 @@ C. SUGGESTIONS ONLY (do NOT apply to schema):
 ```
 
 **Rationale:**
+
 - These changes **constrain business logic**
 - They require **domain knowledge** to validate
 - Wrong constraints can **break valid use cases**
@@ -296,6 +302,7 @@ const score = (validated / total) * 25;
 ```
 
 **Validation Criteria by Type:**
+
 - **String:** Has minLength, maxLength, pattern, or format
 - **Number:** Has minimum or maximum
 - **Array:** Has minItems
@@ -308,6 +315,7 @@ This scores based on **CURRENT schema state only**.
 Suggestions do NOT count until applied.
 
 Example:
+
 ```
 Schema with 3 fields, 0 validated: 0/3 * 25 = 0 pts
 After applying 1 suggestion:      1/3 * 25 = 8 pts
@@ -315,6 +323,7 @@ After applying 3 suggestions:      3/3 * 25 = 25 pts
 ```
 
 This ensures:
+
 - ✅ Score reflects reality, not potential
 - ✅ AI doesn't get credit for unapplied suggestions
 - ✅ User engagement is measured
@@ -339,7 +348,7 @@ const violations = [
   patternOnNonString,
   minimumGreaterThanMaximum,
 ];
-return Math.max(0, 20 - (violations.length * 2));
+return Math.max(0, 20 - violations.length * 2);
 ```
 
 **Why:** Catches logical errors and schema corruption
@@ -357,12 +366,14 @@ return autoScore + suggestionScore;
 ```
 
 **Why This Formula:**
+
 - Rewards auto-fixes (AI did safe improvements)
 - Rewards user engagement (applied suggestions)
 - Does NOT reward AI for generating many suggestions
 - Caps auto-fix contribution to prevent gaming
 
 **Example Scores:**
+
 ```
 3 auto-fixes, 0/0 suggestions: 3 + 0 = 3 pts
 3 auto-fixes, 0/5 suggestions: 3 + 0 = 3 pts (low engagement)
@@ -380,18 +391,19 @@ return autoScore + suggestionScore;
 applySuggestion(schema: any, suggestion: SchemaSuggestion): any {
   // 1. Deep clone to avoid mutation
   const updated = cloneDeep(schema);
-  
+
   // 2. Navigate to target path
   const target = navigateToPath(updated, suggestion.path);
-  
+
   // 3. Merge rule into target
   Object.assign(target, suggestion.rule);
-  
+
   return updated;
 }
 ```
 
 **Example:**
+
 ```typescript
 Path: "properties.user.properties.name"
 Rule: { "minLength": 1 }
@@ -415,20 +427,21 @@ Result:
 undoSuggestion(schema: any, suggestion: SchemaSuggestion): any {
   // 1. Deep clone
   const updated = cloneDeep(schema);
-  
+
   // 2. Navigate to target path
   const target = navigateToPath(updated, suggestion.path);
-  
+
   // 3. Remove ONLY the keys from suggestion.rule
   for (const key of Object.keys(suggestion.rule)) {
     delete target[key];
   }
-  
+
   return updated;
 }
 ```
 
 **Example:**
+
 ```typescript
 Path: "properties.user.properties.name"
 Rule: { "minLength": 1 }
@@ -451,12 +464,12 @@ Result:
 ```typescript
 getCurrentSchemaState(baseSchema: any, allSuggestions: SchemaSuggestion[]): any {
   const appliedSuggestions = allSuggestions.filter(s => s.applied);
-  
+
   let currentSchema = baseSchema;
   for (const suggestion of appliedSuggestions) {
     currentSchema = applySuggestion(currentSchema, suggestion);
   }
-  
+
   return currentSchema;
 }
 ```
@@ -464,11 +477,13 @@ getCurrentSchemaState(baseSchema: any, allSuggestions: SchemaSuggestion[]): any 
 **Purpose:** Reconstructs schema state from base + applied suggestions
 
 **Why This Matters:**
+
 - Frontend sends baseSchema (enhanced, no suggestions)
 - Backend applies all suggestions marked `applied: true`
 - Result is the "current" schema for scoring
 
 **Flow:**
+
 ```
 1. Start with baseSchema (has auto-fixes)
 2. Apply suggestion 1 (if applied: true)
@@ -487,32 +502,35 @@ getCurrentSchemaState(baseSchema: any, allSuggestions: SchemaSuggestion[]): any 
 ```typescript
 function validateSchemaInvariant(original: any, enhanced: any): Diff[] {
   const diffs = [];
-  
+
   // Check property keys unchanged
   if (originalKeys !== enhancedKeys) {
     diffs.push({ message: 'properties keys changed' });
   }
-  
+
   // Check types unchanged
   if (original.type !== enhanced.type) {
     diffs.push({ message: 'type changed' });
   }
-  
+
   // Check enums unchanged
   if (originalEnum !== enhancedEnum) {
     diffs.push({ message: 'enum values changed' });
   }
-  
+
   return diffs;
 }
 ```
 
 **If Validation Fails:**
+
 ```json
 {
   "success": false,
   "errors": ["Enhanced schema violates invariants"],
-  "changes": [ /* diffs */ ]
+  "changes": [
+    /* diffs */
+  ]
 }
 ```
 
@@ -618,9 +636,7 @@ Recalculate:  [no AI]   → <10ms
 
 ```typescript
 // Cache quality scores by schema hash
-const schemaHash = crypto.createHash('sha256')
-  .update(JSON.stringify(schema))
-  .digest('hex');
+const schemaHash = crypto.createHash('sha256').update(JSON.stringify(schema)).digest('hex');
 
 const cacheKey = `quality:${schemaHash}`;
 const cached = await redis.get(cacheKey);
@@ -628,7 +644,7 @@ if (cached) return cached;
 
 // Calculate and cache
 const quality = this.evaluate(schema);
-await redis.set(cacheKey, quality, 3600);  // 1 hour TTL
+await redis.set(cacheKey, quality, 3600); // 1 hour TTL
 ```
 
 ### 3. Deep Cloning
@@ -636,6 +652,7 @@ await redis.set(cacheKey, quality, 3600);  // 1 hour TTL
 **Problem:** Deep cloning large schemas can be slow
 
 **Mitigation:**
+
 - Only clone when mutating
 - Consider structural sharing for future optimization
 
@@ -644,7 +661,7 @@ await redis.set(cacheKey, quality, 3600);  // 1 hour TTL
 const updated = _.cloneDeep(schema);
 
 // Future optimization (structural sharing)
-const updated = produce(schema, draft => {
+const updated = produce(schema, (draft) => {
   draft.properties.user.name.minLength = 1;
 });
 ```
@@ -658,6 +675,7 @@ const updated = produce(schema, draft => {
 **Risk:** User-controlled schema content could inject malicious prompts
 
 **Mitigation:**
+
 - Schema is sent as JSON (structured data, not free text)
 - System prompt explicitly forbids field additions/removals
 - Invariant validation catches unauthorized changes
@@ -667,6 +685,7 @@ const updated = produce(schema, draft => {
 **Risk:** Malicious path like `"../../../etc/passwd"`
 
 **Mitigation:**
+
 - Path is split by `.` and validated
 - No filesystem operations (pure in-memory)
 - navigateToPath() only traverses JSON structure
@@ -676,6 +695,7 @@ const updated = produce(schema, draft => {
 **Risk:** Extremely large schemas consume resources
 
 **Mitigation:**
+
 - Add request size limits in API layer
 - Implement timeouts for AI calls
 - Rate limiting on enhancement endpoint
@@ -683,10 +703,10 @@ const updated = produce(schema, draft => {
 ```typescript
 @Post('enhance')
 @HttpCode(HttpStatus.OK)
-@ApiBody({ 
-  schema: { 
+@ApiBody({
+  schema: {
     maxProperties: 1000  // Limit schema complexity
-  } 
+  }
 })
 async enhance(@Body() dto: EnhanceSchemaDto) { ... }
 ```
@@ -702,11 +722,13 @@ This implementation demonstrates several important concepts:
 **Contribution:** Practical implementation of HITL for schema generation
 
 **Key Innovation:**
+
 - AI generates suggestions but humans approve
 - Transparent distinction between auto-fixes and suggestions
 - Measurable user engagement (applied/total ratio)
 
 **Academic Relevance:**
+
 - Responsible AI design
 - User control over AI decisions
 - Trust through transparency
@@ -716,11 +738,13 @@ This implementation demonstrates several important concepts:
 **Contribution:** Deterministic, traceable quality scoring
 
 **Key Innovation:**
+
 - Every quality point is explained
 - No black-box AI scoring
 - Quality changes are predictable
 
 **Academic Relevance:**
+
 - XAI requirements in production systems
 - Algorithmic transparency
 - Auditability
@@ -730,11 +754,13 @@ This implementation demonstrates several important concepts:
 **Contribution:** All AI suggestions are reversible
 
 **Key Innovation:**
+
 - Undo is trivial (command pattern)
 - No history tracking needed (stateless operations)
 - Experimentation without risk
 
 **Academic Relevance:**
+
 - User agency in AI systems
 - Mistake recovery
 - Exploratory workflows
@@ -744,11 +770,13 @@ This implementation demonstrates several important concepts:
 **Contribution:** Enforced invariants prevent AI errors
 
 **Key Innovation:**
+
 - Schema structure is protected
 - Business logic preserved
 - Validation before acceptance
 
 **Academic Relevance:**
+
 - AI safety in production
 - Constraint satisfaction
 - Formal verification techniques
@@ -764,7 +792,7 @@ Add AI-generated priority scores:
 ```typescript
 interface SchemaSuggestion {
   priority: 'high' | 'medium' | 'low';
-  estimatedImpact: number;  // Predicted score improvement
+  estimatedImpact: number; // Predicted score improvement
 }
 ```
 
@@ -798,9 +826,9 @@ Use LLM to explain WHY a suggestion helps:
 
 ```typescript
 interface SchemaSuggestion {
-  description: string;           // Current
-  detailedExplanation: string;   // NEW: Longer form
-  examples: string[];            // NEW: Example violations
+  description: string; // Current
+  detailedExplanation: string; // NEW: Longer form
+  examples: string[]; // NEW: Example violations
 }
 ```
 
@@ -810,7 +838,7 @@ Detect when suggestions conflict:
 
 ```typescript
 interface SchemaSuggestion {
-  conflicts?: string[];  // IDs of conflicting suggestions
+  conflicts?: string[]; // IDs of conflicting suggestions
 }
 
 // Example:

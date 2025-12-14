@@ -3,6 +3,7 @@
 ## Overview
 
 This document demonstrates the suggestion-driven enhancement model with real examples showing:
+
 1. API request/response before applying suggestions
 2. API request/response after applying suggestions
 3. Quality score changes
@@ -41,9 +42,12 @@ This document demonstrates the suggestion-driven enhancement model with real exa
 ## Step 1: POST /schema/enhance
 
 ### Request
+
 ```json
 {
-  "schema": { /* input schema above */ }
+  "schema": {
+    /* input schema above */
+  }
 }
 ```
 
@@ -144,11 +148,11 @@ This document demonstrates the suggestion-driven enhancement model with real exa
   ],
   "qualityScore": 68,
   "qualityBreakdown": {
-    "structure": 25,      // Full score - schema is well-structured
-    "validation": 0,      // Low score - no validations yet (suggestions not applied)
-    "accessibility": 20,  // Full score - all fields have a11y metadata (auto-fixed)
-    "consistency": 20,    // Full score - no violations
-    "improvement": 3      // 3/10 - only auto-fixes applied, 0/3 suggestions applied
+    "structure": 25, // Full score - schema is well-structured
+    "validation": 0, // Low score - no validations yet (suggestions not applied)
+    "accessibility": 20, // Full score - all fields have a11y metadata (auto-fixed)
+    "consistency": 20, // Full score - no violations
+    "improvement": 3 // 3/10 - only auto-fixes applied, 0/3 suggestions applied
   },
   "issues": [
     "properties.user.properties.name missing validation rules",
@@ -194,9 +198,12 @@ This document demonstrates the suggestion-driven enhancement model with real exa
 ## Step 2: POST /schema/suggestion/apply (Apply First Suggestion)
 
 ### Request
+
 ```json
 {
-  "baseSchema": { /* enhanced schema from Step 1 */ },
+  "baseSchema": {
+    /* enhanced schema from Step 1 */
+  },
   "suggestion": {
     "id": "val-user-name-1734123456001",
     "path": "properties.user.properties.name",
@@ -205,13 +212,18 @@ This document demonstrates the suggestion-driven enhancement model with real exa
     "description": "Add minimum length to prevent empty name",
     "applied": false
   },
-  "allSuggestions": [ /* all 3 suggestions from Step 1 */ ],
-  "aiChanges": [ /* changes from Step 1 */ ],
+  "allSuggestions": [
+    /* all 3 suggestions from Step 1 */
+  ],
+  "aiChanges": [
+    /* changes from Step 1 */
+  ],
   "action": "apply"
 }
 ```
 
 ### Response
+
 ```json
 {
   "schema": {
@@ -222,7 +234,7 @@ This document demonstrates the suggestion-driven enhancement model with real exa
         "properties": {
           "name": {
             "type": "string",
-            "minLength": 1,  // ← NEW: Suggestion applied
+            "minLength": 1, // ← NEW: Suggestion applied
             "description": "User's full name",
             "examples": ["John Doe"],
             "x-accessibility": { "label": "Name", "hint": "Enter your full name" }
@@ -250,22 +262,22 @@ This document demonstrates the suggestion-driven enhancement model with real exa
     "category": "validation",
     "rule": { "minLength": 1 },
     "description": "Add minimum length to prevent empty name",
-    "applied": true  // ← Changed to true
+    "applied": true // ← Changed to true
   },
-  "qualityScore": 76,  // ← Increased from 68
+  "qualityScore": 76, // ← Increased from 68
   "qualityBreakdown": {
     "structure": 25,
-    "validation": 8,     // ← Increased from 0 (1/3 fields validated)
+    "validation": 8, // ← Increased from 0 (1/3 fields validated)
     "accessibility": 20,
     "consistency": 20,
-    "improvement": 5     // ← Increased from 3 (1/3 suggestions applied)
+    "improvement": 5 // ← Increased from 3 (1/3 suggestions applied)
   },
   "issues": [
     "properties.user.properties.email missing validation rules",
     "properties.user.properties.age missing validation rules",
     "1 of 3 AI suggestions applied"
   ],
-  "scoreDelta": +8,  // ← Quality improvement
+  "scoreDelta": +8, // ← Quality improvement
   "action": "apply",
   "metrics": {
     "appliedSuggestions": 1,
@@ -305,7 +317,7 @@ After applying all 3 suggestions:
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1,  // ← Applied
+          "minLength": 1, // ← Applied
           "description": "User's full name",
           "examples": ["John Doe"],
           "x-accessibility": { "label": "Name", "hint": "Enter your full name" }
@@ -313,15 +325,15 @@ After applying all 3 suggestions:
         "email": {
           "type": "string",
           "format": "email",
-          "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",  // ← Applied
+          "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", // ← Applied
           "description": "User's email address",
           "examples": ["user@example.com"],
           "x-accessibility": { "label": "Email", "hint": "Enter your email address" }
         },
         "age": {
           "type": "number",
-          "minimum": 0,    // ← Applied
-          "maximum": 150,  // ← Applied
+          "minimum": 0, // ← Applied
+          "maximum": 150, // ← Applied
           "description": "User's age in years",
           "examples": [25],
           "x-accessibility": { "label": "Age", "hint": "Enter your age" }
@@ -338,13 +350,13 @@ After applying all 3 suggestions:
 {
   "qualityScore": 93,
   "qualityBreakdown": {
-    "structure": 25,      // Full score
-    "validation": 25,     // Full score - all fields validated
-    "accessibility": 20,  // Full score - all fields have a11y
-    "consistency": 20,    // Full score - no violations
-    "improvement": 8      // 3 auto-fixes + 3/3 suggestions = 8/10
+    "structure": 25, // Full score
+    "validation": 25, // Full score - all fields validated
+    "accessibility": 20, // Full score - all fields have a11y
+    "consistency": 20, // Full score - no violations
+    "improvement": 8 // 3 auto-fixes + 3/3 suggestions = 8/10
   },
-  "issues": [],  // No issues!
+  "issues": [], // No issues!
   "appliedSuggestionsCount": 3,
   "totalSuggestionsCount": 3
 }
@@ -355,24 +367,32 @@ After applying all 3 suggestions:
 ## Step 4: POST /schema/suggestion/apply (UNDO a Suggestion)
 
 ### Request (Undo Email Pattern)
+
 ```json
 {
-  "baseSchema": { /* original enhanced schema */ },
+  "baseSchema": {
+    /* original enhanced schema */
+  },
   "suggestion": {
     "id": "val-user-email-1734123456002",
     "path": "properties.user.properties.email",
     "category": "validation",
     "rule": { "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" },
     "description": "Add email validation pattern for better data quality",
-    "applied": true  // ← Currently applied
+    "applied": true // ← Currently applied
   },
-  "allSuggestions": [ /* all suggestions with current applied states */ ],
-  "aiChanges": [ /* original changes */ ],
+  "allSuggestions": [
+    /* all suggestions with current applied states */
+  ],
+  "aiChanges": [
+    /* original changes */
+  ],
   "action": "undo"
 }
 ```
 
 ### Response
+
 ```json
 {
   "schema": {
@@ -392,17 +412,17 @@ After applying all 3 suggestions:
   },
   "suggestion": {
     "id": "val-user-email-1734123456002",
-    "applied": false  // ← Changed to false
+    "applied": false // ← Changed to false
   },
-  "qualityScore": 85,  // ← Decreased from 93
+  "qualityScore": 85, // ← Decreased from 93
   "qualityBreakdown": {
     "structure": 25,
-    "validation": 17,   // ← Decreased (1 field lost validation)
+    "validation": 17, // ← Decreased (1 field lost validation)
     "accessibility": 20,
     "consistency": 20,
-    "improvement": 6    // ← Decreased (2/3 suggestions applied)
+    "improvement": 6 // ← Decreased (2/3 suggestions applied)
   },
-  "scoreDelta": -8,  // ← Quality degradation
+  "scoreDelta": -8, // ← Quality degradation
   "action": "undo"
 }
 ```
@@ -412,12 +432,14 @@ After applying all 3 suggestions:
 ## Quality Scoring Formulas (Transparent & Deterministic)
 
 ### Dimension 1: Structure (25 points)
+
 - Root is object: 5 pts
 - Has properties: 5 pts
 - Nested objects have properties: 10 pts (proportional)
 - Arrays have items: 5 pts (proportional)
 
 ### Dimension 2: Validation (25 points)
+
 **CRITICAL: Scored based on CURRENT schema only**
 
 ```
@@ -431,14 +453,17 @@ Example with 3 fields:
 ```
 
 ### Dimension 3: Accessibility (20 points)
+
 - Fields with descriptions: 10 pts (proportional)
 - Fields with x-accessibility.label: 10 pts (proportional)
 
 ### Dimension 4: Consistency (20 points)
-- Penalty-based: 20 - (violations * 2)
+
+- Penalty-based: 20 - (violations \* 2)
 - Checks: required fields exist, no empty enums, pattern on strings only, min <= max
 
 ### Dimension 5: AI Improvement (10 points)
+
 ```
 baseScore + suggestionScore
 
@@ -465,6 +490,7 @@ Example:
 - ✅ System is transparent about what is auto-fixed vs suggested
 
 **Why This Matters:**
+
 - Prevents AI from making unintended business logic changes
 - User retains full control over schema constraints
 - Aligns with responsible AI principles
@@ -478,6 +504,7 @@ Example:
 - ✅ Each dimension has clear rules (no black-box scoring)
 
 **Why This Matters:**
+
 - Academic defensibility - results can be reproduced
 - Users understand WHY score changed
 - No AI self-evaluation (AI doesn't score itself)
@@ -491,6 +518,7 @@ Example:
 - ✅ Score recalculation is rule-based, not AI-based
 
 **Why This Matters:**
+
 - Reproducibility for academic evaluation
 - Fast operations (no API latency)
 - Predictable behavior
@@ -505,6 +533,7 @@ Example:
 - ✅ Invariants are validated and enforced
 
 **Why This Matters:**
+
 - Prevents schema corruption
 - User trust in AI enhancements
 - Production-ready safety
@@ -537,6 +566,7 @@ Deterministic, no AI calls   Deterministic, rule-based
 ```
 
 **Why This Matters:**
+
 - Each component has one responsibility
 - Easy to test and validate
 - Portable across different LLM providers
@@ -548,11 +578,13 @@ Deterministic, no AI calls   Deterministic, rule-based
 ### What Changed
 
 **Before:**
+
 - AI auto-applied all improvements
 - Quality score was heuristic-based
 - No transparency into what AI changed
 
 **After:**
+
 - AI returns safe auto-fixes + suggestions separately
 - User applies suggestions explicitly
 - Quality score updates dynamically based on applied suggestions
@@ -569,10 +601,10 @@ Deterministic, no AI calls   Deterministic, rule-based
 
 ### API Endpoints
 
-| Endpoint | Purpose | AI Call? |
-|----------|---------|----------|
-| `POST /schema/enhance` | Initial enhancement | ✅ Yes (once) |
-| `POST /schema/suggestion/apply` | Apply/undo suggestion | ❌ No (deterministic) |
+| Endpoint                           | Purpose               | AI Call?              |
+| ---------------------------------- | --------------------- | --------------------- |
+| `POST /schema/enhance`             | Initial enhancement   | ✅ Yes (once)         |
+| `POST /schema/suggestion/apply`    | Apply/undo suggestion | ❌ No (deterministic) |
 | `POST /schema/quality/recalculate` | Refresh quality score | ❌ No (deterministic) |
 
 ### Quality Score Journey
@@ -585,6 +617,7 @@ After All Suggestions:     93     (+25 pts total)
 ```
 
 This demonstrates:
+
 - AI improvement is **measured by human decisions**, not AI output volume
 - Score reflects **actual schema quality**, not theoretical potential
 - System encourages **thoughtful engagement** with AI suggestions

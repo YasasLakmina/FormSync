@@ -1,6 +1,6 @@
 /**
  * Technical Editor Component
- * 
+ *
  * Integrated schema editor with generation controls
  */
 
@@ -18,9 +18,9 @@ import { fixSchemaWithAI, mockAIFix } from '../services/aiService';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { 
+import {
   Zap,
-  CheckCircle, 
+  CheckCircle,
   Sparkles,
   Upload,
   X,
@@ -30,7 +30,7 @@ import {
   Undo2,
   Redo2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -45,13 +45,13 @@ interface HistoryEntry {
 interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
-  onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error'| 'pending') => void;
+  onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => void;
 }
 
-export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({ 
-  onGenerate, 
+export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
+  onGenerate,
   isGenerating = false,
-  onStageUpdate
+  onStageUpdate,
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
@@ -64,11 +64,11 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  
+
   // Validation state
   const [isInputValid, setIsInputValid] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
-  
+
   // Individual loading states for each action
   const [convertLoading, setConvertLoading] = useState(false);
   const [validateLoading, setValidateLoading] = useState(false);
@@ -92,19 +92,25 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const displaySchema = currentSchema || convertedSchema;
 
   // Handle editor value change - Update "Enter Schema" stage
-  const handleEditorChange = useCallback((value: string | undefined) => {
-    const newValue = value || '';
-    setEditorValue(newValue);
-    
-    // Update "Enter Schema" stage based on content
-    if (newValue.trim()) {
-      onStageUpdate?.('Enter Schema', 'complete');
-    }
-    // Note: We don't set it back to pending when empty since that's not a valid status type
-  }, [onStageUpdate]);
+  const handleEditorChange = useCallback(
+    (value: string | undefined) => {
+      const newValue = value || '';
+      setEditorValue(newValue);
+
+      // Update "Enter Schema" stage based on content
+      if (newValue.trim()) {
+        onStageUpdate?.('Enter Schema', 'complete');
+      }
+      // Note: We don't set it back to pending when empty since that's not a valid status type
+    },
+    [onStageUpdate]
+  );
 
   // Helper function to validate input format
-  const validateInputFormat = (input: string, expectedFormat: FormatType): { isValid: boolean; error?: string } => {
+  const validateInputFormat = (
+    input: string,
+    expectedFormat: FormatType
+  ): { isValid: boolean; error?: string } => {
     try {
       if (expectedFormat === 'json') {
         JSON.parse(input);
@@ -129,14 +135,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       return { isValid: true };
     } catch (error) {
       if (expectedFormat === 'json') {
-        return { isValid: false, error: `Invalid JSON: ${error instanceof Error ? error.message : 'Parse error'}` };
+        return {
+          isValid: false,
+          error: `Invalid JSON: ${error instanceof Error ? error.message : 'Parse error'}`,
+        };
       }
       return { isValid: false, error: `Invalid ${expectedFormat.toUpperCase()} format` };
     }
   };
 
   // Handlers - NEW ORDER: Validate → Convert → Enhance
-  
+
   // 1. Validate raw input first
   const handleValidate = useCallback(async () => {
     if (!editorValue.trim()) {
@@ -147,19 +156,19 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     clearError();
     setValidateLoading(true);
     onStageUpdate?.('Input Validation', 'loading');
-    
+
     try {
       // Validate that the input matches the selected format
       const validation = validateInputFormat(editorValue, format);
-      
+
       if (!validation.isValid) {
         setIsInputValid(false);
         setValidationError(validation.error || 'Input does not match selected format');
         onStageUpdate?.('Input Validation', 'error');
-        
+
         // Show validation dialog with error
         setShowValidationDialog(true);
-        
+
         toast.error('Validation Failed', {
           description: 'Click to see details',
           duration: 3000,
@@ -171,11 +180,11 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setIsInputValid(true);
       setValidationError('');
       onStageUpdate?.('Input Validation', 'complete');
-      
+
       toast.success(`Valid ${format.toUpperCase()} format!`, {
         description: 'You can now convert to JSON Schema',
       });
-      
+
       // Show success dialog
       setShowValidationDialog(true);
     } catch (error) {
@@ -234,33 +243,39 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   }, [displaySchema, enhanceSchema, clearError, onStageUpdate]);
 
   // Handle suggestion apply/undo
-  const handleSuggestionAction = useCallback(async (suggestion: any, action: 'apply' | 'undo'): Promise<number | undefined> => {
-    try {
-      const scoreDelta = await applySuggestion(suggestion, action);
-      return scoreDelta;
-    } catch (error) {
-      throw error;
-    }
-  }, [applySuggestion]);
+  const handleSuggestionAction = useCallback(
+    async (suggestion: any, action: 'apply' | 'undo'): Promise<number | undefined> => {
+      try {
+        const scoreDelta = await applySuggestion(suggestion, action);
+        return scoreDelta;
+      } catch (error) {
+        throw error;
+      }
+    },
+    [applySuggestion]
+  );
 
   // Add to history when schema changes
-  const addToHistory = useCallback((schema: any, action: string) => {
-    const newEntry: HistoryEntry = {
-      schema: JSON.parse(JSON.stringify(schema)),
-      timestamp: Date.now(),
-      action,
-    };
-    
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newEntry);
-    
-    if (newHistory.length > 50) {
-      newHistory.shift();
-    }
-    
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex]);
+  const addToHistory = useCallback(
+    (schema: any, action: string) => {
+      const newEntry: HistoryEntry = {
+        schema: JSON.parse(JSON.stringify(schema)),
+        timestamp: Date.now(),
+        action,
+      };
+
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newEntry);
+
+      if (newHistory.length > 50) {
+        newHistory.shift();
+      }
+
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    },
+    [history, historyIndex]
+  );
 
   // Undo function
   const undo = useCallback(() => {
@@ -288,12 +303,11 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     }
   }, [history, historyIndex, setCurrentSchema]);
 
-
   const handleFileUpload = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,.yaml,.yml,.xml';
-    
+
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
@@ -302,27 +316,30 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       reader.onload = (event) => {
         const content = event.target?.result as string;
         setEditorValue(content);
-        
+
         const ext = file.name.split('.').pop()?.toLowerCase();
         if (ext === 'yaml' || ext === 'yml') setFormat('yaml');
         else if (ext === 'xml') setFormat('xml');
         else setFormat('json');
-        
+
         toast.success('File uploaded');
       };
       reader.readAsText(file);
     };
-    
+
     input.click();
   }, []);
 
-  const handleTemplateSelect = useCallback((schema: any) => {
-    // Set the schema as currentSchema so it displays in the right editor immediately
-    setCurrentSchema(schema);
-    toast.success('Template loaded!', {
-      description: 'Schema is ready to use',
-    });
-  }, [setCurrentSchema]);
+  const handleTemplateSelect = useCallback(
+    (schema: any) => {
+      // Set the schema as currentSchema so it displays in the right editor immediately
+      setCurrentSchema(schema);
+      toast.success('Template loaded!', {
+        description: 'Schema is ready to use',
+      });
+    },
+    [setCurrentSchema]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -340,19 +357,19 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Handle AI Fix for validation errors using LLM
   const handleAIFix = useCallback(async () => {
     if (!editorValue || !validationError) return;
-    
+
     toast.info('AI is analyzing and fixing your schema...', {
       duration: 5000,
     });
     setIsInputValid(false);
-    
+
     try {
       let fixedSchema: string;
-      
+
       // Try to use real LLM API first
       try {
         fixedSchema = await fixSchemaWithAI(editorValue, format, validationError);
-        
+
         toast.success('AI fixed your schema!', {
           description: 'LLM service repaired the syntax errors',
           duration: 4000,
@@ -361,13 +378,13 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         // Fallback to mock fix if API is not available
         console.log('Using local AI fix (LLM API not configured)');
         fixedSchema = await mockAIFix(editorValue, format);
-        
+
         toast.success('Schema fixed!', {
           description: 'Syntax errors have been repaired. Please validate.',
           duration: 4000,
         });
       }
-      
+
       // Update the editor with the fixed schema
       if (fixedSchema !== editorValue) {
         setEditorValue(fixedSchema);
@@ -376,7 +393,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           description: 'Schema appears correct already',
         });
       }
-      
+
       setValidationError('');
     } catch (error) {
       toast.error('Failed to fix schema', {
@@ -392,25 +409,25 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       <div className="flex items-center justify-between gap-4">
         {/* Left: Format Selector */}
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Input Format</h3>
+          <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
+            Input Format
+          </h3>
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
         {/* Right: Generate Code Button */}
         {onGenerate && (
           <div className="flex items-end">
-            <GenerateButton
-              onClick={onGenerate}
-              isGenerating={isGenerating}
-              disabled={false}
-            />
+            <GenerateButton onClick={onGenerate} isGenerating={isGenerating} disabled={false} />
           </div>
         )}
       </div>
 
       {/* Action Buttons Row - Below Format Selector */}
       <div>
-        <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Actions</h3>
+        <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
+          Actions
+        </h3>
         <div className="flex gap-2 flex-wrap">
           {/* 1. Validate Input Format */}
           <Button
@@ -423,12 +440,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             {validateLoading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin text-green-600" />
-                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validating...</span>
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">
+                  Validating...
+                </span>
               </>
             ) : (
               <>
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">Validate</span>
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent font-semibold">
+                  Validate
+                </span>
               </>
             )}
           </Button>
@@ -444,12 +465,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             {convertLoading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Converting...</span>
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                  Converting...
+                </span>
               </>
             ) : (
               <>
                 <Zap className="h-5 w-5 text-blue-600" />
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">Convert</span>
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                  Convert
+                </span>
               </>
             )}
           </Button>
@@ -465,12 +490,16 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             {enhanceLoading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">Enhancing...</span>
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">
+                  Enhancing...
+                </span>
               </>
             ) : (
               <>
                 <Sparkles className="h-5 w-5 text-purple-600" />
-                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">AI Enhance</span>
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">
+                  AI Enhance
+                </span>
               </>
             )}
           </Button>
@@ -480,7 +509,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       {/* Main Content - Sidebar + Editors */}
       <div className="flex-1 flex gap-4 min-h-[800px] relative">
         {/* Left Sidebar - Quick Actions (positioned to not affect layout) */}
-        <Card className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-16'}`}>
+        <Card
+          className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-16'}`}
+        >
           {/* Expand/Collapse Toggle */}
           <Button
             variant="ghost"
@@ -506,7 +537,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             size="sm"
             onClick={handleFileUpload}
             className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? "Upload File" : undefined}
+            title={!sidebarExpanded ? 'Upload File' : undefined}
           >
             <Upload className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Upload</span>}
@@ -518,7 +549,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             size="sm"
             onClick={() => setShowTemplates(true)}
             className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? "Templates" : undefined}
+            title={!sidebarExpanded ? 'Templates' : undefined}
           >
             <Library className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Templates</span>}
@@ -530,7 +561,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             size="sm"
             onClick={() => setShowTreeView(!showTreeView)}
             className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? "Schema Navigator" : undefined}
+            title={!sidebarExpanded ? 'Schema Navigator' : undefined}
           >
             <TreePine className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Navigator</span>}
@@ -543,7 +574,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
               size="sm"
               onClick={() => setShowSuggestions(true)}
               className={`w-full justify-start gap-3 h-10 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative ${!sidebarExpanded && 'px-2'}`}
-              title={!sidebarExpanded ? "View AI Suggestions" : undefined}
+              title={!sidebarExpanded ? 'View AI Suggestions' : undefined}
             >
               <Sparkles className="h-4 w-4 flex-shrink-0 text-purple-600" />
               {sidebarExpanded && <span className="text-sm">AI Suggestions</span>}
@@ -579,7 +610,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             onClick={undo}
             disabled={historyIndex <= 0}
             className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? "Undo" : undefined}
+            title={!sidebarExpanded ? 'Undo' : undefined}
           >
             <Undo2 className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Undo</span>}
@@ -592,7 +623,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
             className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? "Redo" : undefined}
+            title={!sidebarExpanded ? 'Redo' : undefined}
           >
             <Redo2 className="h-4 w-4 flex-shrink-0" />
             {sidebarExpanded && <span className="text-sm">Redo</span>}
@@ -624,45 +655,45 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             </CardContent>
           </Card>
 
-        {/* Right Panel - Output */}
-        <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
-          <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">JSON Schema (Output)</CardTitle>
-              {displaySchema && (
-                <Badge variant="success" className="text-xs">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Valid
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">
-            {displaySchema ? (
-              <Editor
-                height="100%"
-                language="json"
-                value={JSON.stringify(displaySchema, null, 2)}
-                theme="vs-dark"
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  lineNumbers: 'on',
-                  scrollBeyondLastLine: false,
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-neutral-500">
-                <div className="text-center">
-                  <div className="text-4xl mb-3">📄</div>
-                  <p className="font-semibold">No schema yet</p>
-                  <p className="text-sm mt-1">Converted schema will appear here</p>
-                </div>
+          {/* Right Panel - Output */}
+          <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
+            <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">JSON Schema (Output)</CardTitle>
+                {displaySchema && (
+                  <Badge variant="success" className="text-xs">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Valid
+                  </Badge>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="flex-1 p-0">
+              {displaySchema ? (
+                <Editor
+                  height="100%"
+                  language="json"
+                  value={JSON.stringify(displaySchema, null, 2)}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-neutral-500">
+                  <div className="text-center">
+                    <div className="text-4xl mb-3">📄</div>
+                    <p className="font-semibold">No schema yet</p>
+                    <p className="text-sm mt-1">Converted schema will appear here</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 

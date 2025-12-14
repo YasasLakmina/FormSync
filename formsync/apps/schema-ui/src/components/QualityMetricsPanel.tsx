@@ -1,6 +1,6 @@
 /**
  * Comprehensive Schema Quality Report Component
- * 
+ *
  * Displays detailed quality evaluation including:
  * - Overall quality score with status badge
  * - 5-dimensional breakdown
@@ -13,7 +13,17 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { X, CheckCircle, AlertTriangle, Info, TrendingUp, Target, Shield, Accessibility, Sparkles } from 'lucide-react';
+import {
+  X,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  TrendingUp,
+  Target,
+  Shield,
+  Accessibility,
+  Sparkles,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface QualityMetrics {
@@ -47,10 +57,29 @@ interface QualityMetricsPanelProps {
 export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metrics, onClose }) => {
   // Quality level determination
   const getQualityLevel = (score: number) => {
-    if (score >= 90) return { label: 'Excellent', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200', textColor: 'text-green-600 dark:text-green-400' };
-    if (score >= 75) return { label: 'Good', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200', textColor: 'text-blue-600 dark:text-blue-400' };
-    if (score >= 60) return { label: 'Fair', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200', textColor: 'text-yellow-600 dark:text-yellow-400' };
-    return { label: 'Needs Improvement', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200', textColor: 'text-red-600 dark:text-red-400' };
+    if (score >= 90)
+      return {
+        label: 'Excellent',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        textColor: 'text-green-600 dark:text-green-400',
+      };
+    if (score >= 75)
+      return {
+        label: 'Good',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        textColor: 'text-blue-600 dark:text-blue-400',
+      };
+    if (score >= 60)
+      return {
+        label: 'Fair',
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+        textColor: 'text-yellow-600 dark:text-yellow-400',
+      };
+    return {
+      label: 'Needs Improvement',
+      color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      textColor: 'text-red-600 dark:text-red-400',
+    };
   };
 
   const qualityLevel = getQualityLevel(metrics.qualityScore);
@@ -103,7 +132,7 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
   // Generate improvement tips from issues
   const generateTips = () => {
     const tips: string[] = [];
-    
+
     if (metrics.qualityBreakdown.validation < 20) {
       tips.push('Add validation rules (patterns, min/max length) to improve data quality');
     }
@@ -113,15 +142,15 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
     if (metrics.qualityBreakdown.structure < 20) {
       tips.push('Ensure all nested objects define properties and arrays define items');
     }
-    
+
     // Add specific tips from issues
-    metrics.issues.slice(0, 3).forEach(issue => {
+    metrics.issues.slice(0, 3).forEach((issue) => {
       const cleanIssue = issue.replace(/^\d+\s+field\(s\)\s+/, '');
-      if (!tips.some(t => t.includes(cleanIssue.substring(0, 20)))) {
+      if (!tips.some((t) => t.includes(cleanIssue.substring(0, 20)))) {
         tips.push(cleanIssue.charAt(0).toUpperCase() + cleanIssue.slice(1));
       }
     });
-    
+
     return tips.slice(0, 4); // Max 4 tips
   };
 
@@ -142,9 +171,7 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
               <div>
                 <CardTitle className="text-2xl font-bold flex items-center gap-3">
                   <span>Schema Quality Report</span>
-                  <Badge className={qualityLevel.color}>
-                    {qualityLevel.label}
-                  </Badge>
+                  <Badge className={qualityLevel.color}>{qualityLevel.label}</Badge>
                 </CardTitle>
                 <CardDescription className="mt-2">
                   Comprehensive evaluation across 5 quality dimensions
@@ -179,7 +206,10 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                   const percentage = (dim.score / dim.max) * 100;
                   const Icon = dim.icon;
                   return (
-                    <div key={idx} className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                    <div
+                      key={idx}
+                      className="p-4 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Icon className={`h-4 w-4 ${dim.color}`} />
@@ -187,7 +217,9 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                             {dim.name}
                           </span>
                         </div>
-                        <span className={`font-bold ${dim.score === dim.max ? 'text-green-600' : 'text-neutral-700 dark:text-neutral-300'}`}>
+                        <span
+                          className={`font-bold ${dim.score === dim.max ? 'text-green-600' : 'text-neutral-700 dark:text-neutral-300'}`}
+                        >
                           {Math.round(dim.score)} / {dim.max}
                         </span>
                       </div>
@@ -244,40 +276,58 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
               </h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="text-2xl font-bold text-purple-600">{metrics.metrics.totalChanges}</div>
-                  <div className="text-sm text-purple-900 dark:text-purple-100">Auto-Applied Changes</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {metrics.metrics.totalChanges}
+                  </div>
+                  <div className="text-sm text-purple-900 dark:text-purple-100">
+                    Auto-Applied Changes
+                  </div>
                 </div>
                 <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                   <div className="text-2xl font-bold text-indigo-600">{accessibilityPercent}%</div>
-                  <div className="text-sm text-indigo-900 dark:text-indigo-100">Accessibility Coverage</div>
+                  <div className="text-sm text-indigo-900 dark:text-indigo-100">
+                    Accessibility Coverage
+                  </div>
                 </div>
-                {metrics.appliedSuggestionsCount !== undefined && metrics.totalSuggestionsCount !== undefined && (
-                  <>
-                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {metrics.appliedSuggestionsCount}/{metrics.totalSuggestionsCount}
+                {metrics.appliedSuggestionsCount !== undefined &&
+                  metrics.totalSuggestionsCount !== undefined && (
+                    <>
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {metrics.appliedSuggestionsCount}/{metrics.totalSuggestionsCount}
+                        </div>
+                        <div className="text-sm text-blue-900 dark:text-blue-100">
+                          Suggestions Applied
+                        </div>
                       </div>
-                      <div className="text-sm text-blue-900 dark:text-blue-100">Suggestions Applied</div>
-                    </div>
-                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                      <div className="text-2xl font-bold text-green-600">
-                        {metrics.totalSuggestionsCount > 0 
-                          ? Math.round((metrics.appliedSuggestionsCount / metrics.totalSuggestionsCount) * 100)
-                          : 0}%
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="text-2xl font-bold text-green-600">
+                          {metrics.totalSuggestionsCount > 0
+                            ? Math.round(
+                                (metrics.appliedSuggestionsCount / metrics.totalSuggestionsCount) *
+                                  100
+                              )
+                            : 0}
+                          %
+                        </div>
+                        <div className="text-sm text-green-900 dark:text-green-100">
+                          Engagement Rate
+                        </div>
                       </div>
-                      <div className="text-sm text-green-900 dark:text-green-100">Engagement Rate</div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
               </div>
-              
+
               {metrics.explanations.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-2">
                     Example Enhancements:
                   </div>
                   {metrics.explanations.slice(0, 3).map((exp, idx) => (
-                    <div key={idx} className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700">
+                    <div
+                      key={idx}
+                      className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700"
+                    >
                       <div className="flex items-start gap-2">
                         <Badge variant="outline" className="text-xs mt-0.5 flex-shrink-0">
                           {exp.action}
@@ -286,9 +336,7 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                           <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
                             {exp.path}
                           </div>
-                          <div className="text-neutral-600 dark:text-neutral-400">
-                            {exp.reason}
-                          </div>
+                          <div className="text-neutral-600 dark:text-neutral-400">{exp.reason}</div>
                         </div>
                       </div>
                     </div>

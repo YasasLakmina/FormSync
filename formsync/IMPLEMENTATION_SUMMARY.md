@@ -86,10 +86,12 @@ A complete, production-ready suggestion-driven schema enhancement system that de
 **Before:** AI applied all improvements automatically
 
 **After:** AI returns two separate lists:
+
 - **Auto-applied fixes:** Safe metadata improvements (descriptions, examples, accessibility)
 - **Suggestions:** Validation rules and structural improvements (NOT auto-applied)
 
 **Why:**
+
 - Prevents AI from making unintended business logic changes
 - Gives users control over schema constraints
 - Aligns with responsible AI principles
@@ -101,13 +103,15 @@ A complete, production-ready suggestion-driven schema enhancement system that de
 **After:** Quality score is based on CURRENT schema state (base + applied suggestions)
 
 **Formula for AI Improvement Dimension:**
+
 ```typescript
-baseScore = min(autoChanges.length, 5)  // Up to 5 pts for auto-fixes
-suggestionScore = (appliedSuggestions / totalSuggestions) * 5  // Up to 5 pts
-totalScore = baseScore + suggestionScore  // Max 10 pts
+baseScore = min(autoChanges.length, 5); // Up to 5 pts for auto-fixes
+suggestionScore = (appliedSuggestions / totalSuggestions) * 5; // Up to 5 pts
+totalScore = baseScore + suggestionScore; // Max 10 pts
 ```
 
 **Why:**
+
 - Rewards user engagement, not AI output volume
 - Score reflects reality, not potential
 - Human decision-making is the key metric
@@ -115,11 +119,13 @@ totalScore = baseScore + suggestionScore  // Max 10 pts
 ### 3. Deterministic Operations
 
 **All operations after initial AI enhancement are deterministic:**
+
 - Apply suggestion: Path-based merging (no AI call)
 - Undo suggestion: Remove specific keys (no AI call)
 - Recalculate quality: Rule-based scoring (no AI call)
 
 **Why:**
+
 - Fast (< 10ms vs 2-5 seconds for AI)
 - Predictable and reproducible
 - Academically defensible
@@ -131,6 +137,7 @@ totalScore = baseScore + suggestionScore  // Max 10 pts
 **After:** Scoring is completely independent from AI
 
 **Why:**
+
 - Prevents circular reasoning
 - Ensures objectivity
 - Enables academic validation
@@ -144,25 +151,35 @@ totalScore = baseScore + suggestionScore  // Max 10 pts
 **Purpose:** Initial AI enhancement with suggestions
 
 **Request:**
+
 ```json
 {
-  "schema": { /* JSON Schema */ }
+  "schema": {
+    /* JSON Schema */
+  }
 }
 ```
 
 **Response:**
+
 ```json
 {
-  "enhancedSchema": { /* with safe auto-fixes */ },
-  "changes": [ /* auto-applied changes */ ],
-  "suggestions": [ /* NOT auto-applied */ ],
+  "enhancedSchema": {
+    /* with safe auto-fixes */
+  },
+  "changes": [
+    /* auto-applied changes */
+  ],
+  "suggestions": [
+    /* NOT auto-applied */
+  ],
   "qualityScore": 68,
   "qualityBreakdown": {
     "structure": 25,
-    "validation": 0,      // Low - no validations yet
+    "validation": 0, // Low - no validations yet
     "accessibility": 20,
     "consistency": 20,
-    "improvement": 3      // Low - 0/3 suggestions applied
+    "improvement": 3 // Low - 0/3 suggestions applied
   },
   "issues": [
     "properties.user.properties.name missing validation rules",
@@ -178,28 +195,42 @@ totalScore = baseScore + suggestionScore  // Max 10 pts
 **Purpose:** Apply or undo a suggestion, recalculate quality
 
 **Request:**
+
 ```json
 {
-  "baseSchema": { /* enhanced schema from step 1 */ },
-  "suggestion": { /* the suggestion to apply/undo */ },
-  "allSuggestions": [ /* all suggestions with states */ ],
-  "aiChanges": [ /* original auto-fixes */ ],
-  "action": "apply"  // or "undo"
+  "baseSchema": {
+    /* enhanced schema from step 1 */
+  },
+  "suggestion": {
+    /* the suggestion to apply/undo */
+  },
+  "allSuggestions": [
+    /* all suggestions with states */
+  ],
+  "aiChanges": [
+    /* original auto-fixes */
+  ],
+  "action": "apply" // or "undo"
 }
 ```
 
 **Response:**
+
 ```json
 {
-  "schema": { /* updated schema */ },
-  "suggestion": { /* with applied: true */ },
-  "qualityScore": 76,  // Increased from 68
+  "schema": {
+    /* updated schema */
+  },
+  "suggestion": {
+    /* with applied: true */
+  },
+  "qualityScore": 76, // Increased from 68
   "qualityBreakdown": {
     "structure": 25,
-    "validation": 8,     // Increased - 1/3 fields validated
+    "validation": 8, // Increased - 1/3 fields validated
     "accessibility": 20,
     "consistency": 20,
-    "improvement": 5     // Increased - 1/3 suggestions applied
+    "improvement": 5 // Increased - 1/3 suggestions applied
   },
   "scoreDelta": +8,
   "action": "apply"
@@ -211,20 +242,32 @@ totalScore = baseScore + suggestionScore  // Max 10 pts
 **Purpose:** Refresh quality score without changes
 
 **Request:**
+
 ```json
 {
-  "baseSchema": { /* enhanced schema */ },
-  "allSuggestions": [ /* with current applied states */ ],
-  "aiChanges": [ /* original auto-fixes */ ]
+  "baseSchema": {
+    /* enhanced schema */
+  },
+  "allSuggestions": [
+    /* with current applied states */
+  ],
+  "aiChanges": [
+    /* original auto-fixes */
+  ]
 }
 ```
 
 **Response:**
+
 ```json
 {
   "qualityScore": 76,
-  "qualityBreakdown": { /* ... */ },
-  "issues": [ /* ... */ ],
+  "qualityBreakdown": {
+    /* ... */
+  },
+  "issues": [
+    /* ... */
+  ],
   "appliedSuggestionsCount": 1,
   "totalSuggestionsCount": 3
 }
@@ -236,13 +279,13 @@ totalScore = baseScore + suggestionScore  // Max 10 pts
 
 ### Total: 100 points across 5 dimensions
 
-| Dimension | Points | What It Measures |
-|-----------|--------|------------------|
-| **Structure** | 25 | Schema organization (root is object, has properties, nested structures defined) |
-| **Validation** | 25 | Validation rule coverage (minLength, pattern, minimum, etc.) |
-| **Accessibility** | 20 | Metadata completeness (descriptions, x-accessibility labels) |
-| **Consistency** | 20 | Logical correctness (required fields exist, no contradictions) |
-| **Improvement** | 10 | AI engagement (auto-fixes + applied suggestions ratio) |
+| Dimension         | Points | What It Measures                                                                |
+| ----------------- | ------ | ------------------------------------------------------------------------------- |
+| **Structure**     | 25     | Schema organization (root is object, has properties, nested structures defined) |
+| **Validation**    | 25     | Validation rule coverage (minLength, pattern, minimum, etc.)                    |
+| **Accessibility** | 20     | Metadata completeness (descriptions, x-accessibility labels)                    |
+| **Consistency**   | 20     | Logical correctness (required fields exist, no contradictions)                  |
+| **Improvement**   | 10     | AI engagement (auto-fixes + applied suggestions ratio)                          |
 
 ### Example Score Progression
 
@@ -261,22 +304,26 @@ After All 3 Suggestions:  93     (+25 pts)
 ### 1. Human-in-the-Loop AI Design
 
 ✅ **AI suggests, humans decide**
+
 - Validation rules are suggested, not auto-applied
 - User must explicitly approve each suggestion
 - System provides transparency into what AI changed vs suggested
 
 ✅ **Measurable user engagement**
+
 - Applied/total suggestion ratio is a key metric
 - Quality score rewards user decisions, not AI output volume
 
 ### 2. Explainable Quality Metrics
 
 ✅ **Deterministic scoring**
+
 - Same schema → same score (reproducible)
 - All formulas are documented and transparent
 - No black-box AI scoring
 
 ✅ **Traceable improvements**
+
 - Every quality point is explained
 - Issues list shows what's missing
 - Score delta shows impact of each suggestion
@@ -284,12 +331,14 @@ After All 3 Suggestions:  93     (+25 pts)
 ### 3. Safe AI Usage
 
 ✅ **Protected invariants**
+
 - AI cannot add/remove business fields
 - AI cannot change enums or types
 - AI cannot modify required arrays
 - Schema structure is validated before acceptance
 
 ✅ **Conservative by design**
+
 - AI only auto-applies safe metadata improvements
 - Risky changes (validation rules) require approval
 - Undo is trivial (reversible operations)
@@ -297,6 +346,7 @@ After All 3 Suggestions:  93     (+25 pts)
 ### 4. Separation of Concerns
 
 ✅ **Clear component boundaries**
+
 ```
 OpenAILLMPlugin     → AI transport layer (model communication)
 SchemaEnhancerService → Domain logic (orchestration)
@@ -305,6 +355,7 @@ QualityEngine       → Rule-based scoring (no AI)
 ```
 
 ✅ **Testability**
+
 - Each component can be unit tested
 - Integration tests verify workflows
 - Property-based tests ensure correctness
@@ -312,11 +363,13 @@ QualityEngine       → Rule-based scoring (no AI)
 ### 5. Performance & Scalability
 
 ✅ **Minimal AI calls**
+
 - AI called ONCE during enhancement
 - All other operations are deterministic (< 10ms)
 - Fast user experience
 
 ✅ **Caching opportunities**
+
 - Quality scores can be cached by schema hash
 - Suggestions can be persisted in database
 - No redundant computation
@@ -452,12 +505,14 @@ curl -X POST http://localhost:3000/schema/enhance \
 ### 4. Integrate with Frontend
 
 Update your React components to:
+
 1. Display suggestions as a list
 2. Add "Apply" button for each suggestion
 3. Track suggestion states (applied/not applied)
 4. Show quality score updates dynamically
 
 Example React hook:
+
 ```typescript
 const [suggestions, setSuggestions] = useState<SchemaSuggestion[]>([]);
 const [currentScore, setCurrentScore] = useState(0);
@@ -468,12 +523,10 @@ const applySuggestion = async (suggestion: SchemaSuggestion) => {
     suggestion,
     allSuggestions: suggestions,
     aiChanges,
-    action: 'apply'
+    action: 'apply',
   });
-  
-  setSuggestions(prev => prev.map(s => 
-    s.id === suggestion.id ? result.suggestion : s
-  ));
+
+  setSuggestions((prev) => prev.map((s) => (s.id === suggestion.id ? result.suggestion : s)));
   setCurrentScore(result.qualityScore);
 };
 ```
@@ -488,22 +541,22 @@ describe('SchemaSuggestionEngine', () => {
       id: 'test',
       path: 'properties.name',
       rule: { minLength: 1 },
-      applied: false
+      applied: false,
     };
-    
+
     const result = engine.applySuggestion(schema, suggestion);
     expect(result.properties.name.minLength).toBe(1);
   });
-  
+
   it('should undo suggestion correctly', () => {
     const schema = { properties: { name: { type: 'string', minLength: 1 } } };
     const suggestion = {
       id: 'test',
       path: 'properties.name',
       rule: { minLength: 1 },
-      applied: true
+      applied: true,
     };
-    
+
     const result = engine.undoSuggestion(schema, suggestion);
     expect(result.properties.name.minLength).toBeUndefined();
   });

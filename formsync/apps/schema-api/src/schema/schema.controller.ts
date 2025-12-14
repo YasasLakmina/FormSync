@@ -1,8 +1,8 @@
 /**
  * Schema Controller
- * 
+ *
  * REST API endpoints for schema operations
- * 
+ *
  * Endpoints:
  * - POST /schema/convert - Convert format to JSON Schema
  * - POST /schema/enhance - AI enhancement
@@ -132,13 +132,13 @@ export class SchemaController {
 
   @Post('suggestion/apply')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Apply or undo a suggestion and recalculate quality score',
-    tags: ['ai', 'suggestions']
+    tags: ['ai', 'suggestions'],
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Suggestion applied/undone successfully with updated quality score' 
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion applied/undone successfully with updated quality score',
   })
   @ApiResponse({ status: 400, description: 'Invalid suggestion or action' })
   async applySuggestion(@Body() dto: ApplySuggestionDto) {
@@ -147,13 +147,13 @@ export class SchemaController {
 
   @Post('quality/recalculate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Recalculate quality score for current schema state',
-    tags: ['ai', 'quality']
+    tags: ['ai', 'quality'],
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Quality score recalculated successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Quality score recalculated successfully',
   })
   async recalculateQuality(@Body() dto: RecalculateQualityDto) {
     return this.schemaService.recalculateQuality(dto);
