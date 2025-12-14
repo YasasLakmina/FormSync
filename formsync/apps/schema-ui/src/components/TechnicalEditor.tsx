@@ -852,6 +852,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         )}
       </AnimatePresence>
 
+      {/* Template Library Dialog */}
+      {showTemplates && (
+        <TemplateLibrary
+          onSelectTemplate={handleTemplateSelect}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
+
       {/* Validation Results Dialog */}
       {showValidationDialog && (
         <ValidationDialog
