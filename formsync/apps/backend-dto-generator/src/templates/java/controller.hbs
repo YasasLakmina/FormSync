@@ -19,3 +19,10 @@ private {{name}}Service service;
 public List<{{name}}> getAll() {
     return service.findAll();
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<{{name}}> getById(@PathVariable Long id) {
+        return service.findById(id)
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.notFound().build());
+        }
