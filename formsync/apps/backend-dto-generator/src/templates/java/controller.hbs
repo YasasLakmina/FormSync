@@ -26,3 +26,8 @@ public List<{{name}}> getAll() {
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
         }
+
+        @PostMapping
+        public {{name}} create(@RequestBody {{name}} entity) {
+        return service.save(entity);
+        }
