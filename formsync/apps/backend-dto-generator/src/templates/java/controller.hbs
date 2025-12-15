@@ -11,3 +11,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{{toKebabCase name}}s")
 public class {{name}}Controller {
+
+@Autowired
+private {{name}}Service service;
