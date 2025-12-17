@@ -26,3 +26,5 @@ private Long id;
 @Email
 {{/if}}
 {{#if constraints.min}}
+@Min({{constraints.min}})
+{{/if}}
