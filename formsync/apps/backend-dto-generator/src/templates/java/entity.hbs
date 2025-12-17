@@ -9,3 +9,7 @@ import java.util.*;
 @Entity
 @Table(name = "{{toSnakeCase name}}")
 public class {{name}} {
+
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long id;
