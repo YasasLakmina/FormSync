@@ -33,3 +33,5 @@ private Long id;
 {{/if}}
 {{#if constraints.minLength}}
 @Size(min = {{constraints.minLength}}{{#if constraints.maxLength}}, max = {{constraints.maxLength}}{{/if}})
+{{else}}
+{{#if constraints.maxLength}}
