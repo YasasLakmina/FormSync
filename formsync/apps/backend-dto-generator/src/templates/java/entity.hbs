@@ -43,3 +43,5 @@ private Long id;
 {{/if}}
 @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
 {{#eq type 'List'}}
+@ElementCollection
+{{/eq}}
