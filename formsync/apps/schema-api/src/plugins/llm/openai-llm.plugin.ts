@@ -141,14 +141,80 @@ Examples suggestions:
 - enum → [firstEnumValue]
 
 ------------------------------------------------
-ACCESSIBILITY SUGGESTIONS (MANDATORY)
+ACCESSIBILITY SUGGESTIONS (MANDATORY — CRITICAL)
 ------------------------------------------------
 
-For EVERY user-facing field:
-- Suggest x-accessibility if missing
-- Include:
-  - label (human-readable)
-  - hint (optional but helpful)
+For EVERY user-facing field, you MUST suggest x-accessibility if missing.
+
+User-facing field types:
+- string
+- number
+- integer
+- boolean
+
+Required x-accessibility structure:
+{
+  "x-accessibility": {
+    "label": "<Human-readable field name>",
+    "hint": "<Short usage instruction or guidance>"
+  }
+}
+
+STRICT RULES:
+1. Check EVERY string, number, integer, and boolean field
+2. If x-accessibility is MISSING → Generate suggestion to add it
+3. If x-accessibility exists but missing "hint" → Suggest adding hint
+4. If x-accessibility is complete → No suggestion needed
+
+DO NOT suggest x-accessibility for:
+- object types (structural containers)
+- array types (structural containers)
+- Schema root
+- Fields already having complete x-accessibility
+
+EXAMPLES:
+
+Field without accessibility:
+{
+  "email": { "type": "string", "format": "email" }
+}
+→ MUST suggest adding:
+{
+  "x-accessibility": {
+    "label": "Email Address",
+    "hint": "Enter a valid email address"
+  }
+}
+
+Field with partial accessibility:
+{
+  "age": {
+    "type": "integer",
+    "x-accessibility": { "label": "Age" }
+  }
+}
+→ MUST suggest adding hint:
+{
+  "x-accessibility": {
+    "label": "Age",
+    "hint": "Enter your age in years"
+  }
+}
+
+Field with complete accessibility:
+{
+  "name": {
+    "type": "string",
+    "x-accessibility": {
+      "label": "Full Name",
+      "hint": "Enter your first and last name"
+    }
+  }
+}
+→ NO suggestion needed
+
+CRITICAL: Accessibility suggestions are HIGH PRIORITY (estimatedImpact: 4-5).
+Missing accessibility severely impacts schema quality and user experience.
 
 ------------------------------------------------
 SUGGESTION OBJECT FORMAT (MANDATORY)
@@ -261,13 +327,30 @@ Before returning:
       const enhancedSchema = parsed.schema ?? schema; // Use original if not provided
       const suggestionsFromModel = parsed.suggestions ?? []; // Extract suggestions
 
+      // Filter out invalid suggestions (defensive validation)
+      const validSuggestions = suggestionsFromModel.filter((s: any) => {
+        const isValid = 
+          s.id && typeof s.id === 'string' &&
+          s.path && typeof s.path === 'string' && s.path.trim() !== '' &&
+          s.category && typeof s.category === 'string' &&
+          s.rule && typeof s.rule === 'object' &&
+          s.description && typeof s.description === 'string' &&
+          typeof s.applied === 'boolean';
+        
+        if (!isValid) {
+          console.warn('Filtered out invalid suggestion from AI:', s);
+        }
+        
+        return isValid;
+      });
+
       // No invariant validation needed since we're not modifying the schema
 
       return {
         success: true,
         enhancedSchema: schema, // Return original schema unchanged
         changes: [], // No auto-applied changes
-        suggestions: suggestionsFromModel, // All improvements are suggestions
+        suggestions: validSuggestions, // Only valid suggestions
         tokensUsed: (response as any).usage?.total_tokens,
         model: this.model,
       };

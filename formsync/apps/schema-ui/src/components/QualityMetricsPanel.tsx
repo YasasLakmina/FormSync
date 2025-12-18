@@ -275,14 +275,6 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                 AI Enhancement Summary
               </h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {metrics.metrics.totalChanges}
-                  </div>
-                  <div className="text-sm text-purple-900 dark:text-purple-100">
-                    Auto-Applied Changes
-                  </div>
-                </div>
                 <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                   <div className="text-2xl font-bold text-indigo-600">{accessibilityPercent}%</div>
                   <div className="text-sm text-indigo-900 dark:text-indigo-100">

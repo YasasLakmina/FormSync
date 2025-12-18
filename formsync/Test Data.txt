@@ -1,0 +1,70 @@
+YMAL Example
+
+$schema: "http://json-schema.org/draft-07/schema#"
+type: object
+properties:
+  fullName:
+    type: string
+
+  email:
+    type: string
+
+  notifications:
+    type: boolean
+
+  address:
+    type: object
+    properties:
+      city:
+        type: string
+      postalCode:
+        type: string
+    required:
+      - city
+
+required:
+  - fullName
+
+
+JSON Example
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string"
+    },
+    "age": {
+      "type": "integer"
+    },
+    "isEmployee": {
+      "type": "boolean"
+    },
+    "department": {
+      "type": "string",
+      "enum": ["IT", "HR", "Finance"]
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["username"]
+}
+
+
+XML Example
+
+
+<Employee>
+  <employeeId>EMP001</employeeId>
+  <fullName>John Doe</fullName>
+  <email>john.doe@example.com</email>
+  <age>32</age>
+  <department>IT</department>
+  <salary>75000</salary>
+  <isPermanent>true</isPermanent>
+</Employee>
