@@ -1,11 +1,15 @@
 /**
  * LLMProviderPlugin Interface
- * 
+ *
  * Plugins that implement this interface use AI/LLM services to enhance
  * JSON Schemas with better naming, validations, accessibility metadata, etc.
- * 
- * Design Decision: The plugin returns both the enhanced schema and a list
- * of changes made, allowing the UI to show diffs and let users review changes.
+ *
+ * Design Decision: The plugin returns:
+ * 1. Enhanced schema (with SAFE auto-fixes applied)
+ * 2. List of auto-applied changes
+ * 3. List of SUGGESTIONS (not auto-applied, require human approval)
+ *
+ * This ensures human-in-the-loop AI governance and academic defensibility.
  */
 
 export interface SchemaEnhancement {
@@ -16,10 +20,27 @@ export interface SchemaEnhancement {
   reason: string; // AI's explanation for this change
 }
 
+/**
+ * AI-generated suggestion (not auto-applied)
+ */
+export interface SchemaSuggestion {
+  id: string; // Unique ID
+  path: string; // JSON path to target field
+  category: 'validation' | 'accessibility' | 'structure' | 'metadata';
+  rule: Record<string, any>; // Rule to apply (e.g., { "minLength": 1 })
+  description: string; // Human-readable explanation
+  applied: boolean; // Whether suggestion has been applied
+  impactedDimensions?: Array<
+    'structure' | 'validation' | 'accessibility' | 'consistency' | 'improvement'
+  >;
+  estimatedImpact?: number; // Optional: estimated score improvement
+}
+
 export interface EnhancementResult {
   success: boolean;
-  enhancedSchema?: any; // The improved JSON Schema
-  changes: SchemaEnhancement[]; // List of all changes made
+  enhancedSchema?: any; // The improved JSON Schema (with safe auto-fixes)
+  changes: SchemaEnhancement[]; // List of auto-applied changes
+  suggestions?: SchemaSuggestion[]; // NEW: List of AI suggestions (not auto-applied)
   errors?: string[];
   tokensUsed?: number; // Optional: track API usage
   model?: string; // Which AI model was used
@@ -41,7 +62,7 @@ export interface LLMProviderPlugin {
    * Enhance a JSON Schema using AI
    * @param schema - Original JSON Schema to enhance
    * @param options - Enhancement preferences
-   * @returns EnhancementResult with improved schema and change list
+   * @returns EnhancementResult with improved schema, changes, and suggestions
    */
   enhanceSchema(schema: any, options?: EnhancementOptions): Promise<EnhancementResult>;
 
