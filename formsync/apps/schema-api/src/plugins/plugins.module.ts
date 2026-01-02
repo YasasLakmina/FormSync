@@ -30,7 +30,7 @@ import { OpenAILLMPlugin } from './llm/openai-llm.plugin';
     WcagValidatorPlugin,
     OpenAILLMPlugin,
   ],
-  exports: ['PLUGIN_REGISTRY'], // Export so other modules can import and use
+  exports: ['PLUGIN_REGISTRY', OpenAILLMPlugin], // Export plugin for use in other modules
 })
 export class PluginsModule implements OnModuleInit {
   constructor() {}
