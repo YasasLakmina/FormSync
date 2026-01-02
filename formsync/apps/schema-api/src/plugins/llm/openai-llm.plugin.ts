@@ -1,15 +1,25 @@
 /**
  * OpenAI LLM Provider Plugin
- * 
+ *
  * Uses OpenAI GPT models to enhance JSON Schemas
  * Improvements include: better field naming, validation rules,
  * accessibility metadata, and descriptions
- * 
+ *
  * Design Decision: Uses OpenAI-compatible API format to allow
  * easy swapping with other providers (Azure OpenAI, Groq, local models, etc.)
+ *
+ * NOTE:
+ * This plugin is a low-level LLM provider (transport layer).
+ * Domain-specific schema intelligence is implemented in SchemaEnhancerService
+ * for reusability, explainability, and quality scoring.
  */
 
-import { LLMProviderPlugin, EnhancementResult, EnhancementOptions, SchemaEnhancement } from '@formsync/plugins';
+import {
+  LLMProviderPlugin,
+  EnhancementResult,
+  EnhancementOptions,
+  SchemaEnhancement,
+} from '@formsync/plugins';
 import OpenAI from 'openai';
 
 export class OpenAILLMPlugin implements LLMProviderPlugin {
@@ -24,9 +34,9 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
 
     if (apiKey) {
       // Initialize with custom base URL if provided (for Groq, etc.)
-      this.client = new OpenAI({ 
+      this.client = new OpenAI({
         apiKey,
-        ...(baseURL && { baseURL })
+        ...(baseURL && { baseURL }),
       });
     }
   }
@@ -49,59 +59,228 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
         messages: [
           {
             role: 'system',
-            content: `You are a robust, conservative JSON Schema fixer/normalizer for JSON Schema Draft-07.
-You will receive a single object named inputSchema (a JSON Schema).
+            content: `You are an expert JSON Schema quality analyst for JSON Schema Draft-07.
 
-Your job: produce a high-quality, non-destructive "fixed" schema by applying only safe normalization and metadata-filling rules. Never invent or remove business fields or change enums/types. Return JSON only.
+You will receive a JSON Schema (inputSchema).
+Your task is to perform a COMPLETE, FIELD-BY-FIELD quality analysis and return improvement SUGGESTIONS ONLY.
 
-OUTPUT FORMAT (required)
+IMPORTANT:
+- You MUST NOT modify the input schema.
+- You MUST return the schema EXACTLY as received.
+- ALL improvements must be returned as suggestions.
+- This is a human-in-the-loop system.
+
+------------------------------------------------
+OUTPUT FORMAT (STRICT — JSON ONLY)
+------------------------------------------------
 Return a single JSON object:
+
 {
-  "schema": { ...the fixed schema... },
-  "changes": [
-    { "path": "properties.email.format", "changeType": "added", "originalValue": null, "newValue": "email", "reason": "Added email format" }
-  ]
+  "schema": { ...exact copy of input schema... },
+  "suggestions": [ ... ]
 }
 
-PROCESSING RULES (STRICT — must follow)
+------------------------------------------------
+MANDATORY COVERAGE RULE
+------------------------------------------------
+You MUST evaluate:
+- Every top-level property
+- Every nested property
+- Every object node itself (not only its children)
 
-A. Absolute invariants — do NOT change:
-  1. Property keys (names/casing) — do not rename, remove or add property keys
-  2. Enum values and order — must remain exactly as input
-  3. Existing required arrays — do not remove or add required entries
-  4. Object ↔ array structure — do not convert object to array or vice-versa
-  5. Types — preserve existing types (string stays string, number stays number)
+If ANY quality gap exists, you MUST generate a suggestion.
 
-B. Allowed safe corrections (apply ONLY when clearly needed):
-  1. Date fields: If property name/title contains "date" and lacks format, add "format": "date"
-  2. Email fields: If name/title contains "email" and format missing, add "format": "email"
-  3. Numbers: Preserve minimum/maximum. Add realistic examples if missing
-  4. Arrays: If array is required and minItems missing, set "minItems": 1
+------------------------------------------------
+QUALITY DIMENSIONS TO CHECK
+------------------------------------------------
 
-C. Metadata to add to every property (recursively):
-  1. Description: If missing, add one-sentence description from property name
-  2. Examples: If missing, add 1-2 realistic examples based on type/format:
-       - email → ["user@example.com"]
-       - date → ["1990-01-01"]
-       - number → [1] or use minimum
-       - enum → [firstEnumValue]
-  3. x-accessibility: If exists as string, convert to object: { "label": "<string>", "hint": "" }
+For EACH field and object node, check:
 
-D. Postal code & phone heuristics:
-  1. postalCode: Add pattern ^[0-9A-Za-z \\-]{1,10}$ if missing and maxLength exists
-  2. phone: Add example like "123-456-7890"
+1. Validation completeness
+2. Metadata completeness (description + examples)
+3. Accessibility readiness
+4. Structural correctness
+5. Consistency and safety
 
-E. Nested structures:
-  1. Apply rules recursively to nested properties and items.properties
-  2. Do not overwrite existing description, examples, format, pattern
+------------------------------------------------
+VALIDATION SUGGESTIONS (HIGH PRIORITY)
+------------------------------------------------
 
-F. Validation:
-  1. After fixes, ensure invariants (A) still hold
-  2. If any fix would violate invariants, skip it and note in changes as "rejected"
+String fields:
+- minLength (>=1)
+- maxLength (reasonable defaults: 50 for names, 255 for text)
+- format when applicable (email, date, uri)
+- pattern when clearly applicable (phone, postalCode)
 
-Return only the JSON object with "schema" and "changes" keys.`,
+Number / integer fields:
+- minimum / maximum when values must be bounded
+
+Boolean fields:
+- Suggest a default value (true or false) if missing
+
+Array fields:
+- minItems when array should not be empty
+- uniqueItems when duplicates are unlikely
+
+Object fields (IMPORTANT):
+- Suggest minProperties: 1 when object should not be empty
+- This applies even if child fields have validation
+
+------------------------------------------------
+METADATA SUGGESTIONS (MANDATORY)
+------------------------------------------------
+
+For EVERY field and object node:
+- Suggest a description if missing
+- Description must be a single, clear sentence
+
+Examples suggestions:
+- email → ["user@example.com"]
+- date → ["1990-01-01"]
+- number → [42]
+- enum → [firstEnumValue]
+
+------------------------------------------------
+ACCESSIBILITY SUGGESTIONS (MANDATORY — CRITICAL)
+------------------------------------------------
+
+For EVERY user-facing field, you MUST suggest x-accessibility if missing.
+
+User-facing field types:
+- string
+- number
+- integer
+- boolean
+
+Required x-accessibility structure:
+{
+  "x-accessibility": {
+    "label": "<Human-readable field name>",
+    "hint": "<Short usage instruction or guidance>"
+  }
+}
+
+STRICT RULES:
+1. Check EVERY string, number, integer, and boolean field
+2. If x-accessibility is MISSING → Generate suggestion to add it
+3. If x-accessibility exists but missing "hint" → Suggest adding hint
+4. If x-accessibility is complete → No suggestion needed
+
+DO NOT suggest x-accessibility for:
+- object types (structural containers)
+- array types (structural containers)
+- Schema root
+- Fields already having complete x-accessibility
+
+EXAMPLES:
+
+Field without accessibility:
+{
+  "email": { "type": "string", "format": "email" }
+}
+→ MUST suggest adding:
+{
+  "x-accessibility": {
+    "label": "Email Address",
+    "hint": "Enter a valid email address"
+  }
+}
+
+Field with partial accessibility:
+{
+  "age": {
+    "type": "integer",
+    "x-accessibility": { "label": "Age" }
+  }
+}
+→ MUST suggest adding hint:
+{
+  "x-accessibility": {
+    "label": "Age",
+    "hint": "Enter your age in years"
+  }
+}
+
+Field with complete accessibility:
+{
+  "name": {
+    "type": "string",
+    "x-accessibility": {
+      "label": "Full Name",
+      "hint": "Enter your first and last name"
+    }
+  }
+}
+→ NO suggestion needed
+
+CRITICAL: Accessibility suggestions are HIGH PRIORITY (estimatedImpact: 4-5).
+Missing accessibility severely impacts schema quality and user experience.
+
+------------------------------------------------
+SUGGESTION OBJECT FORMAT (MANDATORY)
+------------------------------------------------
+
+Each suggestion MUST contain:
+
+{
+  "id": "<category>-<field-path>-<timestamp>",
+  "path": "<full JSON path>",
+  "category": "validation | accessibility | metadata | structure",
+  "rule": { ...exact rule to apply... },
+  "description": "<why this improves schema quality>",
+  "applied": false,
+  "impactedDimensions": [ ... ],
+  "estimatedImpact": 1-5
+}
+
+PATH FORMAT RULES (CRITICAL):
+- NEVER use a leading slash
+- NEVER use forward slashes in paths
+- ALWAYS use dot notation
+- Correct: "properties.name"
+- Correct: "properties.user.properties.email"
+- Correct: "properties.address.properties.city"
+- WRONG: "/properties/name"
+- WRONG: "/properties/user/properties/email"
+- WRONG: "properties/name"
+- For root-level properties: "properties.fieldName"
+- For nested properties: "properties.parent.properties.child"
+
+------------------------------------------------
+SCORING INTENT (IMPORTANT)
+------------------------------------------------
+
+estimatedImpact guidance:
+- 5 → Major quality improvement
+- 4 → High impact
+- 3 → Moderate
+- 2 → Minor
+- 1 → Cosmetic
+
+Validation and accessibility usually score higher.
+
+------------------------------------------------
+SAFETY RULES
+------------------------------------------------
+
+- Do NOT suggest rules already present
+- Do NOT invent business logic
+- Do NOT mark fields as required automatically
+- Do NOT suggest conflicting rules
+- Use full recursive paths (properties.personalData.properties.age)
+
+------------------------------------------------
+FINAL CHECK BEFORE RETURNING
+------------------------------------------------
+
+Before returning:
+- Every object node has been evaluated
+- Every field has been evaluated
+- No missing descriptions are ignored
+- JSON is valid
+- Return JSON ONLY`,
           },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.2,
         response_format: { type: 'json_object' },
@@ -124,8 +303,9 @@ Return only the JSON object with "schema" and "changes" keys.`,
       } catch (e) {
         const jsonMatch = rawText.match(/(\{[\s\S]*\})/m);
         if (jsonMatch) {
-          try { parsed = JSON.parse(jsonMatch[1]); } 
-          catch (err) {
+          try {
+            parsed = JSON.parse(jsonMatch[1]);
+          } catch (err) {
             return {
               success: false,
               errors: ['AI returned non-JSON or unparsable JSON. Raw response provided.', rawText],
@@ -135,32 +315,42 @@ Return only the JSON object with "schema" and "changes" keys.`,
         } else {
           return {
             success: false,
-            errors: ['AI returned non-JSON content and no parsable JSON block found. Raw response provided.', rawText],
+            errors: [
+              'AI returned non-JSON content and no parsable JSON block found. Raw response provided.',
+              rawText,
+            ],
             changes: [],
           };
         }
       }
 
-      const enhancedSchema = parsed.schema ?? parsed; // accept either { schema: ... } or direct schema
-      const changesFromModel = parsed.changes ?? [];
+      const enhancedSchema = parsed.schema ?? schema; // Use original if not provided
+      const suggestionsFromModel = parsed.suggestions ?? []; // Extract suggestions
 
-      // VALIDATION: compare original schema -> enhancedSchema for invariants
-      const diffs = validateSchemaInvariant(schema, enhancedSchema);
-      if (diffs.length > 0) {
-        return {
-          success: false,
-          errors: ['Enhanced schema violates invariants. See diffs for details.'],
-          changes: diffs,
-        };
-      }
+      // Filter out invalid suggestions (defensive validation)
+      const validSuggestions = suggestionsFromModel.filter((s: any) => {
+        const isValid = 
+          s.id && typeof s.id === 'string' &&
+          s.path && typeof s.path === 'string' && s.path.trim() !== '' &&
+          s.category && typeof s.category === 'string' &&
+          s.rule && typeof s.rule === 'object' &&
+          s.description && typeof s.description === 'string' &&
+          typeof s.applied === 'boolean';
+        
+        if (!isValid) {
+          console.warn('Filtered out invalid suggestion from AI:', s);
+        }
+        
+        return isValid;
+      });
 
-      // SANITIZATION: Ensure every field has description + examples (auto-add placeholders if missing)
-      autoFillMissingMeta(enhancedSchema);
+      // No invariant validation needed since we're not modifying the schema
 
       return {
         success: true,
-        enhancedSchema,
-        changes: (changesFromModel.length ? changesFromModel : []),
+        enhancedSchema: schema, // Return original schema unchanged
+        changes: [], // No auto-applied changes
+        suggestions: validSuggestions, // Only valid suggestions
         tokensUsed: (response as any).usage?.total_tokens,
         model: this.model,
       };
@@ -227,8 +417,8 @@ function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array
   const origKeys = Object.keys(origProps);
   const enhKeys = Object.keys(enhProps);
 
-  const missingInEnh = origKeys.filter(k => !enhKeys.includes(k));
-  const addedInEnh = enhKeys.filter(k => !origKeys.includes(k));
+  const missingInEnh = origKeys.filter((k) => !enhKeys.includes(k));
+  const addedInEnh = enhKeys.filter((k) => !origKeys.includes(k));
   if (missingInEnh.length || addedInEnh.length) {
     diffs.push({
       path: path || '/',
@@ -260,7 +450,7 @@ function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array
       const origSet = new Set(origProp.enum);
       const enhEnum = Array.isArray(enhProp?.enum) ? enhProp.enum : [];
       const enhSet = new Set(enhEnum);
-      if (origSet.size !== enhSet.size || [...origSet].some(v => !enhSet.has(v))) {
+      if (origSet.size !== enhSet.size || [...origSet].some((v) => !enhSet.has(v))) {
         diffs.push({
           path: propPath,
           message: 'enum values changed',
@@ -318,11 +508,23 @@ function autoFillMissingMeta(schema: any) {
     if (!Array.isArray((v as any).examples) || (v as any).examples.length === 0) {
       let example: any = null;
       switch ((v as any).type) {
-        case 'string': example = ((v as any).format === 'email') ? 'user@example.com' : ((v as any).enum?.[0] ?? `${k} example`); break;
-        case 'number': example = ((v as any).minimum ?? 1); break;
-        case 'array': example = []; break;
-        case 'object': example = {}; break;
-        default: example = null;
+        case 'string':
+          example =
+            (v as any).format === 'email'
+              ? 'user@example.com'
+              : ((v as any).enum?.[0] ?? `${k} example`);
+          break;
+        case 'number':
+          example = (v as any).minimum ?? 1;
+          break;
+        case 'array':
+          example = [];
+          break;
+        case 'object':
+          example = {};
+          break;
+        default:
+          example = null;
       }
       (v as any).examples = example != null ? [example] : [];
     }

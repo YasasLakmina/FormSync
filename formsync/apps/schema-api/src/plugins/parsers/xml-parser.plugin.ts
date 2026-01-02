@@ -21,7 +21,13 @@ export class XmlParserPlugin implements FormatParserPlugin {
       ignoreAttributes: false,
       attributeNamePrefix: '@_',
       textNodeName: '_text',
-      isArray: (name) => name === 'Field', // Always treat Field as array
+      allowBooleanAttributes: false,
+      trimValues: true,
+      ignoreDeclaration: true,
+      isArray: (name) => {
+        // Always treat these as arrays for consistent processing
+        return ['Field', 'property', 'value', 'field', 'option', 'Option'].includes(name);
+      },
     });
   }
 
@@ -47,7 +53,24 @@ export class XmlParserPlugin implements FormatParserPlugin {
       }
 
       // Debug logging
-      console.log('[XML Parser] Parsed structure:', JSON.stringify(parsed, null, 2).substring(0, 500));
+      console.log('[XML Parser] Parsed structure:', JSON.stringify(parsed, null, 2).substring(0, 1000));
+      
+      // Check if this is a JSON Schema definition in XML format
+      const isSchemaXML = this.isSchemaXML(parsed);
+      console.log('[XML Parser] Is schema XML?', isSchemaXML);
+      console.log('[XML Parser] Has schema root?', !!parsed.schema);
+      console.log('[XML Parser] Has type?', !!parsed.schema?.type);
+      console.log('[XML Parser] Has properties?', !!parsed.schema?.properties);
+      
+      if (isSchemaXML) {
+        const schema = this.parseSchemaXML(parsed);
+        console.log('[XML Parser] Parsed as schema definition:', JSON.stringify(schema, null, 2).substring(0, 500));
+        return {
+          success: true,
+          schema,
+          detectedFormat: 'xml',
+        };
+      }
       
       // Check if this is a form definition
       const isForm = this.isFormXML(parsed);
@@ -76,6 +99,139 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
   getSupportedFormats(): string[] {
     return ['xml'];
+  }
+
+  /**
+   * Check if XML represents a JSON Schema definition
+   * Detects patterns like: <schema><type>object</type><properties>...
+   */
+  private isSchemaXML(data: any): boolean {
+    // Check for <schema> root with <type> and <properties>
+    if (data.schema && data.schema.type && data.schema.properties) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Parse XML that represents a JSON Schema definition
+   * Converts: <schema><properties><property name="x" type="string"/>...
+   * To: { type: "object", properties: { x: { type: "string" } } }
+   */
+  private parseSchemaXML(data: any): any {
+    const schemaRoot = data.schema;
+    
+    const result: any = {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+    };
+
+    // Get type
+    if (schemaRoot.type) {
+      const typeValue = typeof schemaRoot.type === 'object' ? schemaRoot.type._text : schemaRoot.type;
+      result.type = typeValue || 'object';
+    }
+
+    // Parse properties
+    if (schemaRoot.properties) {
+      result.properties = this.parsePropertiesXML(schemaRoot.properties);
+    }
+
+    // Parse required fields
+    if (schemaRoot.required) {
+      result.required = this.parseRequiredXML(schemaRoot.required);
+    }
+
+    return result;
+  }
+
+  /**
+   * Parse <properties> containing <property> elements
+   */
+  private parsePropertiesXML(propertiesNode: any): Record<string, any> {
+    const properties: Record<string, any> = {};
+
+    // Get property elements (can be array or single object)
+    const propertyElements = propertiesNode.property;
+    if (!propertyElements) {
+      return properties;
+    }
+
+    const propertyArray = Array.isArray(propertyElements) ? propertyElements : [propertyElements];
+
+    for (const prop of propertyArray) {
+      // Get property name from @_name attribute
+      const propName = prop['@_name'];
+      if (!propName) {
+        console.warn('Property without name attribute, skipping');
+        continue;
+      }
+
+      // Build property schema
+      const propSchema: any = {};
+
+      // Get type from attribute or nested element
+      const typeAttr = prop['@_type'];
+      const typeElement = prop.type;
+      
+      if (typeAttr) {
+        propSchema.type = typeAttr;
+      } else if (typeElement) {
+        propSchema.type = typeof typeElement === 'object' ? typeElement._text : typeElement;
+      }
+
+      // Handle enum
+      if (prop.enum) {
+        const enumValues: string[] = [];
+        const valueElements = prop.enum.value;
+        
+        if (valueElements) {
+          const valueArray = Array.isArray(valueElements) ? valueElements : [valueElements];
+          for (const val of valueArray) {
+            const enumValue = typeof val === 'object' ? val._text : val;
+            if (enumValue) {
+              enumValues.push(enumValue);
+            }
+          }
+        }
+        
+        if (enumValues.length > 0) {
+          propSchema.enum = enumValues;
+        }
+      }
+
+      // Handle nested object properties
+      if (prop.properties) {
+        propSchema.type = 'object';
+        propSchema.properties = this.parsePropertiesXML(prop.properties);
+      }
+
+      properties[propName] = propSchema;
+    }
+
+    return properties;
+  }
+
+  /**
+   * Parse <required> containing <field> elements
+   */
+  private parseRequiredXML(requiredNode: any): string[] {
+    const required: string[] = [];
+
+    const fieldElements = requiredNode.field;
+    if (!fieldElements) {
+      return required;
+    }
+
+    const fieldArray = Array.isArray(fieldElements) ? fieldElements : [fieldElements];
+
+    for (const field of fieldArray) {
+      const fieldName = typeof field === 'object' ? field._text : field;
+      if (fieldName) {
+        required.push(fieldName);
+      }
+    }
+
+    return required;
   }
 
   /**
@@ -331,9 +487,15 @@ export class XmlParserPlugin implements FormatParserPlugin {
   }
 
   /**
-   * Generic data structure inference (fallback)
+   * Generic data structure inference (fallback for non-form XML)
+   * 
+   * FIXED: Generates proper JSON Schema instead of schema-of-schema
+   * - $schema only at root level
+   * - XML elements → JSON properties
+   * - Nested elements → nested objects
+   * - Repeated elements → arrays
    */
-  private inferSchemaFromData(data: any): any {
+  private inferSchemaFromData(data: any, isRoot: boolean = true): any {
     const type = Array.isArray(data) ? 'array' : typeof data;
 
     if (type === 'object' && data !== null) {
@@ -345,26 +507,50 @@ export class XmlParserPlugin implements FormatParserPlugin {
         if (key.startsWith('@_') || key === '_text') {
           continue;
         }
-        properties[key] = this.inferSchemaFromData(value);
+        
+        // Recursively infer schema for nested elements (NOT as root)
+        properties[key] = this.inferSchemaFromData(value, false);
         required.push(key);
       }
 
-      return {
-        $schema: 'http://json-schema.org/draft-07/schema#',
+      // Build object schema
+      const schema: any = {
         type: 'object',
-        properties,
-        required,
       };
+
+      // Add properties only if there are any
+      if (Object.keys(properties).length > 0) {
+        schema.properties = properties;
+      } else {
+        // If no properties, allow any additional properties
+        schema.additionalProperties = true;
+      }
+
+      if (required.length > 0) {
+        schema.required = required;
+      }
+
+      // Add $schema ONLY at root level
+      if (isRoot) {
+        return {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          ...schema,
+        };
+      }
+
+      return schema;
     }
 
     if (type === 'array') {
-      const items = data.length > 0 ? this.inferSchemaFromData(data[0]) : { type: 'string' };
+      // Infer items schema from first element (NOT as root)
+      const items = data.length > 0 ? this.inferSchemaFromData(data[0], false) : { type: 'string' };
       return {
         type: 'array',
         items,
       };
     }
 
+    // Primitive types
     return { type: type === 'object' ? 'null' : type };
   }
 }
