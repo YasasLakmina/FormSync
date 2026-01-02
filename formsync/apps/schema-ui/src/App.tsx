@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { LandingPage } from './pages/LandingPage';
 import { EditorPage } from './pages/EditorPage';
 import { GeneratedCodePage } from './pages/GeneratedCodePage';
+import { Documentation } from './components/Documentation';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { PageTransition } from './components/layout/PageTransition';
@@ -24,6 +25,7 @@ function App() {
               } 
             />
             <Route path="/editor" element={<EditorPage />} />
+            <Route path="/documentation" element={<Documentation />} />
             <Route path="/generated" element={<GeneratedCodePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
