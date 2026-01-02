@@ -4,6 +4,7 @@ import { SpringBootScaffoldService } from './services/springboot-scaffold.servic
 import { DtoGeneratorService } from './services/dto-generator.service';
 import { ControllerGeneratorService } from './services/controller-generator.service';
 import { ZipGeneratorService } from './services/zip-generator.service';
+import { FormSyncSchemaConverter } from './services/formsync-schema-converter.service';
 
 /**
  * RuntimeBindingValidatorModule
@@ -18,12 +19,14 @@ import { ZipGeneratorService } from './services/zip-generator.service';
     DtoGeneratorService,
     ControllerGeneratorService,
     ZipGeneratorService,
+    FormSyncSchemaConverter,
   ],
   exports: [
     SpringBootScaffoldService,
     DtoGeneratorService,
     ControllerGeneratorService,
     ZipGeneratorService,
+    FormSyncSchemaConverter,
   ],
 })
 export class RuntimeBindingValidatorModule {}

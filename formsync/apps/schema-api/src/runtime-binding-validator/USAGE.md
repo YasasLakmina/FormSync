@@ -28,16 +28,182 @@ Content-Type: application/json
 
 ### Request Body
 
+The API accepts three input formats:
+
+**1. FormSync JSON Schema (Recommended - New Format)**
 ```json
 {
-  "xmlInput": "<Form>...</Form>",      // XML schema (required if no jsonSchema)
-  "jsonSchema": { ... },               // OR pre-parsed JSON schema
-  "projectName": "MyProject",          // Optional: defaults to schema title
-  "packageName": "com.example.myapp"   // Optional: defaults to com.formsync.generated
+  "formSyncSchema": { ... },        // FormSync JSON schema (see below)
+  "projectName": "MyProject",       // Optional: overrides form.name
+  "packageName": "com.example.app"  // Optional: overrides backend.package
 }
 ```
 
-## XML Schema Format
+**2. XML Schema (Legacy)**
+```json
+{
+  "xmlInput": "<Form>...</Form>",   // XML schema
+  "projectName": "MyProject",       // Optional
+  "packageName": "com.example.app"  // Optional
+}
+```
+
+**3. JSON Schema (Advanced)**
+```json
+{
+  "jsonSchema": { ... },            // JSON Schema Draft-7
+  "projectName": "MyProject",       // Optional
+  "packageName": "com.example.app"  // Optional
+}
+```
+
+## FormSync JSON Schema Format (Recommended)
+
+The FormSync JSON schema format provides the most control and flexibility:
+
+### Structure
+
+```json
+{
+  "form": {
+    "name": "FormName",              // Required: Project name
+    "version": "1.0.0",              // Optional: Version
+    "submitEndpoint": "/api/endpoint", // Optional: API endpoint path
+    "method": "POST"                 // Optional: HTTP method
+  },
+  "fields": [                        // Required: Array of fields
+    {
+      "name": "fieldName",           // Required: Field name
+      "type": "string",              // Required: Field type
+      "required": true,              // Required: Is field required?
+      "validation": {                // Optional: Validation rules
+        "email": true,
+        "minLength": 2,
+        "maxLength": 100,
+        "pattern": "^[A-Z].*$",
+        "min": 0,
+        "max": 100
+      },
+      "ui": {                        // Optional: UI metadata
+        "label": "Field Label",
+        "placeholder": "Placeholder text",
+        "type": "password"
+      }
+    }
+  ],
+  "backend": {                       // Required: Backend configuration
+    "package": "com.example.myapp",  // Required: Java package name
+   "controller": {                  // Optional: Controller config
+      "name": "MyController"
+    },
+    "dto": {                         // Optional: DTO config
+      "name": "MyDto"
+    }
+  },
+  "frontend": {                      // Optional: Frontend config (for future use)
+    "framework": "react",
+    "formLibrary": "formik"
+  }
+}
+```
+
+### Field Types
+
+| FormSync Type | Java Type | Description |
+|---------------|-----------|-------------|
+| `string` | `String` | Text data |
+| `number` | `Double` | Decimal numbers |
+| `integer` | `Integer` | Whole numbers |
+| `boolean` | `Boolean` | True/false values |
+
+### Validation Rules
+
+| Rule | Type | Description | Jakarta Annotation |
+|------|------|-------------|-------------------|
+| `email` | boolean | Must be valid email | `@Email` |
+| `minLength` | number | Minimum string length | `@Size(min=...)` |
+| `maxLength` | number | Maximum string length | `@Size(max=...)` |
+| `pattern` | string | Regular expression | `@Pattern(regexp=...)` |
+| `min` | number | Minimum numeric value | `@Min(...)` |
+| `max` | number | Maximum numeric value | `@Max(...)` |
+| `required` | boolean | Field is required | `@NotNull` / `@NotBlank` |
+
+### Complete Example
+
+```json
+{
+  "formSyncSchema": {
+    "form": {
+      "name": "UserRegistration",
+      "version": "1.0.0",
+      "submitEndpoint": "/api/users/register",
+      "method": "POST"
+    },
+    "fields": [
+      {
+        "name": "email",
+        "type": "string",
+        "required": true,
+        "validation": {
+          "email": true,
+          "maxLength": 100
+        },
+        "ui": {
+          "label": "Email Address",
+          "placeholder": "user@example.com"
+        }
+      },
+      {
+        "name": "password",
+        "type": "string",
+        "required": true,
+        "validation": {
+          "minLength": 8,
+          "maxLength": 32,
+          "pattern": "^(?=.*[A-Z])(?=.*\\d).*$"
+        },
+        "ui": {
+          "label": "Password",
+          "type": "password"
+        }
+      },
+      {
+        "name": "age",
+        "type": "number",
+        "required": false,
+        "validation": {
+          "min": 18,
+          "max": 99
+        },
+        "ui": {
+          "label": "Age"
+        }
+      }
+    ],
+    "backend": {
+      "package": "com.example.user",
+      "controller": {
+        "name": "UserController"
+      },
+      "dto": {
+        "name": "UserRegistrationRequest"
+      }
+    },
+    "frontend": {
+      "framework": "react",
+      "formLibrary": "formik"
+    }
+  }
+}
+```
+
+This will generate:
+- Package: `com.example.user`
+- DTO Class: `UserRegistrationRequestDto.java`
+- Controller: `UserController.java`
+- Endpoints at: `/api/userregistrationrequest`
+
+## XML Schema Format (Legacy)
 
 The XML schema should follow this structure:
 
@@ -78,7 +244,79 @@ The XML schema should follow this structure:
 
 ## Usage Examples
 
-### Example 1: Using Postman
+### Example 1: Using FormSync JSON Schema (Recommended)
+
+**Using Postman:**
+1. **Create POST Request**
+   - URL: `http://localhost:3000/api/runtime-binding-validator/generate`
+   - Method: `POST`
+   - Headers: `Content-Type: application/json`
+
+2. **Request Body**
+```json
+{
+  "formSyncSchema": {
+    "form": {
+      "name": "UserRegistration",
+      "version": "1.0.0"
+    },
+    "fields": [
+      {
+        "name": "email",
+        "type": "string",
+        "required": true,
+        "validation": {
+          "email": true,
+          "maxLength": 100
+        },
+        "ui": {
+          "label": "Email Address"
+        }
+      },
+      {
+        "name": "password",
+        "type": "string",
+        "required": true,
+        "validation": {
+          "minLength": 8,
+          "maxLength": 32
+        },
+        "ui": {
+          "label": "Password",
+          "type": "password"
+        }
+      },
+      {
+        "name": "age",
+        "type": "number",
+        "required": false,
+        "validation": {
+          "min": 18,
+          "max": 99
+        },
+        "ui": {
+          "label": "Age"
+        }
+      }
+    ],
+    "backend": {
+      "package": "com.example.user",
+      "controller": {
+        "name": "UserController"
+      },
+      "dto": {
+        "name": "UserRegistrationRequest"
+      }
+    }
+  }
+}
+```
+
+3. **Download Response**
+   - Click "Send and Download"
+   - Save as `UserRegistration.zip`
+
+### Example 2: Using XML Schema (Legacy)
 
 1. **Create POST Request**
    - URL: `http://localhost:3000/api/runtime-binding-validator/generate`
@@ -97,7 +335,7 @@ The XML schema should follow this structure:
    - Click "Send and Download"
    - Save as `UserRegistration.zip`
 
-### Example 2: Using cURL
+### Example 3: Using cURL with FormSync JSON
 
 ```bash
 curl -X POST http://localhost:3000/api/runtime-binding-validator/generate \
@@ -252,7 +490,7 @@ After generation, you can customize:
 
 | Status | Error | Solution |
 |--------|-------|----------|
-| 400 | "Either xmlInput or jsonSchema must be provided" | Include xmlInput or jsonSchema in request |
+| 400 | "Either xmlInput, jsonSchema, or formSyncSchema must be provided" | Include one of the three input formats in request |
 | 400 | "Unable to parse XML input" | Check XML syntax |
 | 500 | "Spring Boot generator plugin not found" | Restart server, check plugin registration |
 

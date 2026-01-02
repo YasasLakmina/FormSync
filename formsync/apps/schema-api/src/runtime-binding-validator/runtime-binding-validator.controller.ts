@@ -11,6 +11,7 @@ import { Response } from 'express';
 import { GenerateRequestDto } from './dto/generate-request.dto';
 import { LocalPluginRegistry } from '../plugins/local-plugin-registry';
 import { ZipGeneratorService } from './services/zip-generator.service';
+import { FormSyncSchemaConverter } from './services/formsync-schema-converter.service';
 
 /**
  * RuntimeBindingValidatorController
@@ -22,11 +23,12 @@ import { ZipGeneratorService } from './services/zip-generator.service';
 export class RuntimeBindingValidatorController {
   constructor(
     @Inject('PLUGIN_REGISTRY') private readonly registry: LocalPluginRegistry,
-    private readonly zipGenerator: ZipGeneratorService
+    private readonly zipGenerator: ZipGeneratorService,
+    private readonly formSyncConverter: FormSyncSchemaConverter
   ) {}
 
   /**
-   * Generate Spring Boot project from XML or JSON schema
+   * Generate Spring Boot project from XML, JSON schema, or FormSync schema
    * 
    * POST /api/runtime-binding-validator/generate
    */
@@ -36,16 +38,29 @@ export class RuntimeBindingValidatorController {
     @Res() res: Response
   ): Promise<void> {
     try {
-      // Validate input
-      if (!request.xmlInput && !request.jsonSchema) {
+      // Validate input - at least one format must be provided
+      if (!request.xmlInput && !request.jsonSchema && !request.formSyncSchema) {
         throw new HttpException(
-          'Either xmlInput or jsonSchema must be provided',
+          'Either xmlInput, jsonSchema, or formSyncSchema must be provided',
           HttpStatus.BAD_REQUEST
         );
       }
 
-      // Parse XML if provided
       let schema = request.jsonSchema;
+      let packageName = request.packageName;
+      let projectName = request.projectName;
+
+      // Handle FormSync JSON schema format (new, recommended format)
+      if (request.formSyncSchema && !schema) {
+        schema = this.formSyncConverter.convertToJsonSchema(request.formSyncSchema);
+        
+        // Extract backend config from FormSync schema
+        const backendConfig = this.formSyncConverter.extractBackendConfig(request.formSyncSchema);
+        packageName = packageName || backendConfig.packageName;
+        projectName = projectName || backendConfig.projectName;
+      }
+
+      // Parse XML if provided (legacy format)
       if (request.xmlInput && !schema) {
         const parser = this.registry.detectParser(request.xmlInput);
         if (!parser) {
@@ -77,8 +92,8 @@ export class RuntimeBindingValidatorController {
 
       // Generate project files
       const generateResult = await generator.generate(schema, {
-        projectName: request.projectName,
-        packageName: request.packageName,
+        projectName: projectName,
+        packageName: packageName,
       });
 
       if (!generateResult.success || !generateResult.files) {
@@ -94,23 +109,23 @@ export class RuntimeBindingValidatorController {
         content: file.content,
       }));
 
-      // Determine project name
-      const projectName =
-        request.projectName ||
+      // Determine final project name
+      const finalProjectName =
+        projectName ||
         schema.title?.replace(/\s+/g, '-') ||
         'generated-project';
 
       // Create ZIP file
       const zipBuffer = await this.zipGenerator.generateZip(
         filesToZip,
-        projectName
+        finalProjectName
       );
 
       // Send ZIP file as response
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="${projectName}.zip"`
+        `attachment; filename="${finalProjectName}.zip"`
       );
       res.setHeader('Content-Length', zipBuffer.length);
       res.send(zipBuffer);
