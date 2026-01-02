@@ -60,13 +60,18 @@ export const TemplateBuilder: React.FC = () => {
     ));
   };
 
-  const updateFieldProperty = (id: string, property: keyof SchemaField, value: any) => {
+  const updateFieldProperty = (id: string, property: keyof SchemaField, value: string | boolean) => {
     setFields(fields.map(f => 
       f.id === id ? { ...f, [property]: value } : f
     ));
   };
 
   const selectedField = fields.find(f => f.id === selectedFieldId);
+
+  const handleButtonClick = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
 
   const generateSchema = () => {
     const properties: any = {};
@@ -235,10 +240,7 @@ export const TemplateBuilder: React.FC = () => {
                       <Button
                         size="sm"
                         variant={field.required ? 'gradient' : 'outline'}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleRequired(field.id);
-                        }}
+                        onClick={(e) => handleButtonClick(e, () => toggleRequired(field.id))}
                         className="min-w-[100px]"
                       >
                         {field.required ? '✓ Required' : 'Optional'}
@@ -246,10 +248,7 @@ export const TemplateBuilder: React.FC = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeField(field.id);
-                        }}
+                        onClick={(e) => handleButtonClick(e, () => removeField(field.id))}
                         className="hover:bg-red-100 dark:hover:bg-red-950/30"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
