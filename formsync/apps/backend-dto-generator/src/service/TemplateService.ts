@@ -49,6 +49,7 @@ export class TemplateService {
         const templatesDir = path.resolve(__dirname, '../templates');
 
         this.loadTemplate('entity', path.join(templatesDir, 'java/entity.hbs'));
+        this.loadTemplate('enum', path.join(templatesDir, 'java/enum.hbs'));
         this.loadTemplate('repository', path.join(templatesDir, 'java/repository.hbs'));
         this.loadTemplate('service', path.join(templatesDir, 'java/service.hbs'));
         this.loadTemplate('controller', path.join(templatesDir, 'java/controller.hbs'));

@@ -48,26 +48,38 @@ export class BackendGenerator extends BasePlugin implements BackendGeneratorPlug
             // 1. Generate POM
             const pomContent = this.templateService.render('pom', {
                 name: internalModel.entities[0]?.name || 'demo',
-                version: internalModel.version
+                version: internalModel.version,
+                basePackage
             });
             this.fileWriter.write(path.join(outputDir, 'pom.xml'), pomContent);
 
-            // 2. Generate Java Classes for each Entity
+            // 2. Generate Enums
+            for (const enumDef of internalModel.enums) {
+                const enumContent = this.templateService.render('enum', {
+                    ...enumDef,
+                    basePackage
+                });
+                this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'model', `${enumDef.name}.java`), enumContent);
+            }
+
+            // 3. Generate Java Classes for each Entity
             for (const entity of internalModel.entities) {
+                const context = { ...entity, basePackage };
+
                 // Entity
-                const entityContent = this.templateService.render('entity', entity);
+                const entityContent = this.templateService.render('entity', context);
                 this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'model', `${entity.name}.java`), entityContent);
 
                 // Repository
-                const repoContent = this.templateService.render('repository', entity);
+                const repoContent = this.templateService.render('repository', context);
                 this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'repository', `${entity.name}Repository.java`), repoContent);
 
                 // Service
-                const serviceContent = this.templateService.render('service', entity);
+                const serviceContent = this.templateService.render('service', context);
                 this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'service', `${entity.name}Service.java`), serviceContent);
 
                 // Controller
-                const controllerContent = this.templateService.render('controller', entity);
+                const controllerContent = this.templateService.render('controller', context);
                 this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'controller', `${entity.name}Controller.java`), controllerContent);
             }
 
