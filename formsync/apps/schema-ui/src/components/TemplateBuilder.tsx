@@ -73,6 +73,14 @@ export const TemplateBuilder: React.FC = () => {
     action();
   };
 
+  const getFieldCardClassName = (isSelected: boolean) => {
+    return `glass p-5 rounded-xl border-2 hover:shadow-lg transition-all cursor-pointer ${
+      isSelected
+        ? 'border-primary-500 dark:border-primary-500 bg-primary-50/50 dark:bg-primary-950/30'
+        : 'border-neutral-200 dark:border-neutral-700 hover:border-primary-400 dark:hover:border-primary-600'
+    }`;
+  };
+
   const generateSchema = () => {
     const properties: any = {};
     const required: string[] = [];
@@ -212,11 +220,7 @@ export const TemplateBuilder: React.FC = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
                   onClick={() => setSelectedFieldId(field.id)}
-                  className={`glass p-5 rounded-xl border-2 hover:shadow-lg transition-all cursor-pointer ${
-                    selectedFieldId === field.id
-                      ? 'border-primary-500 dark:border-primary-500 bg-primary-50/50 dark:bg-primary-950/30'
-                      : 'border-neutral-200 dark:border-neutral-700 hover:border-primary-400 dark:hover:border-primary-600'
-                  }`}
+                  className={getFieldCardClassName(selectedFieldId === field.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -336,6 +340,7 @@ export const TemplateBuilder: React.FC = () => {
                     type="text"
                     placeholder={selectedField.placeholder || ''}
                     disabled
+                    aria-label={`Preview of ${selectedField.label || selectedField.name} field`}
                     className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-900 text-sm"
                   />
                   {selectedField.helpText && (
