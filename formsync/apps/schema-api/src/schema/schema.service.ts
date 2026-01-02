@@ -1,6 +1,6 @@
 /**
  * Schema Service
- * 
+ *
  * Business logic for schema operations:
  * - Format conversion using parser plugins
  * - Schema validation using validator plugins
@@ -13,12 +13,16 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import { PluginRegistry } from '@formsync/plugins';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { SchemaQualityEngine } from './schema-quality-engine';
+import { SchemaEnhancerService } from './schema-enhancer.service';
 import {
   ConvertSchemaDto,
   EnhanceSchemaDto,
   ValidateSchemaDto,
   CreateSchemaDto,
   UpdateSchemaDto,
+  ApplySuggestionDto,
+  RecalculateQualityDto,
 } from './dto/schema.dto';
 
 @Injectable()
@@ -26,8 +30,148 @@ export class SchemaService {
   constructor(
     @Inject('PLUGIN_REGISTRY') private readonly pluginRegistry: PluginRegistry,
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService
+    private readonly redis: RedisService,
+    private readonly qualityEngine: SchemaQualityEngine,
+    private readonly enhancerService: SchemaEnhancerService
   ) {}
+
+  /**
+   * POST /schema/enhance
+   * Use AI to enhance schema with comprehensive quality scoring
+   * (UPDATED for suggestion-driven model)
+   */
+  async enhanceSchema(dto: EnhanceSchemaDto) {
+    // Use the SchemaEnhancerService which handles the new suggestion-driven workflow
+    const result = await this.enhancerService.enhanceSchema(dto.schema, {
+      focusAreas: dto.focusAreas,
+      preserveStructure: dto.preserveStructure,
+    });
+
+    return {
+      // Base enhanced schema (with safe auto-fixes ONLY)
+      enhancedSchema: result.enhancedSchema,
+
+      // Auto-applied safe changes
+      changes: result.changes,
+
+      // NEW: AI suggestions (NOT auto-applied)
+      suggestions: result.suggestions,
+
+      // Quality metrics for CURRENT state (before suggestions)
+      qualityScore: result.quality.score,
+      qualityBreakdown: result.quality.breakdown,
+      issues: result.quality.issues,
+
+      // Metadata
+      model: result.model,
+      tokensUsed: result.tokensUsed,
+
+      // Statistics
+      metrics: {
+        totalChanges: result.changes.length,
+        totalSuggestions: result.suggestions.length,
+        appliedSuggestions: 0, // None applied yet
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
+      },
+    };
+  }
+
+  /**
+   * POST /schema/suggestion/apply
+   * Apply or undo a suggestion and get updated quality score
+   * (NEW for suggestion-driven model)
+   */
+  async applySuggestion(dto: ApplySuggestionDto) {
+    // Validate required fields
+    if (!dto.baseSchema) {
+      throw new Error('baseSchema is required');
+    }
+    if (!dto.suggestion) {
+      throw new Error('suggestion is required');
+    }
+    if (!dto.allSuggestions || !Array.isArray(dto.allSuggestions)) {
+      throw new Error('allSuggestions must be an array');
+    }
+    if (!dto.aiChanges || !Array.isArray(dto.aiChanges)) {
+      throw new Error('aiChanges must be an array');
+    }
+
+    const result = this.enhancerService.applySuggestion(
+      dto.baseSchema,
+      dto.suggestion,
+      dto.allSuggestions,
+      dto.aiChanges,
+      dto.action
+    );
+
+    return {
+      // Updated schema state
+      schema: result.schema,
+
+      // Updated suggestion (with toggled applied flag)
+      suggestion: result.suggestion,
+
+      // Recalculated quality metrics
+      qualityScore: result.quality.score,
+      qualityBreakdown: result.quality.breakdown,
+      issues: result.quality.issues,
+
+      // Score change
+      scoreDelta: result.scoreDelta,
+
+      // Context
+      action: dto.action,
+
+      // Statistics
+      metrics: {
+        appliedSuggestions: dto.allSuggestions.filter((s) =>
+          s.id === dto.suggestion.id ? result.suggestion.applied : s.applied
+        ).length,
+        totalSuggestions: dto.allSuggestions.length,
+      },
+    };
+  }
+
+  /**
+   * POST /schema/quality/recalculate
+   * Recalculate quality score for current state
+   * (NEW for suggestion-driven model)
+   */
+  async recalculateQuality(dto: RecalculateQualityDto) {
+    const quality = this.enhancerService.recalculateQuality(
+      dto.baseSchema,
+      dto.allSuggestions,
+      dto.aiChanges
+    );
+
+    return {
+      qualityScore: quality.score,
+      qualityBreakdown: quality.breakdown,
+      issues: quality.issues,
+      appliedSuggestionsCount: quality.appliedSuggestionsCount,
+      totalSuggestionsCount: quality.totalSuggestionsCount,
+    };
+  }
+
+  /**
+   * Helper: Calculate accessibility coverage for backward compatibility
+   */
+  private calculateAccessibilityCoverage(schema: any): number {
+    let total = 0;
+    let covered = 0;
+
+    const walk = (obj: any) => {
+      if (!obj?.properties) return;
+      for (const prop of Object.values(obj.properties)) {
+        total++;
+        if ((prop as any)['x-accessibility']) covered++;
+        if ((prop as any).type === 'object') walk(prop);
+      }
+    };
+
+    walk(schema);
+    return total === 0 ? 1 : covered / total;
+  }
 
   /**
    * POST /schema/convert
@@ -39,7 +183,7 @@ export class SchemaService {
     const crypto = await import('crypto');
     const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');
     const cacheKey = `v2:convert:${dto.format || 'auto'}:${inputHash}`;
-    
+
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return { ...cached, fromCache: true };
@@ -65,7 +209,6 @@ export class SchemaService {
       throw new BadRequestException('Could not detect format or find suitable parser');
     }
 
-
     console.log('[SchemaService] Using parser:', parser.name);
     const result = await parser.parse(dto.input);
 
@@ -88,43 +231,6 @@ export class SchemaService {
     await this.redis.set(cacheKey, response);
 
     return response;
-  }
-
-  /**
-   * POST /schema/enhance
-   * Use AI to enhance schema
-   */
-  async enhanceSchema(dto: EnhanceSchemaDto) {
-    const providerName = dto.provider || 'openai-llm';
-    const provider = this.pluginRegistry.getLLMProvider(providerName);
-
-    if (!provider) {
-      throw new NotFoundException(`LLM provider "${providerName}" not found`);
-    }
-
-    if (!provider.isConfigured()) {
-      throw new BadRequestException(`LLM provider "${providerName}" is not configured`);
-    }
-
-    const result = await provider.enhanceSchema(dto.schema, {
-      focusAreas: dto.focusAreas,
-      preserveStructure: dto.preserveStructure,
-    });
-
-    if (!result.success) {
-      throw new BadRequestException({
-        message: 'AI enhancement failed',
-        errors: result.errors,
-      });
-    }
-
-    return {
-      enhancedSchema: result.enhancedSchema,
-      changes: result.changes,
-      tokensUsed: result.tokensUsed,
-      model: result.model,
-      provider: provider.getProviderName(),
-    };
   }
 
   /**

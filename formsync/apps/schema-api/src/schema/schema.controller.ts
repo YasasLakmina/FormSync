@@ -1,8 +1,8 @@
 /**
  * Schema Controller
- * 
+ *
  * REST API endpoints for schema operations
- * 
+ *
  * Endpoints:
  * - POST /schema/convert - Convert format to JSON Schema
  * - POST /schema/enhance - AI enhancement
@@ -35,6 +35,8 @@ import {
   ValidateSchemaDto,
   CreateSchemaDto,
   UpdateSchemaDto,
+  ApplySuggestionDto,
+  RecalculateQualityDto,
 } from './dto/schema.dto';
 
 @ApiTags('schema')
@@ -126,5 +128,34 @@ export class SchemaController {
   @ApiResponse({ status: 404, description: 'Schema not found' })
   async delete(@Param('id') id: string) {
     return this.schemaService.deleteSchema(id);
+  }
+
+  @Post('suggestion/apply')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Apply or undo a suggestion and recalculate quality score',
+    tags: ['ai', 'suggestions'],
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion applied/undone successfully with updated quality score',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid suggestion or action' })
+  async applySuggestion(@Body() dto: ApplySuggestionDto) {
+    return this.schemaService.applySuggestion(dto);
+  }
+
+  @Post('quality/recalculate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Recalculate quality score for current schema state',
+    tags: ['ai', 'quality'],
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Quality score recalculated successfully',
+  })
+  async recalculateQuality(@Body() dto: RecalculateQualityDto) {
+    return this.schemaService.recalculateQuality(dto);
   }
 }
