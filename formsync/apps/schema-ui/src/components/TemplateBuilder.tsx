@@ -7,7 +7,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Plus, Save, FileJson, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -17,11 +16,15 @@ interface SchemaField {
   name: string;
   type: string;
   required: boolean;
+  label?: string;
+  placeholder?: string;
+  helpText?: string;
   description?: string;
 }
 
 export const TemplateBuilder: React.FC = () => {
   const [fields, setFields] = useState<SchemaField[]>([]);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('string');
 
@@ -45,6 +48,9 @@ export const TemplateBuilder: React.FC = () => {
 
   const removeField = (id: string) => {
     setFields(fields.filter(f => f.id !== id));
+    if (selectedFieldId === id) {
+      setSelectedFieldId(null);
+    }
     toast.success('Field removed');
   };
 
@@ -54,6 +60,14 @@ export const TemplateBuilder: React.FC = () => {
     ));
   };
 
+  const updateFieldProperty = (id: string, property: keyof SchemaField, value: any) => {
+    setFields(fields.map(f => 
+      f.id === id ? { ...f, [property]: value } : f
+    ));
+  };
+
+  const selectedField = fields.find(f => f.id === selectedFieldId);
+
   const generateSchema = () => {
     const properties: any = {};
     const required: string[] = [];
@@ -61,7 +75,10 @@ export const TemplateBuilder: React.FC = () => {
     fields.forEach(field => {
       properties[field.name] = {
         type: field.type,
+        ...(field.label && { title: field.label }),
         ...(field.description && { description: field.description }),
+        ...(field.helpText && { 'x-helpText': field.helpText }),
+        ...(field.placeholder && { 'x-placeholder': field.placeholder }),
       };
       if (field.required) {
         required.push(field.name);
@@ -189,7 +206,12 @@ export const TemplateBuilder: React.FC = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="glass p-5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 hover:border-primary-400 dark:hover:border-primary-600 hover:shadow-lg transition-all"
+                  onClick={() => setSelectedFieldId(field.id)}
+                  className={`glass p-5 rounded-xl border-2 hover:shadow-lg transition-all cursor-pointer ${
+                    selectedFieldId === field.id
+                      ? 'border-primary-500 dark:border-primary-500 bg-primary-50/50 dark:bg-primary-950/30'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:border-primary-400 dark:hover:border-primary-600'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -197,9 +219,14 @@ export const TemplateBuilder: React.FC = () => {
                         {field.name[0].toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">{field.name}</div>
+                        <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">
+                          {field.label || field.name}
+                        </div>
                         <div className="text-sm text-neutral-500">
                           Type: <span className="text-primary-600 dark:text-primary-400 font-semibold">{field.type}</span>
+                          {field.placeholder && (
+                            <span className="ml-2 text-neutral-400">• {field.placeholder}</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -208,7 +235,10 @@ export const TemplateBuilder: React.FC = () => {
                       <Button
                         size="sm"
                         variant={field.required ? 'gradient' : 'outline'}
-                        onClick={() => toggleRequired(field.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleRequired(field.id);
+                        }}
                         className="min-w-[100px]"
                       >
                         {field.required ? '✓ Required' : 'Optional'}
@@ -216,7 +246,10 @@ export const TemplateBuilder: React.FC = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => removeField(field.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeField(field.id);
+                        }}
                         className="hover:bg-red-100 dark:hover:bg-red-950/30"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
@@ -230,15 +263,93 @@ export const TemplateBuilder: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Right Panel - Preview */}
-      <Card className="w-96 glass">
-        <CardHeader>
-          <CardTitle className="text-lg">Schema Preview</CardTitle>
+      {/* Right Panel - Property Editor or Preview */}
+      <Card className="w-96 glass border-2 border-neutral-200 dark:border-neutral-700">
+        <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
+          <CardTitle className="text-lg">
+            {selectedField ? 'Edit Properties' : 'Schema Preview'}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="text-xs bg-neutral-900 text-green-400 p-4 rounded-lg overflow-auto max-h-[600px]">
-            {JSON.stringify(generateSchema(), null, 2)}
-          </pre>
+        <CardContent className="pt-6">
+          {selectedField ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+                  Label
+                </label>
+                <input
+                  type="text"
+                  placeholder="Display label for the field"
+                  value={selectedField.label || ''}
+                  onChange={(e) => updateFieldProperty(selectedField.id, 'label', e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+                  Placeholder
+                </label>
+                <input
+                  type="text"
+                  placeholder="Hint text for the input"
+                  value={selectedField.placeholder || ''}
+                  onChange={(e) => updateFieldProperty(selectedField.id, 'placeholder', e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+                  Help Text
+                </label>
+                <textarea
+                  placeholder="Additional help or instructions"
+                  value={selectedField.helpText || ''}
+                  onChange={(e) => updateFieldProperty(selectedField.id, 'helpText', e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border-2 border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+                  Required
+                </label>
+                <Button
+                  size="sm"
+                  variant={selectedField.required ? 'gradient' : 'outline'}
+                  onClick={() => toggleRequired(selectedField.id)}
+                  className="w-full"
+                >
+                  {selectedField.required ? '✓ Required Field' : 'Optional Field'}
+                </Button>
+              </div>
+
+              <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                <h4 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">Preview</h4>
+                <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                    {selectedField.label || selectedField.name}
+                    {selectedField.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={selectedField.placeholder || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-900 text-sm"
+                  />
+                  {selectedField.helpText && (
+                    <p className="text-xs text-neutral-500 mt-1">{selectedField.helpText}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <pre className="text-xs bg-neutral-900 text-green-400 p-4 rounded-lg overflow-auto max-h-[600px]">
+              {JSON.stringify(generateSchema(), null, 2)}
+            </pre>
+          )}
         </CardContent>
       </Card>
     </div>
