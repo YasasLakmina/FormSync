@@ -3,17 +3,33 @@ import { BackendGenerator } from './generator/BackendGenerator';
 
 console.log('Starting Backend DTO Generator...');
 
-const registry = PluginRegistry.getInstance();
 const generator = new BackendGenerator();
 
-// Register the plugin (assuming registry has a method for this, or just demonstrate usage)
-// For now, we'll just demonstrate direct usage as the registry might need more setup
-// In a real scenario: registry.register('backend-generator', generator);
+// Sample Schema (mimicking InputContract)
+const sampleSchema = {
+    name: 'UserManagement',
+    version: '1.0.0',
+    content: {
+        type: 'object',
+        properties: {
+            User: {
+                type: 'object',
+                properties: {
+                    username: { type: 'string' },
+                    email: { type: 'string' },
+                    age: { type: 'integer' }
+                },
+                required: ['username', 'email']
+            }
+        }
+    }
+};
 
 (async () => {
     try {
         await generator.initialize();
-        await generator.generate({ test: 'schema' }, { outputDir: './output' });
+        // Generate into a 'demo-output' folder in the current directory
+        await generator.generate(sampleSchema, { outputDir: './demo-output' });
     } catch (error) {
         console.error('Error:', error);
         process.exit(1);
