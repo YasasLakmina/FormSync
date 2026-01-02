@@ -1,2 +1,2 @@
 export * from './models/form-model';
-export * from './types';
+export * from './adapters/json-schema.adapter';
