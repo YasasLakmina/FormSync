@@ -103,6 +103,33 @@ export class SchemaEnhancerService {
   }
 
   /**
+   * Call LLM directly with a prompt (for Quick Fix and other utilities)
+   */
+  async callLLM(prompt: string, context: string = 'general'): Promise<string | null> {
+    try {
+      const completion = await this.llmPlugin['client'].chat.completions.create({
+        model: this.llmPlugin['model'],
+        messages: [
+          {
+            role: 'system',
+            content: `You are a helpful assistant that ${context === 'syntax-fix' ? 'fixes syntax errors in code' : 'helps with schema tasks'}.`
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.2, // Low temperature for deterministic fixes
+      });
+
+      return completion.choices[0]?.message?.content || null;
+    } catch (error) {
+      console.error('[SchemaEnhancerService] LLM call failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Apply or undo a suggestion and recalculate quality score
    * (NEW method for suggestion-driven model)
    *
