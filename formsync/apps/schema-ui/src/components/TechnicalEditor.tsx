@@ -107,43 +107,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   );
 
   // Helper function to validate input format
-  const validateInputFormat = (
-    input: string,
-    expectedFormat: FormatType
-  ): { isValid: boolean; error?: string } => {
-    try {
-      if (expectedFormat === 'json') {
-        JSON.parse(input);
-        return { isValid: true };
-      } else if (expectedFormat === 'yaml') {
-        // Basic YAML validation - check for common issues
-        if (input.includes('\t')) {
-          return { isValid: false, error: 'YAML cannot contain tabs. Use spaces for indentation.' };
-        }
-        // Additional YAML checks can be added here
-        return { isValid: true };
-      } else if (expectedFormat === 'xml') {
-        // Basic XML validation
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(input, 'text/xml');
-        const parseError = doc.querySelector('parsererror');
-        if (parseError) {
-          return { isValid: false, error: 'Invalid XML format' };
-        }
-        return { isValid: true };
-      }
-      return { isValid: true };
-    } catch (error) {
-      if (expectedFormat === 'json') {
-        return {
-          isValid: false,
-          error: `Invalid JSON: ${error instanceof Error ? error.message : 'Parse error'}`,
-        };
-      }
-      return { isValid: false, error: `Invalid ${expectedFormat.toUpperCase()} format` };
-    }
-  };
-
   // Handlers - NEW ORDER: Validate → Convert → Enhance
 
   // 1. Validate raw input first
@@ -159,7 +122,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
     try {
       // Call backend conversion which includes syntax validation
-      await schemaApi.convertSchema(editorValue, format);
+      await convertSchema(editorValue, format);
       
       // Validation passed
       setIsInputValid(true);
