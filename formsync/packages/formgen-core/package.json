@@ -1,0 +1,13 @@
+{
+    "name": "@formsync/formgen-core",
+    "version": "0.0.1",
+    "description": "Shared core logic for FormSync Frontend Form Generator",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "lint": "eslint . --ext .ts"
+    },
+    "dependencies": {},
+    "peerDependencies": {}
+}

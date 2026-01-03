@@ -1,0 +1,84 @@
+/**
+ * Internal FormModel Definitions
+ *
+ * This represents the normalized data structure for the form generator.
+ * It is designated as the Single Source of Truth for:
+ * 1. Visual Preview (formgen-ui)
+ * 2. Code Generation (formgen-api)
+ *
+ * CONSTRAINTS:
+ * - Must be strictly JSON-serializable (no Date, Map, Set, Functions).
+ * - Framework-agnostic (no React/NestJS specific types).
+ */
+
+export type FieldType =
+    | 'text'
+    | 'email'
+    | 'password'
+    | 'number'
+    | 'select'
+    | 'checkbox'
+    | 'textarea'
+    | 'date'
+    | 'unknown';
+
+export interface FieldConstraints {
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    enum?: string[];
+    [key: string]: string | number | boolean | string[] | undefined; // Extensible
+}
+
+export interface FieldUIConfig {
+    placeholder?: string;
+    helpText?: string;
+    hidden?: boolean;
+    disabled?: boolean;
+    style?: Record<string, string | number>; // Minimal inline styles
+    [key: string]: string | number | boolean | Record<string, unknown> | undefined;
+}
+
+export interface FieldModel {
+    /** Stable UUID for references */
+    id: string;
+    /** Property key from original schema */
+    key: string;
+    type: FieldType;
+    label: string;
+    required: boolean;
+    /** strictly serializable default value */
+    defaultValue?: string | number | boolean | null;
+    constraints?: FieldConstraints;
+    ui?: FieldUIConfig;
+}
+
+export interface ThemeConfig {
+    primaryColor: string;
+    fontFamily: string;
+    /** consistent radius unit */
+    radius: number;
+    background?: string;
+    surface?: string;
+    textColor?: string;
+}
+
+export interface LayoutConfig {
+    /** Ordered list of Field IDs to determine render sequence */
+    order: string[];
+}
+
+export interface FormModel {
+    id: string;
+    name: string;
+    version: string;
+    meta?: {
+        title?: string;
+        description?: string;
+    };
+    theme: ThemeConfig;
+    layout: LayoutConfig;
+    fields: FieldModel[];
+}

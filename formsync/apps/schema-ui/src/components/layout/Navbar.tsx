@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Code2, FileCode, BookOpen, Github, Menu, X } from 'lucide-react';
+import { Code2, BookOpen, Github, Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 
@@ -20,13 +20,13 @@ export const Navbar: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <FileCode className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              FormSync
-            </span>
+          <Link to="/" className="flex items-center gap-3 group">
+            <img 
+              src="/logo.png" 
+              alt="FormSync Logo" 
+              className="h-12 w-auto transition-transform group-hover:scale-105"
+            />
+         
           </Link>
 
           {/* Desktop Navigation */}

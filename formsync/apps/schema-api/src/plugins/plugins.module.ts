@@ -40,7 +40,7 @@ import { ControllerGeneratorService } from '../runtime-binding-validator/service
     // Runtime generator plugins
     SpringBootGeneratorPlugin,
   ],
-  exports: ['PLUGIN_REGISTRY'], // Export so other modules can import and use
+  exports: ['PLUGIN_REGISTRY', OpenAILLMPlugin], // Export plugin for use in other modules
 })
 export class PluginsModule implements OnModuleInit {
   constructor() {}
