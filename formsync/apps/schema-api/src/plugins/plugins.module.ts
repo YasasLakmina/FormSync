@@ -6,13 +6,17 @@
  */
 
 import { Module, OnModuleInit, Global } from '@nestjs/common';
-import { PluginRegistry } from '@formsync/plugins';
+import { LocalPluginRegistry } from './local-plugin-registry';
 import { JsonParserPlugin } from './parsers/json-parser.plugin';
 import { YamlParserPlugin } from './parsers/yaml-parser.plugin';
 import { XmlParserPlugin } from './parsers/xml-parser.plugin';
 import { AjvValidatorPlugin } from './validators/ajv-validator.plugin';
 import { WcagValidatorPlugin } from './validators/wcag-validator.plugin';
 import { OpenAILLMPlugin } from './llm/openai-llm.plugin';
+import { SpringBootGeneratorPlugin } from './generators/springboot-generator.plugin';
+import { SpringBootScaffoldService } from '../runtime-binding-validator/services/springboot-scaffold.service';
+import { DtoGeneratorService } from '../runtime-binding-validator/services/dto-generator.service';
+import { ControllerGeneratorService } from '../runtime-binding-validator/services/controller-generator.service';
 
 @Global()
 @Module({
@@ -20,7 +24,7 @@ import { OpenAILLMPlugin } from './llm/openai-llm.plugin';
     {
       provide: 'PLUGIN_REGISTRY',
       useFactory: () => {
-        return PluginRegistry.getInstance();
+        return LocalPluginRegistry.getInstance();
       },
     },
     JsonParserPlugin,
@@ -29,6 +33,12 @@ import { OpenAILLMPlugin } from './llm/openai-llm.plugin';
     AjvValidatorPlugin,
     WcagValidatorPlugin,
     OpenAILLMPlugin,
+    // Generator services (needed by SpringBootGeneratorPlugin)
+    SpringBootScaffoldService,
+    DtoGeneratorService,
+    ControllerGeneratorService,
+    // Runtime generator plugins
+    SpringBootGeneratorPlugin,
   ],
   exports: ['PLUGIN_REGISTRY', OpenAILLMPlugin], // Export plugin for use in other modules
 })
@@ -37,7 +47,7 @@ export class PluginsModule implements OnModuleInit {
 
   async onModuleInit() {
     console.log('🔌 Initializing plugins...');
-    const registry = PluginRegistry.getInstance();
+    const registry = LocalPluginRegistry.getInstance();
 
     // Register parser plugins
     registry.registerParser(new JsonParserPlugin());
@@ -51,9 +61,17 @@ export class PluginsModule implements OnModuleInit {
     // Register LLM provider plugins
     registry.registerLLMProvider(new OpenAILLMPlugin());
 
+    // Register runtime generator plugins
+    const springBootGenerator = new SpringBootGeneratorPlugin(
+      new SpringBootScaffoldService(),
+      new DtoGeneratorService(),
+      new ControllerGeneratorService()
+    );
+    registry.registerRuntimeGenerator(springBootGenerator);
+
     const stats = registry.getStats();
     console.log(
-      `✅ Plugins loaded: ${stats.parsers} parsers, ${stats.validators} validators, ${stats.llmProviders} LLM providers`
+      `✅ Plugins loaded: ${stats.parsers} parsers, ${stats.validators} validators, ${stats.llmProviders} LLM providers, ${stats.runtimeGenerators} runtime generators`
     );
   }
 }
