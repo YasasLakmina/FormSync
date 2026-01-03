@@ -66,6 +66,15 @@ export class SchemaController {
   }
 
   /**
+   * POST /schema/quick-fix
+   * Attempt to automatically fix syntax errors
+   */
+  @Post('quick-fix')
+  async quickFix(@Body() dto: ConvertSchemaDto) {
+    return this.schemaService.quickFixSyntax(dto);
+  }
+
+  /**
    * POST /schema/enhance
    * Use AI to enhance schema with quality scoring
    */

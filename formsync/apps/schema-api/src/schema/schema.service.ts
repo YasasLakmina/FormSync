@@ -203,6 +203,33 @@ export class SchemaService {
   }
 
   /**
+  * POST /schema/quick-fix
+   * Attempt to automatically fix syntax errors
+   * (NEW method for Quick Fix button)
+   */
+  async quickFixSyntax(dto: ConvertSchemaDto) {
+    // Validate the format
+    const format = dto.format || 'json'; // Default to JSON if not specified
+    
+    // Attempt quick fix
+    const fixedInput = this.syntaxValidator.attemptQuickFix(dto.input, format as any);
+    
+    if (!fixedInput) {
+      throw new BadRequestException({
+        message: 'Could not automatically fix syntax errors',
+        suggestion: 'Please fix the errors manually or use a more advanced fix option',
+      });
+    }
+    
+    // Return the fixed input
+    return {
+      success: true,
+      fixedInput,
+      message: 'Syntax errors fixed',
+    };
+  }
+
+  /**
    * POST /schema/convert
    * Auto-detect format and convert to JSON Schema Draft-7
    * 
