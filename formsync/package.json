@@ -14,7 +14,7 @@
     "dev:formgen:api": "npm run start:dev --workspace=formgen-api",
     "dev:formgen:ui": "npm run dev --workspace=formgen-ui",
     "dev:formgen": "concurrently \"npm run dev:formgen:api\" \"npm run dev:formgen:ui\"",
-    "dev": "npm run dev --workspace=schema-ui",
+    "dev": "concurrently \"npm run dev:schema:api\" \"npm run dev:schema:ui\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "eslint . --ext .ts,.tsx",
