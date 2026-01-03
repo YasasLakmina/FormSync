@@ -64,18 +64,24 @@ export interface FieldModel {
     ui?: FieldUIConfig;
 }
 
+export interface ThemeColors {
+    primary: string;
+    background: string;
+    surface: string;
+    text: string;
+    muted: string;
+    border: string;
+    error: string;
+    inputBackground: string;
+}
+
 export interface ThemeConfig {
     mode: 'light' | 'dark';
     density: 'compact' | 'normal' | 'comfortable';
-    colors: {
-        primary: string;
-        background: string;
-        surface: string;
-        text: string;
-        muted: string;
-        border: string;
-        error: string;
-        inputBackground: string;
+    colors: ThemeColors;
+    schemes?: {
+        light: ThemeColors;
+        dark: ThemeColors;
     };
     typography: {
         fontFamily: string;

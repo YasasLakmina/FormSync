@@ -79,9 +79,24 @@ export const RightPanel: React.FC = () => {
                                 value={state.form.theme.mode}
                                 onChange={(e) => {
                                     const newMode = e.target.value as 'light' | 'dark';
+                                    const currentMode = state.form.theme.mode;
+
+                                    // 1. Save current colors to schemes
+                                    const updatedSchemes = {
+                                        ...(state.form.theme.schemes || {
+                                            light: THEME_PRESETS.light,
+                                            dark: THEME_PRESETS.dark
+                                        }),
+                                        [currentMode]: state.form.theme.colors
+                                    };
+
+                                    // 2. Load new colors: from schemes if exists, else from preset
+                                    const newColors = updatedSchemes[newMode] || THEME_PRESETS[newMode];
+
                                     handleThemeUpdate({
                                         mode: newMode,
-                                        colors: THEME_PRESETS[newMode] // Apply preset
+                                        colors: newColors,
+                                        schemes: updatedSchemes
                                     });
                                 }}
                             >

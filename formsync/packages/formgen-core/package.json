@@ -1,6 +1,7 @@
 {
     "name": "@formsync/formgen-core",
     "version": "0.0.1",
+    "type": "module",
     "description": "Shared core logic for FormSync Frontend Form Generator",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
