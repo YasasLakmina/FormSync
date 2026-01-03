@@ -12,9 +12,10 @@ import { TemplateBuilder } from '../components/TemplateBuilder';
 import { FlowDiagram } from '../components/shared/FlowDiagram';
 import { useSchemaStore } from '../stores/schemaStore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Code2, Wand2 } from 'lucide-react';
+import { Code2, Wand2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { generationService } from '../services/generationService';
+import { Button } from '../components/ui/button';
 
 export interface GenerationStage {
   name: string;
@@ -39,9 +40,9 @@ export const EditorPage: React.FC = () => {
 
   // Handler to update stages from TechnicalEditor
   const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => {
-    setStages(prev => 
-      prev.map(s => 
-        s.name === stageName 
+    setStages(prev =>
+      prev.map(s =>
+        s.name === stageName
           ? { ...s, status, progress: status === 'complete' ? 100 : status === 'loading' ? 50 : 0 }
           : s
       )
@@ -66,7 +67,7 @@ export const EditorPage: React.FC = () => {
     try {
       // Start from Frontend Generation (index 4)
       const generationStages = stages.slice(4);
-      
+
       for (let i = 0; i < generationStages.length; i++) {
         const stageIndex = i + 4; // Offset for actual index
         setStages(prev =>
@@ -89,7 +90,7 @@ export const EditorPage: React.FC = () => {
 
       // Call backend API
       const USE_MOCK = true;
-      const result = USE_MOCK 
+      const result = USE_MOCK
         ? await generationService.generateMock()
         : await generationService.generateAll(currentSchema);
 
@@ -110,6 +111,62 @@ export const EditorPage: React.FC = () => {
     }
   };
 
+  const handleNextToFormBuilder = async () => {
+    console.log('[handleNextToFormBuilder] Called', { currentSchema: currentSchema, validationResults });
+
+    // Ensure we have a converted schema  
+    if (!currentSchema) {
+      toast.error('Please complete validation and conversion first');
+      console.log('[handleNextToFormBuilder] No currentSchema');
+      return;
+    }
+
+    // If currentSchema exists, conversion was successful, which means validation passed
+
+    try {
+      // Save schema to API and get an ID
+      const schemaApiUrl = 'http://localhost:3000/schema';
+      console.log('[handleNextToFormBuilder] Saving schema to API...');
+
+      const response = await fetch(schemaApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: currentSchema.title || 'Untitled Schema',
+          description: currentSchema.description || 'Schema from Schema UI',
+          content: currentSchema,
+          sourceFormat: 'json',
+          status: 'validated',
+          userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // Demo user ID
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('[handleNextToFormBuilder] API Error Response:', errorData);
+        throw new Error(`API returned ${response.status}: ${errorData}`);
+      }
+
+      const savedSchema = await response.json();
+      console.log('[handleNextToFormBuilder] Schema saved with ID:', savedSchema.id);
+
+      // Show success message
+      toast.success('Schema saved, navigating to Form Builder...');
+
+      // Navigate to Form Builder with schema ID
+      const formBuilderUrl = import.meta.env.VITE_FORMGEN_UI_URL || 'http://localhost:5175';
+      const urlWithSchemaId = `${formBuilderUrl}?schemaId=${savedSchema.id}`;
+      console.log('[handleNextToFormBuilder] Navigating to Form Builder with schema ID');
+      window.location.href = urlWithSchemaId;
+    } catch (error) {
+      toast.error('Failed to save schema to API. Please try again.');
+      console.error('[handleNextToFormBuilder] Error:', error);
+    }
+  };
+
+
   return (
     <PageTransition>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -128,6 +185,27 @@ export const EditorPage: React.FC = () => {
             <FlowDiagram stages={stages} />
           </div>
 
+          {/* Next: Form Builder Button - Shows after Convert OR AI Enhancement is complete */}
+          {(() => {
+            console.log('[EditorPage] Button condition check:', {
+              stage2: stages[2],
+              stage3: stages[3],
+              shouldShow: stages[2].status === 'complete' || stages[3].status === 'complete'
+            });
+            return (stages[2].status === 'complete' || stages[3].status === 'complete');
+          })() && (
+              <div className="mb-6 flex justify-center">
+                <Button
+                  onClick={handleNextToFormBuilder}
+                  size="lg"
+                  className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl text-white px-8 py-6 text-lg font-semibold rounded-xl transition-all hover:scale-105"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Next: Form Builder
+                </Button>
+              </div>
+            )}
+
           <div className="max-w-7xl mx-auto">
             {/* Tabs for Technical Editor and Template Builder */}
             <Tabs defaultValue="technical" className="w-full">
@@ -143,7 +221,7 @@ export const EditorPage: React.FC = () => {
               </TabsList>
 
               <TabsContent value="technical" className="mt-0">
-                <TechnicalEditor 
+                <TechnicalEditor
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
                   onStageUpdate={handleStageUpdate}
