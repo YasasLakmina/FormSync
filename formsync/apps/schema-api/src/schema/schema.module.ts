@@ -9,7 +9,8 @@ import { SchemaController } from './schema.controller';
 import { SchemaService } from './schema.service';
 import { SchemaEnhancerService } from './schema-enhancer.service';
 import { SchemaQualityEngine } from './schema-quality-engine';
-import { SchemaSuggestionEngine } from './schema-suggestion.engine'; // NEW
+import { SchemaSuggestionEngine } from './schema-suggestion.engine';
+import { SchemaSyntaxValidator } from './schema-syntax-validator';
 import { ImportService } from './import.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -22,7 +23,8 @@ import { PluginsModule } from '../plugins/plugins.module';
     SchemaService,
     SchemaEnhancerService,
     SchemaQualityEngine,
-    SchemaSuggestionEngine, // NEW
+    SchemaSuggestionEngine,
+    SchemaSyntaxValidator,
     ImportService,
     PrismaService,
     RedisService,
