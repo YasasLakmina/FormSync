@@ -12,7 +12,7 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { path: '/editor', label: 'Schema Editor', icon: Code2 },
-    { path: '/docs', label: 'Documentation', icon: BookOpen },
+    { path: '/documentation', label: 'Documentation', icon: BookOpen },
   ];
 
   return (
