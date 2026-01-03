@@ -7,6 +7,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useSchemaStore } from '../stores/schemaStore';
+import { schemaApi } from '../api/schemaApi';
 import { FormatSelector, type FormatType } from './FormatSelector';
 import { TemplateLibrary } from './TemplateLibrary';
 import { SchemaTreeView } from './SchemaTreeView';
@@ -109,7 +110,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
 
-  // 1. Validate raw input first
+  // 1. Validate raw input first (ONLY validates, does NOT convert)
   const handleValidate = useCallback(async () => {
     if (!editorValue.trim()) {
       toast.error('Please enter some code to validate');
@@ -121,8 +122,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     onStageUpdate?.('Input Validation', 'loading');
 
     try {
-      // Call backend conversion which includes syntax validation
-      await convertSchema(editorValue, format);
+      // Call backend syntax validation API (validation only, no conversion)
+      await schemaApi.validateSyntax({ input: editorValue, format });
       
       // Validation passed
       setIsInputValid(true);
