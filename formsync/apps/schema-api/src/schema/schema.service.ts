@@ -15,6 +15,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { SchemaQualityEngine } from './schema-quality-engine';
 import { SchemaEnhancerService } from './schema-enhancer.service';
+import { SchemaSuggestionEngine } from './schema-suggestion.engine';
+import { SchemaSyntaxValidator } from './schema-syntax-validator';
 import {
   ConvertSchemaDto,
   EnhanceSchemaDto,
@@ -32,7 +34,8 @@ export class SchemaService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly qualityEngine: SchemaQualityEngine,
-    private readonly enhancerService: SchemaEnhancerService
+    private readonly enhancerService: SchemaEnhancerService,
+    private readonly syntaxValidator: SchemaSyntaxValidator
   ) {}
 
   /**
@@ -174,12 +177,81 @@ export class SchemaService {
   }
 
   /**
+   * POST /schema/validate-syntax
+   * Validate syntax ONLY without converting
+   * (NEW method for frontend validation button)
+   */
+  async validateSyntaxOnly(dto: ConvertSchemaDto) {
+    // Perform strict syntax validation (no conversion)
+    const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
+    
+    if (!syntaxValidation.valid) {
+      // Return validation errors (don't throw, return structured response)
+      throw new BadRequestException({
+        message: 'Syntax validation failed',
+        syntaxErrors: syntaxValidation.syntaxErrors,
+        formatMismatch: syntaxValidation.formatMismatch,
+        syntaxSuggestions: syntaxValidation.syntaxSuggestions,
+      });
+    }
+    
+    // Syntax is valid - return success
+    return {
+      valid: true,
+      message: `Valid ${(dto.format || 'detected').toUpperCase()} syntax`,
+    };
+  }
+
+  /**
+  * POST /schema/quick-fix
+   * Attempt to automatically fix syntax errors
+   * (Enhanced with AI fallback)
+   */
+  async quickFixSyntax(dto: ConvertSchemaDto) {
+    // Validate the format
+    const format = dto.format || 'json';
+    
+    // Attempt quick fix (now async with AI fallback)
+    const result = await this.syntaxValidator.attemptQuickFix(dto.input, format as any);
+    
+    if (!result.success) {
+      throw new BadRequestException({
+        message: result.message,
+        suggestion: 'Please fix the errors manually or use a more advanced fix option',
+      });
+    }
+    
+    // Return the fixed input with confidence indicator
+    return {
+      success: true,
+      fixedInput: result.fixedInput,
+      confidence: result.confidence,
+      message: result.message,
+    };
+  }
+
+  /**
    * POST /schema/convert
    * Auto-detect format and convert to JSON Schema Draft-7
+   * 
+   * ENHANCED: Performs STRICT SYNTAX VALIDATION before any processing
    */
   async convertSchema(dto: ConvertSchemaDto) {
-    // Check cache first (v2 cache for normalized schemas)
-    // Use crypto hash to avoid collisions from truncated keys
+    // STEP 1: STRICT SYNTAX VALIDATION (NEW)
+    // Validate syntax BEFORE any other processing
+    const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
+    
+    if (!syntaxValidation.valid) {
+      // STOP processing on syntax errors
+      throw new BadRequestException({
+        message: 'Syntax validation failed',
+        syntaxErrors: syntaxValidation.syntaxErrors,
+        formatMismatch: syntaxValidation.formatMismatch,
+        syntaxSuggestions: syntaxValidation.syntaxSuggestions,
+      });
+    }
+    
+    // STEP 2: Check cache (only if syntax is valid)
     const crypto = await import('crypto');
     const inputHash = crypto.createHash('sha256').update(dto.input).digest('hex');
     const cacheKey = `v2:convert:${dto.format || 'auto'}:${inputHash}`;
@@ -189,6 +261,7 @@ export class SchemaService {
       return { ...cached, fromCache: true };
     }
 
+    // STEP 3: Proceed with parsing (syntax is valid)
     let parser;
 
     if (dto.format) {

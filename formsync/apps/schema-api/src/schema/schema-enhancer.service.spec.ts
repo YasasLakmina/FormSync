@@ -7,6 +7,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SchemaEnhancerService } from './schema-enhancer.service';
 import { OpenAILLMPlugin } from '../plugins/llm/openai-llm.plugin';
+import { SchemaQualityEngine } from './schema-quality-engine';
+import { SchemaSuggestionEngine } from './schema-suggestion.engine';
 
 describe('SchemaEnhancerService', () => {
   let service: SchemaEnhancerService;
@@ -16,6 +18,8 @@ describe('SchemaEnhancerService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchemaEnhancerService,
+        SchemaQualityEngine,
+        SchemaSuggestionEngine,
         {
           provide: 'LLMProviderPlugin',
           useClass: OpenAILLMPlugin,
@@ -31,7 +35,7 @@ describe('SchemaEnhancerService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should enhance schema with explainability', async () => {
+  it('should enhance schema with quality scoring', async () => {
     const testSchema = {
       type: 'object',
       properties: {
@@ -44,20 +48,25 @@ describe('SchemaEnhancerService', () => {
       focusAreas: ['accessibility', 'validation'],
     });
 
-    // Should have explanations
-    expect(result.explanations).toBeDefined();
-    expect(Array.isArray(result.explanations)).toBe(true);
+    // Should have changes (auto-applied fixes)
+    expect(result.changes).toBeDefined();
+    expect(Array.isArray(result.changes)).toBe(true);
+
+    // Should have suggestions (not auto-applied)
+    expect(result.suggestions).toBeDefined();
+    expect(Array.isArray(result.suggestions)).toBe(true);
 
     // Should have quality score
-    expect(result.qualityScore).toBeDefined();
-    expect(result.qualityScore).toBeGreaterThanOrEqual(0);
-    expect(result.qualityScore).toBeLessThanOrEqual(100);
+    expect(result.quality).toBeDefined();
+    expect(result.quality.score).toBeGreaterThanOrEqual(0);
+    expect(result.quality.score).toBeLessThanOrEqual(100);
 
     // Should have enhanced schema
     expect(result.enhancedSchema).toBeDefined();
 
-    console.log('Quality Score:', result.qualityScore);
-    console.log('Explanations:', result.explanations);
+    console.log('Quality Score:', result.quality.score);
+    console.log('Changes Applied:', result.changes.length);
+    console.log('Suggestions Available:', result.suggestions.length);
   });
 
   it('should calculate accessibility coverage correctly', async () => {
@@ -77,7 +86,8 @@ describe('SchemaEnhancerService', () => {
 
     const result = await service.enhanceSchema(schemaWithAccessibility);
 
-    // With 50% coverage, quality score should be affected
-    expect(result.qualityScore).toBeLessThan(100);
+    // With 50% coverage, quality score should be less than perfect
+    expect(result.quality.score).toBeLessThan(100);
+    expect(result.quality.breakdown).toBeDefined();
   });
 });

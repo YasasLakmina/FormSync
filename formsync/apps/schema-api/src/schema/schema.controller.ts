@@ -56,21 +56,38 @@ export class SchemaController {
     return this.schemaService.convertSchema(dto);
   }
 
+  /**
+   * POST /schema/validate-syntax
+   * Validate syntax without converting (validation only)
+   */
+  @Post('validate-syntax')
+  async validateSyntax(@Body() dto: ConvertSchemaDto) {
+    return this.schemaService.validateSyntaxOnly(dto);
+  }
+
+  /**
+   * POST /schema/quick-fix
+   * Attempt to automatically fix syntax errors
+   */
+  @Post('quick-fix')
+  async quickFix(@Body() dto: ConvertSchemaDto) {
+    return this.schemaService.quickFixSyntax(dto);
+  }
+
+  /**
+   * POST /schema/enhance
+   * Use AI to enhance schema with quality scoring
+   */
   @Post('enhance')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Enhance schema using AI', tags: ['ai'] })
-  @ApiResponse({ status: 200, description: 'Schema enhanced successfully' })
-  @ApiResponse({ status: 400, description: 'Enhancement failed' })
-  @ApiResponse({ status: 404, description: 'LLM provider not found' })
   async enhance(@Body() dto: EnhanceSchemaDto) {
     return this.schemaService.enhanceSchema(dto);
   }
 
+  /**
+   * POST /schema/validate
+   * Validate schema using validators
+   */
   @Post('validate')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Validate schema against rules', tags: ['validation'] })
-  @ApiResponse({ status: 200, description: 'Validation completed' })
-  @ApiResponse({ status: 400, description: 'No validators found' })
   async validate(@Body() dto: ValidateSchemaDto) {
     return this.schemaService.validateSchema(dto);
   }

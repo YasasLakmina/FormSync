@@ -133,6 +133,8 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
         error: error.response?.data?.message || 'Conversion failed',
         loading: false,
       });
+      // Re-throw so caller can handle the error
+      throw error;
     }
   },
 
