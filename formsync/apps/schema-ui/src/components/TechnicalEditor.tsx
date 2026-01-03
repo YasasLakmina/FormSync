@@ -226,7 +226,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         // Show different message based on confidence
         const confidenceMessage = response.data.confidence === 'deterministic'
           ? 'Fixed automatically'
-          : 'Fixed using AI';
+          : 'Fixed using Quick Fix';
           
         toast.success('Syntax errors fixed!', {
           description: confidenceMessage,
