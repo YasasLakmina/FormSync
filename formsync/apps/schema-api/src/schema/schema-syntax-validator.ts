@@ -8,7 +8,7 @@
 
 import { Injectable, BadRequestException } from '@nestjs/common';
 import * as yaml from 'js-yaml';
-import { XMLParser } from 'fast-xml-parser';
+import { XMLParser, XMLValidator } from 'fast-xml-parser';
 
 export interface SyntaxError {
   type: 'syntax';
@@ -153,15 +153,21 @@ export class SchemaSyntaxValidator {
    * Validate XML syntax
    */
   private validateXML(input: string): ValidationResult {
-    try {
-      const parser = new XMLParser({
-        ignoreAttributes: false,
-        parseAttributeValue: true,
-      });
-      parser.parse(input);
-      return { valid: true };
-    } catch (error) {
-      const syntaxError = this.parseXMLError(error, input);
+    // Use XMLValidator for strict validation
+    const validationResult = XMLValidator.validate(input, {
+      allowBooleanAttributes: false,
+    });
+    
+    // If validation failed, validationResult contains error details
+    if (validationResult !== true) {
+      const error = validationResult as any;
+      const syntaxError: SyntaxError = {
+        type: 'syntax',
+        line: error.err?.line || 1,
+        column: error.err?.col,
+        message: `Syntax Error: ${error.err?.msg || 'Invalid XML syntax'}`,
+      };
+      
       const suggestions = this.generateXMLSuggestions(error, input);
       
       return {
@@ -170,6 +176,9 @@ export class SchemaSyntaxValidator {
         syntaxSuggestions: suggestions,
       };
     }
+    
+    // XML is valid
+    return { valid: true };
   }
 
   /**
