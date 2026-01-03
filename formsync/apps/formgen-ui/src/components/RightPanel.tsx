@@ -215,6 +215,23 @@ export const RightPanel: React.FC = () => {
                             })}
                         />
                     </div>
+
+                    <h4 className="settings-section-title">Submit Button</h4>
+
+                    <div className="settings-group">
+                        <label className="control-label">Button Text</label>
+                        <input
+                            className="control-input"
+                            value={state.form.submit?.text || 'Submit'}
+                            onChange={(e) => dispatch({
+                                type: 'UPDATE_FORM', // We might need a more specific action or just update the whole form helper
+                                payload: {
+                                    ...state.form,
+                                    submit: { ...state.form.submit, text: e.target.value }
+                                }
+                            })}
+                        />
+                    </div>
                 </div>
             </div>
         );
@@ -279,8 +296,90 @@ export const RightPanel: React.FC = () => {
                     />
                 </div>
 
+                {/* Helper for Style Overrides */}
                 <div style={{ marginTop: '2rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-                    <small className="text-muted">Debug ID: {selectedField.id}</small>
+                    <h4 className="settings-section-title" style={{ marginTop: 0 }}>Style Overrides</h4>
+                    <p className="text-muted" style={{ marginBottom: '1rem' }}>
+                        Override global theme for this field only.
+                    </p>
+
+                    <div className="settings-grid">
+                        <div className="settings-group">
+                            <label className="control-label">Label</label>
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    className="color-picker"
+                                    value={selectedField.ui?.styleOverrides?.labelColor || state.form.theme.colors.text}
+                                    onChange={(e) => handleUiUpdate('styleOverrides', { ...selectedField.ui?.styleOverrides, labelColor: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="settings-group">
+                            <label className="control-label">Input Text</label>
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    className="color-picker"
+                                    value={selectedField.ui?.styleOverrides?.inputTextColor || state.form.theme.colors.text}
+                                    onChange={(e) => handleUiUpdate('styleOverrides', { ...selectedField.ui?.styleOverrides, inputTextColor: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="settings-group">
+                            <label className="control-label">Border</label>
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    className="color-picker"
+                                    value={selectedField.ui?.styleOverrides?.borderColor || state.form.theme.colors.border}
+                                    onChange={(e) => handleUiUpdate('styleOverrides', { ...selectedField.ui?.styleOverrides, borderColor: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="settings-group">
+                            <label className="control-label">Background</label>
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    className="color-picker"
+                                    value={selectedField.ui?.styleOverrides?.backgroundColor || state.form.theme.colors.background}
+                                    onChange={(e) => handleUiUpdate('styleOverrides', { ...selectedField.ui?.styleOverrides, backgroundColor: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="settings-group">
+                            <label className="control-label">Focus</label>
+                            <div className="color-input-wrapper">
+                                <input
+                                    type="color"
+                                    className="color-picker"
+                                    value={selectedField.ui?.styleOverrides?.focusColor || state.form.theme.colors.primary}
+                                    onChange={(e) => handleUiUpdate('styleOverrides', { ...selectedField.ui?.styleOverrides, focusColor: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        style={{
+                            width: '100%',
+                            padding: '0.5rem',
+                            background: '#f5f5f5',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            color: '#666'
+                        }}
+                        onClick={() => handleUiUpdate('styleOverrides', undefined)}
+                    >
+                        Reset to Theme
+                    </button>
+
+                    <div style={{ marginTop: '1rem', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+                        <small className="text-muted">Debug ID: {selectedField.id}</small>
+                    </div>
                 </div>
             </div>
         </div>

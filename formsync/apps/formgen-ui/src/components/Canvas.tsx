@@ -38,8 +38,15 @@ export const Canvas: React.FC = () => {
     } as React.CSSProperties;
 
     return (
-        <div className="canvas-area">
-            <div className="form-preview" style={themeStyles}>
+        <div
+            className="canvas-area"
+            onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}
+        >
+            <div
+                className="form-preview"
+                style={themeStyles}
+                onClick={(e) => e.stopPropagation()} // Prevent deselection when clicking the form card itself
+            >
                 <h1 className="form-title">{form.meta?.title || form.name}</h1>
                 {form.meta?.description && (
                     <p className="text-muted" style={{ marginBottom: '2rem' }}>
@@ -47,44 +54,77 @@ export const Canvas: React.FC = () => {
                     </p>
                 )}
 
-                {orderedFields.map((field) => (
-                    <div
-                        key={field.id}
-                        className={`field-item ${selectedFieldId === field.id ? 'selected' : ''}`}
-                        style={{ marginBottom: '1.5rem', cursor: 'pointer' }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            dispatch({ type: 'SELECT_FIELD', payload: field.id });
-                        }}
-                    >
-                        <label className="field-label" style={{ marginBottom: '0.5rem' }}>
-                            {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
-                        </label>
+                {orderedFields.map((field) => {
+                    const overrides = field.ui?.styleOverrides;
+                    const fieldStyles: React.CSSProperties = {
+                        marginBottom: '1.5rem',
+                        cursor: 'pointer',
+                        // @ts-ignore - Dynamic CSS variables
+                        '--field-label-color': overrides?.labelColor,
+                        '--field-input-text-color': overrides?.inputTextColor,
+                        '--field-bg-color': overrides?.backgroundColor,
+                        '--field-border-color': overrides?.borderColor,
+                        '--color-primary': overrides?.focusColor || form.theme.colors.primary, // Override focus color
+                    };
 
-                        {/* Enhanced Placeholder Input Render */}
-                        <div className="field-input-mock" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '0 0.5rem',
-                            color: field.ui?.placeholder ? '#999' : 'transparent',
-                            fontStyle: 'italic'
-                        }}>
-                            {field.ui?.placeholder || 'Input...'}
+                    return (
+                        <div
+                            key={field.id}
+                            className={`field-item ${selectedFieldId === field.id ? 'selected' : ''}`}
+                            style={fieldStyles}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: 'SELECT_FIELD', payload: field.id });
+                            }}
+                        >
+                            <label className="field-label" style={{ marginBottom: '0.5rem' }}>
+                                {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
+                            </label>
+
+                            {/* Enhanced Placeholder Input Render */}
+                            <div className="field-input-mock" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 0.5rem',
+                                color: field.ui?.placeholder ? '#999' : 'transparent',
+                                fontStyle: 'italic'
+                            }}>
+                                {field.ui?.placeholder || 'Input...'}
+                            </div>
+
+                            {field.ui?.helpText && (
+                                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                                    {field.ui.helpText}
+                                </small>
+                            )}
                         </div>
-
-                        {field.ui?.helpText && (
-                            <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
-                                {field.ui.helpText}
-                            </small>
-                        )}
-                    </div>
-                ))}
+                    );
+                })}
 
                 {orderedFields.length === 0 && (
                     <div className="text-muted" style={{ textAlign: 'center', padding: '4rem', border: '2px dashed #eee' }}>
                         Form is empty.
                     </div>
                 )}
+
+                {/* Submit Button */}
+                <div style={{ marginTop: '2rem' }}>
+                    <button
+                        style={{
+                            width: '100%',
+                            padding: 'calc(var(--spacing-unit, 12px) * 1.25)',
+                            backgroundColor: form.submit?.color || 'var(--color-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 'var(--border-radius, 4px)',
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {form.submit?.text || 'Submit'}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -32,13 +32,22 @@ export interface FieldConstraints {
     [key: string]: string | number | boolean | string[] | undefined; // Extensible
 }
 
+export interface FieldStyleOverrides {
+    labelColor?: string;
+    inputTextColor?: string;
+    borderColor?: string;
+    backgroundColor?: string;
+    focusColor?: string;
+}
+
 export interface FieldUIConfig {
     placeholder?: string;
     helpText?: string;
     hidden?: boolean;
     disabled?: boolean;
     style?: Record<string, string | number>; // Minimal inline styles
-    [key: string]: string | number | boolean | Record<string, unknown> | undefined;
+    styleOverrides?: FieldStyleOverrides;
+    [key: string]: string | number | boolean | Record<string, unknown> | FieldStyleOverrides | undefined;
 }
 
 export interface FieldModel {
@@ -83,6 +92,11 @@ export interface LayoutConfig {
     order: string[];
 }
 
+export interface SubmitConfig {
+    text: string;
+    color?: string;
+}
+
 export interface FormModel {
     id: string;
     name: string;
@@ -94,4 +108,5 @@ export interface FormModel {
     theme: ThemeConfig;
     layout: LayoutConfig;
     fields: FieldModel[];
+    submit?: SubmitConfig;
 }

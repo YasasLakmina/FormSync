@@ -44,7 +44,8 @@ const DataLoader: React.FC = () => {
                         { id: 'f1', key: 'fullName', type: 'text', label: 'Full Name', required: true },
                         { id: 'f2', key: 'email', type: 'email', label: 'Email Address', required: true },
                         { id: 'f3', key: 'role', type: 'select', label: 'Role', required: false, constraints: { enum: ['Dev', 'Design', 'Product'] } }
-                    ]
+                    ],
+                    submit: { text: 'Register Now' }
                 }
             });
         }, 500);
