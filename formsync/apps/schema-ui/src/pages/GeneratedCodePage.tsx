@@ -11,6 +11,9 @@ import { PipelineViewer } from '../components/editor/PipelineViewer';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Home } from 'lucide-react';
 
+import { toast } from 'sonner';
+import { generationService } from '../services/generationService';
+
 interface GeneratedCode {
   frontend: string;
   backend: string;
@@ -20,6 +23,7 @@ interface GeneratedCode {
 
 interface LocationState {
   generatedCode: GeneratedCode;
+  schema: any;
 }
 
 export const GeneratedCodePage: React.FC = () => {
@@ -33,9 +37,19 @@ export const GeneratedCodePage: React.FC = () => {
     return null;
   }
 
-  const handleDownloadAll = () => {
-    // TODO: Implement actual ZIP download
-    console.log('Downloading:', state.generatedCode);
+  const handleDownloadAll = async () => {
+    if (!state.schema) {
+      toast.error('Cannot download: Schema missing from state');
+      return;
+    }
+
+    try {
+      toast.info('Preparing download...');
+      await generationService.downloadZip(state.schema, 'formsync-project');
+      toast.success('Download started');
+    } catch (error) {
+      toast.error('Download failed');
+    }
   };
 
   return (

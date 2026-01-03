@@ -1,6 +1,7 @@
 package {{basePackage}}.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.util.*;
 
@@ -20,8 +21,28 @@ private Long id;
 */
 {{/if}}
 {{#if constraints.required}}
-@Column(nullable = false)
+@NotNull
 {{/if}}
+{{#if constraints.email}}
+@Email
+{{/if}}
+{{#if constraints.min}}
+@Min({{constraints.min}})
+{{/if}}
+{{#if constraints.max}}
+@Max({{constraints.max}})
+{{/if}}
+{{#if constraints.minLength}}
+@Size(min = {{constraints.minLength}}{{#if constraints.maxLength}}, max = {{constraints.maxLength}}{{/if}})
+{{else}}
+{{#if constraints.maxLength}}
+@Size(max = {{constraints.maxLength}})
+{{/if}}
+{{/if}}
+{{#if constraints.pattern}}
+@Pattern(regexp = "{{constraints.pattern}}")
+{{/if}}
+@Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
 {{#eq type 'List'}}
 @ElementCollection
 {{/eq}}

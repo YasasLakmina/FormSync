@@ -56,6 +56,7 @@ export interface SchemaEntity {
     name: string;
     description?: string;
     fields: SchemaField[];
+    isRoot?: boolean;
 }
 
 export interface SchemaEnum {

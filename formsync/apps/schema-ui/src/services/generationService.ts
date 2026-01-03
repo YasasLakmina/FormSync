@@ -26,12 +26,16 @@ export const generationService = {
    */
   async generateAll(validatedSchema: any): Promise<GenerateResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/generate/all`, {
+      // Use backend-dto-generator service
+      const response = await fetch('http://localhost:3001/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ schema: validatedSchema }),
+        body: JSON.stringify({
+          schema: validatedSchema,
+          preview: true
+        }),
       });
 
       if (!response.ok) {
@@ -49,6 +53,43 @@ export const generationService = {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  },
+
+  /**
+   * Download generated code as ZIP
+   */
+  async downloadZip(validatedSchema: any, filename: string = 'generated-project'): Promise<void> {
+    try {
+      const response = await fetch('http://localhost:3001/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          schema: validatedSchema,
+          preview: false // Request ZIP download
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Handle Blob download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      throw error;
     }
   },
 

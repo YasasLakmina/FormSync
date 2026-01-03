@@ -70,17 +70,20 @@ export class BackendGenerator extends BasePlugin implements BackendGeneratorPlug
                 const entityContent = this.templateService.render('entity', context);
                 this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'model', `${entity.name}.java`), entityContent);
 
-                // Repository
-                const repoContent = this.templateService.render('repository', context);
-                this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'repository', `${entity.name}Repository.java`), repoContent);
+                // Only generate Controller/Service/Repo for Root entities
+                if (entity.isRoot) {
+                    // Repository
+                    const repoContent = this.templateService.render('repository', context);
+                    this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'repository', `${entity.name}Repository.java`), repoContent);
 
-                // Service
-                const serviceContent = this.templateService.render('service', context);
-                this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'service', `${entity.name}Service.java`), serviceContent);
+                    // Service
+                    const serviceContent = this.templateService.render('service', context);
+                    this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'service', `${entity.name}Service.java`), serviceContent);
 
-                // Controller
-                const controllerContent = this.templateService.render('controller', context);
-                this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'controller', `${entity.name}Controller.java`), controllerContent);
+                    // Controller
+                    const controllerContent = this.templateService.render('controller', context);
+                    this.fileWriter.write(path.join(outputDir, 'src/main/java', packagePath, 'controller', `${entity.name}Controller.java`), controllerContent);
+                }
             }
 
         } catch (error: any) {

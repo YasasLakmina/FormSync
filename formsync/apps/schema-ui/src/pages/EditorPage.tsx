@@ -56,8 +56,13 @@ export const EditorPage: React.FC = () => {
       return;
     }
 
-    if (!validationResults || !validationResults.isValid) {
-      toast.error('Please validate your schema first by clicking the Validate button');
+    if (!validationResults) {
+      toast.error('Validation results missing. Please click Validate then try again.');
+      return;
+    }
+
+    if (!validationResults.valid) {
+      toast.error('Schema validation failed. Please fix the errors shown in the editor.');
       return;
     }
 
@@ -97,7 +102,10 @@ export const EditorPage: React.FC = () => {
       if (result.success && result.data) {
         toast.success('Code generation complete!');
         navigate('/generated', {
-          state: { generatedCode: result.data },
+          state: {
+            generatedCode: result.data,
+            schema: currentSchema
+          },
         });
       } else {
         throw new Error(result.error || 'Generation failed');

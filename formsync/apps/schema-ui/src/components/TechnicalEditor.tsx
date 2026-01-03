@@ -124,7 +124,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     try {
       // Call backend syntax validation API (validation only, no conversion)
       await schemaApi.validateSyntax({ input: editorValue, format });
-      
+
       // Validation passed
       setIsInputValid(true);
       setValidationError('');
@@ -134,24 +134,40 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         description: 'You can now convert to JSON Schema',
       });
 
+      // Special case: If format is already JSON, also trigger semantic validation
+      if (format === 'json') {
+        try {
+          const schema = JSON.parse(editorValue);
+          // Only validate if it looks like a schema (has type or properties)
+          // or just simple validation
+          if (typeof schema === 'object' && schema !== null) {
+            await useSchemaStore.getState().validateSchema(schema);
+            // Also update current schema in store if it's JSON
+            setCurrentSchema(schema);
+          }
+        } catch (e) {
+          // Ignore parse errors here as syntax check passed
+        }
+      }
+
       // Show success dialog
       setShowValidationDialog(true);
     } catch (error: any) {
       setIsInputValid(false);
-      
+
       // Check if this is a syntax validation error from backend
       if (error.response?.data?.syntaxErrors || error.response?.data?.formatMismatch) {
         const backendError = error.response.data;
-        
+
         // Format detailed error message
         let errorMessage = '';
-        
+
         if (backendError.formatMismatch) {
           errorMessage = backendError.formatMismatch.message;
         } else if (backendError.syntaxErrors && backendError.syntaxErrors.length > 0) {
           const firstError = backendError.syntaxErrors[0];
           errorMessage = firstError.message;
-          
+
           // Add location info if available
           if (firstError.line) {
             errorMessage += ` (Line ${firstError.line}`;
@@ -161,26 +177,26 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             errorMessage += ')';
           }
         }
-        
+
         setValidationError(errorMessage || 'Syntax validation failed');
       } else {
         // Other errors
         setValidationError(error.response?.data?.message || error.message || 'Validation failed');
       }
-      
+
       onStageUpdate?.('Input Validation', 'error');
 
       toast.error('Validation Failed', {
         description: 'Click to see details',
         duration: 3000,
       });
-      
+
       // Show validation dialog with error
       setShowValidationDialog(true);
     } finally {
       setValidateLoading(false);
     }
-  }, [editorValue, format, clearError, onStageUpdate]);
+  }, [editorValue, format, clearError, onStageUpdate, setCurrentSchema]);
 
   // 2. Convert to JSON Schema
   const handleConvert = useCallback(async () => {
@@ -193,9 +209,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     setConvertLoading(true);
     onStageUpdate?.('Schema Conversion', 'loading');
     try {
-      await convertSchema(editorValue, format);
+      // Convert and get the schema back (updated store action returns it)
+      const schema = await convertSchema(editorValue, format);
+
       toast.success('Schema converted to JSON Schema successfully!');
       onStageUpdate?.('Schema Conversion', 'complete');
+
+      // Trigger semantic validation on the converted schema
+      if (schema) {
+        onStageUpdate?.('Input Validation', 'loading'); // Re-use invalidation stage or a new one? 
+        // Actually Input Validation stage is technically done, but we need semantic validity for generation
+        await useSchemaStore.getState().validateSchema(schema);
+        // We don't necessarily need to show a toast here as convert success is shown
+      }
+
     } catch (error) {
       toast.error('Failed to convert schema');
       onStageUpdate?.('Schema Conversion', 'error');
@@ -216,22 +243,22 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     try {
       // Call backend quick fix API
       const response = await schemaApi.quickFixSyntax({ input: editorValue, format });
-      
+
       if (response.data.fixedInput) {
         // Update editor with fixed code
         setEditorValue(response.data.fixedInput);
-        
+
         toast.dismiss();
-        
+
         // Show different message based on confidence
         const confidenceMessage = response.data.confidence === 'deterministic'
           ? 'Fixed automatically'
           : 'Fixed using Quick Fix';
-          
+
         toast.success('Syntax errors fixed!', {
           description: confidenceMessage,
         });
-       
+
         // Close validation dialog
         setShowValidationDialog(false);
         setValidationError('');
@@ -244,14 +271,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       }
     } catch (error: any) {
       toast.dismiss();
-      
+
       // Check if this is a "cannot fix" error
       const errorMessage = error.response?.data?.message || '';
-      
+
       if (errorMessage.includes('Could not automatically fix')) {
         toast.error('Cannot auto-fix this format', {
-          description: format === 'xml' 
-            ? 'XML syntax is too complex to auto-fix. Please correct manually.' 
+          description: format === 'xml'
+            ? 'XML syntax is too complex to auto-fix. Please correct manually.'
             : 'This syntax error is too complex to fix automatically.',
         });
       } else {
