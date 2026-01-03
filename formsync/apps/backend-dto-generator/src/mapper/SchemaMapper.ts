@@ -21,7 +21,7 @@ export class SchemaMapper {
 
         if (rootSchema.type === 'object' || rootSchema.properties) {
             // Parse root entity
-            this.parseEntity(rootEntityName, rootSchema, entities, enums);
+            this.parseEntity(rootEntityName, rootSchema, entities, enums, true);
         }
 
         return {
@@ -31,7 +31,7 @@ export class SchemaMapper {
         };
     }
 
-    private parseEntity(name: string, schema: any, entities: SchemaEntity[], enums: SchemaEnum[]): void {
+    private parseEntity(name: string, schema: any, entities: SchemaEntity[], enums: SchemaEnum[], isRoot: boolean = false): void {
         const fields: SchemaField[] = [];
 
         if (schema.properties) {
@@ -50,7 +50,8 @@ export class SchemaMapper {
         entities.push({
             name: name,
             description: schema.description,
-            fields
+            fields,
+            isRoot
         });
     }
 

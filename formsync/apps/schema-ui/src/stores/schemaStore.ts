@@ -85,7 +85,7 @@ interface SchemaStore {
 
   // Actions
   setCurrentSchema: (schema: any) => void;
-  convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<void>;
+  convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<any>;
   enhanceSchema: (schema: any, options?: any) => Promise<void>;
   applySuggestion: (
     suggestion: SchemaSuggestion,
@@ -128,6 +128,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
         currentSchema: response.data.schema,
         loading: false,
       });
+      return response.data.schema;
     } catch (error: any) {
       set({
         error: error.response?.data?.message || 'Conversion failed',
@@ -155,12 +156,12 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
           qualityScore: data.quality?.score || data.qualityScore || 0,
           qualityBreakdown: data.quality?.breakdown ||
             data.qualityBreakdown || {
-              structure: 0,
-              validation: 0,
-              accessibility: 0,
-              consistency: 0,
-              improvement: 0,
-            },
+            structure: 0,
+            validation: 0,
+            accessibility: 0,
+            consistency: 0,
+            improvement: 0,
+          },
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
           metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },

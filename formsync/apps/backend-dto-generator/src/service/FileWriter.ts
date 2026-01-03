@@ -9,6 +9,5 @@ export class FileWriter {
             fs.mkdirSync(dir, { recursive: true });
         }
         fs.writeFileSync(filePath, content, 'utf-8');
-        console.log(`Generated: ${filePath}`);
     }
 }
