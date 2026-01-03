@@ -222,8 +222,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         setEditorValue(response.data.fixedInput);
         
         toast.dismiss();
+        
+        // Show different message based on confidence
+        const confidenceMessage = response.data.confidence === 'deterministic'
+          ? 'Fixed automatically'
+          : 'Fixed using AI';
+          
         toast.success('Syntax errors fixed!', {
-          description: 'Your code has been corrected',
+          description: confidenceMessage,
         });
        
         // Close validation dialog
@@ -238,9 +244,21 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       }
     } catch (error: any) {
       toast.dismiss();
-      toast.error('Quick fix failed', {
-        description: error.response?.data?.message || 'Unable to apply fixes',
-      });
+      
+      // Check if this is a "cannot fix" error
+      const errorMessage = error.response?.data?.message || '';
+      
+      if (errorMessage.includes('Could not automatically fix')) {
+        toast.error('Cannot auto-fix this format', {
+          description: format === 'xml' 
+            ? 'XML syntax is too complex to auto-fix. Please correct manually.' 
+            : 'This syntax error is too complex to fix automatically.',
+        });
+      } else {
+        toast.error('Quick fix failed', {
+          description: error.response?.data?.message || 'Unable to apply fixes',
+        });
+      }
     }
   }, [editorValue, format]);
 
