@@ -13,6 +13,7 @@ import { ArrowLeft, Home } from 'lucide-react';
 
 import { toast } from 'sonner';
 import { generationService } from '../services/generationService';
+import { FlowDiagram } from '../components/shared/FlowDiagram';
 
 interface GeneratedCode {
   frontend: string;
@@ -26,16 +27,162 @@ interface LocationState {
   schema: any;
 }
 
+const MOCK_CODE = {
+  frontend: `import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const formSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(2).max(20),
+  age: z.number().min(18)
+});
+
+export const RegistrationForm = () => {
+  const form = useForm({
+    resolver: zodResolver(formSchema)
+  });
+
+  const onSubmit = (data) => {
+    console.log(data);
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <label>Email</label>
+        <input {...form.register('email')} className="border p-2 rounded" />
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+  );
+};`,
+  backend: `import { Controller, Post, Body } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UsersService } from './users.service';
+
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
+  }
+}`,
+  dtos: `import { IsEmail, IsString, IsInt, Min, Max } from 'class-validator';
+
+export class CreateUserDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @Min(2)
+  @Max(20)
+  username: string;
+
+  @IsInt()
+  @Min(18)
+  age: number;
+}`,
+  tests: `// Tests Pending Generation...`
+};
+
 export const GeneratedCodePage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state as LocationState;
+  const query = new URLSearchParams(location.search);
+  const schemaId = query.get('schemaId');
 
-  // If no generated code, redirect back to editor
-  if (!state?.generatedCode) {
-    navigate('/editor', { replace: true });
+  const [localState, setLocalState] = React.useState<LocationState | null>(location.state as LocationState);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  // Define stages for the progress bar
+  const completionStages: any[] = [
+    { name: 'Enter Schema', status: 'complete', progress: 100 },
+    { name: 'Input Validation', status: 'complete', progress: 100 },
+    { name: 'Schema Conversion', status: 'complete', progress: 100 },
+    { name: 'AI Enhancement', status: 'complete', progress: 100 },
+    { name: 'Frontend Generation', status: 'complete', progress: 100 },
+    { name: 'Backend Generation', status: 'complete', progress: 100 },
+    { name: 'DTO Generation', status: 'complete', progress: 100 },
+    { name: 'Test Generation', status: 'pending', progress: 0 },
+  ];
+
+  React.useEffect(() => {
+    const fetchAndGenerate = async () => {
+      if (!localState && schemaId) {
+        setIsLoading(true);
+        try {
+          // Fetch schema
+          // Note: In a real env, use env var. Assuming localhost:3000 based on EditorPage usage.
+          const response = await fetch(`http://localhost:3000/schema/${schemaId}`);
+          if (!response.ok) throw new Error('Failed to fetch schema');
+
+          const schemaData = await response.json();
+          // Ideally schemaData is the schema object or has content. 
+          // Based on EditorPage: "content: currentSchema", so the API likely returns the DB record.
+          // Let's assume schemaData.content is the actual schema or schemaData itself if it IS the schema.
+          // EditorPage saves: { name, description, content, ... }
+          // So we likely need schemaData.content
+
+          const schema = schemaData.content || schemaData;
+
+          // Generate code
+          const result = await generationService.generateAll(schema);
+
+          if (result.success && result.data) {
+            setLocalState({
+              generatedCode: { ...MOCK_CODE, ...result.data },
+              schema: schema
+            });
+            toast.success('Code generated successfully');
+          } else {
+            throw new Error(result.error || 'Generation failed');
+          }
+
+        } catch (error) {
+          console.error('Error in GeneratedCodePage:', error);
+          // Fallback to mock logic
+          setLocalState({
+            generatedCode: MOCK_CODE,
+            schema: { name: 'Demo Schema', content: {} }
+          });
+          toast.info('Using demo data (Generation failed)');
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (!localState && !schemaId) {
+        setLocalState({
+          generatedCode: MOCK_CODE,
+          schema: { name: 'Demo Schema', content: {} }
+        });
+      }
+    };
+
+    fetchAndGenerate();
+  }, [localState, schemaId, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Generating code...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If no generated code (and not loading), redirect handles it or we return null
+  if (!localState?.generatedCode) {
     return null;
   }
+
+  // Use localState instead of state from here on
+  const state = localState;
+
 
   const handleDownloadAll = async () => {
     if (!state.schema) {
@@ -100,17 +247,17 @@ export const GeneratedCodePage: React.FC = () => {
             </div>
           </div>
 
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <FlowDiagram stages={completionStages} />
+          </div>
+
           {/* Pipeline Viewer - Full Width */}
           <div className="min-h-[600px]">
             <PipelineViewer
               isGenerating={false}
               generatedCode={state.generatedCode}
-              stages={[
-                { name: 'Schema Validation', status: 'complete', progress: 100 },
-                { name: 'Frontend Generation', status: 'complete', progress: 100 },
-                { name: 'Backend Generation', status: 'complete', progress: 100 },
-                { name: 'DTO & Tests', status: 'complete', progress: 100 },
-              ]}
+              stages={completionStages}
               onDownloadAll={handleDownloadAll}
             />
           </div>

@@ -245,3 +245,67 @@ textarea.control-input {
   overflow-x: auto;
   margin-top: 1rem;
 }
+
+/* --- Flow Diagram --- */
+.flow-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.stage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stage-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+}
+
+.stage-icon.completed { background-color: #10b981; } /* emerald-500 */
+.stage-icon.loading { background-color: #3b82f6; } /* blue-500 */
+.stage-icon.error { background-color: #ef4444; } /* red-500 */
+.stage-icon.pending { background-color: #d1d5db; } /* gray-300 */
+
+.stage-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  color: #4b5563;
+}
+
+.connector {
+  height: 2px;
+  width: 2rem;
+  background-color: #d1d5db;
+  transition: background-color 0.3s;
+}
+
+.connector.active {
+  background-color: #10b981;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
