@@ -31,14 +31,19 @@ export interface JsonSchema {
 }
 
 /**
- * Normalizes a key (camelCase) into a human-readable label.
+ * Normalizes a key (camelCase or dot.notation) into a human-readable label.
  * e.g., "firstName" -> "First Name"
+ *       "address.city" -> "Address City"
  */
 function humanizeLabel(key: string): string {
     return key
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/^./, (str) => str.toUpperCase())
-        .trim();
+        .split('.')
+        .map(part => part
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, (str) => str.toUpperCase())
+            .trim()
+        )
+        .join(' ');
 }
 
 /**
@@ -48,9 +53,8 @@ function humanizeLabel(key: string): string {
 function mapPropertyToField(
     key: string,
     schema: JsonSchema,
-    requiredFields: string[] = []
+    isRequired: boolean
 ): FieldModel {
-    const isRequired = requiredFields.includes(key);
     const label = schema.title || humanizeLabel(key);
 
     // 1. Determine Field Type
@@ -83,7 +87,7 @@ function mapPropertyToField(
 
     // 3. Construct FieldModel
     const field: FieldModel = {
-        id: `field-${key}`, // Stable ID
+        id: `field-${key.replace(/\./g, '-')}`, // Stable ID with dot replace
         key,
         type,
         label,
@@ -104,20 +108,52 @@ function mapPropertyToField(
 }
 
 /**
+ * Recursively extracts fields from a JSON Schema.
+ * Creates 'group' fields for nested objects to support visual hierarchy.
+ */
+function extractFields(
+    schema: JsonSchema,
+    parentKey: string = '',
+): FieldModel[] {
+    const fields: FieldModel[] = [];
+    const properties = schema.properties || {};
+
+    // For the current level, determine which keys are required
+    const currentRequiredList = schema.required || [];
+
+    for (const [key, propSchema] of Object.entries(properties)) {
+        if (!propSchema || typeof propSchema !== 'object') continue;
+
+        const compositeKey = parentKey ? `${parentKey}.${key}` : key;
+        const isRequired = currentRequiredList.includes(key);
+
+        if (propSchema.type === 'object' && propSchema.properties) {
+            // Create a GROUP field
+            const groupField: FieldModel = {
+                id: `field-${compositeKey.replace(/\./g, '-')}`,
+                key: compositeKey,
+                type: 'group',
+                label: propSchema.title || humanizeLabel(key),
+                required: isRequired,
+                children: extractFields(propSchema, compositeKey), // Recurse
+                ui: {},
+            };
+            fields.push(groupField);
+        } else {
+            // Leaf node
+            fields.push(mapPropertyToField(compositeKey, propSchema, isRequired));
+        }
+    }
+
+    return fields;
+}
+
+/**
  * Main Adapter Function: JSON Schema -> FormModel
  */
 export function parseJsonSchemaToFormModel(schema: JsonSchema): FormModel {
-    const fields: FieldModel[] = [];
-    const properties = schema.properties || {};
-    const required = schema.required || [];
-
-    // 1. Map Fields
-    for (const [key, propSchema] of Object.entries(properties)) {
-        // Graceful handling: If propSchema is undefined/malformed, skip or handle safely
-        if (propSchema && typeof propSchema === 'object') {
-            fields.push(mapPropertyToField(key, propSchema, required));
-        }
-    }
+    // 1. Map Fields (Recursive)
+    const fields = extractFields(schema);
 
     // 2. Generate Layout (Default Order)
     const layout: LayoutConfig = {

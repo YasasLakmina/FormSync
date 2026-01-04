@@ -20,6 +20,7 @@ export type FieldType =
     | 'checkbox'
     | 'textarea'
     | 'date'
+    | 'group'
     | 'unknown';
 
 export interface FieldConstraints {
@@ -62,6 +63,8 @@ export interface FieldModel {
     defaultValue?: string | number | boolean | null;
     constraints?: FieldConstraints;
     ui?: FieldUIConfig;
+    /** Recursive children for groups */
+    children?: FieldModel[];
 }
 
 export interface ThemeColors {
