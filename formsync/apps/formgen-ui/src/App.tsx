@@ -17,7 +17,7 @@ const SchemaLoader: React.FC = () => {
             // Fetch schema from API
             const fetchSchema = async () => {
                 try {
-                    console.log(`📡 Fetching schema from API with ID: ${schemaId}`);
+                    console.log(`Fetching schema from API with ID: ${schemaId}`);
 
                     const response = await fetch(`http://localhost:3000/schema/${schemaId}`);
 
@@ -26,32 +26,39 @@ const SchemaLoader: React.FC = () => {
                     }
 
                     const schemaData = await response.json();
-                    console.log('📋 Fetched Schema Data:', schemaData);
+                    console.log('Fetched Schema Data:', schemaData);
 
                     // Extract the JSON Schema content
                     const jsonSchema = schemaData.content;
-                    console.log('📋 JSON Schema:', jsonSchema);
+                    console.log('JSON Schema:', jsonSchema);
 
                     // Convert JSON Schema to FormModel using the adapter
                     const formModel = parseJsonSchemaToFormModel(jsonSchema);
-                    console.log('🔄 Converted FormModel:', formModel);
+                    console.log('Converted FormModel:', formModel);
 
                     // Dispatch to context
                     dispatch({
                         type: 'UPDATE_FORM',
                         payload: formModel
                     });
-                    console.log('✅ Dispatched FormModel to context');
+                    console.log('Dispatched FormModel to context');
+
+                    // Store schemaId in context for backend export
+                    dispatch({
+                        type: 'SET_SCHEMA_ID',
+                        payload: schemaId
+                    });
+                    console.log('Stored schemaId in context:', schemaId);
 
                     // Clean up URL (remove schema parameter)
                     window.history.replaceState({}, '', window.location.pathname);
 
                     // Show success message
-                    console.log('✅ Schema loaded from API successfully');
+                    console.log('Schema loaded from API successfully');
 
                     // Optional: Add a visual indicator in the UI
                     const notification = document.createElement('div');
-                    notification.textContent = '✅ Schema loaded from API';
+                    notification.textContent = 'Schema loaded from API';
                     notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; font-family: Inter, sans-serif; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
                     document.body.appendChild(notification);
                     setTimeout(() => notification.remove(), 3000);
