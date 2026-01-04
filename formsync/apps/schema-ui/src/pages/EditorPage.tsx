@@ -146,8 +146,10 @@ export const EditorPage: React.FC = () => {
           content: currentSchema,
           sourceFormat: 'json',
           status: 'validated',
-          userId: '303459c0-1f1c-44c1-a2c6-1f492d2c2965', // Demo user ID
+          userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // Demo user ID
           // userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // hansi user ID
+          // userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // yasas user ID
+          // userId: '303459c0-1f1c-44c1-a2c6-1f492d2c2965', // thamindu user ID
         }),
       });
 
