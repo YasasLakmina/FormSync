@@ -16,6 +16,14 @@ import { toast } from 'sonner';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+} from './ui/alert-dialog';
 
 interface SchemaField {
   id: string;
@@ -119,7 +127,7 @@ interface SchemaTemplate {
 const SCHEMA_TEMPLATES: SchemaTemplate[] = [
   {
     name: 'Contact Form',
-    description: 'Basic contact form with name, email, and message',
+    description: 'Basic contact information',
     fields: [
       { name: 'name', type: 'string', required: true, description: 'Full name', minLength: 2, maxLength: 100 },
       { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
@@ -128,25 +136,92 @@ const SCHEMA_TEMPLATES: SchemaTemplate[] = [
     ]
   },
   {
-    name: 'User Registration',
-    description: 'User signup form with validation',
+    name: 'Newsletter Signup',
+    description: 'Email subscription',
+    fields: [
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'first_name', type: 'string', required: true, description: 'First name' },
+      { name: 'last_name', type: 'string', required: false, description: 'Last name' },
+      { name: 'consent', type: 'boolean', required: true, description: 'Marketing consent' }
+    ]
+  },
+  {
+    name: 'Login Form',
+    description: 'User authentication',
+    fields: [
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
+      { name: 'remember_me', type: 'boolean', required: false, description: 'Remember me' }
+    ]
+  },
+  {
+    name: 'Registration Form',
+    description: 'New user signup',
     fields: [
       { name: 'username', type: 'string', required: true, description: 'Unique username', minLength: 3, maxLength: 20 },
       { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
       { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
-      { name: 'age', type: 'number', required: false, description: 'User age', minimum: 13, maximum: 120 },
-      { name: 'accept_terms', type: 'boolean', required: true, description: 'Accept terms and conditions' }
+      { name: 'confirm_password', type: 'string', required: true, description: 'Confirm password', minLength: 8 },
+      { name: 'terms_accepted', type: 'boolean', required: true, description: 'Accept terms and conditions' }
     ]
   },
   {
-    name: 'Survey Form',
-    description: 'Feedback survey with rating',
+    name: 'Feedback Form',
+    description: 'Customer feedback',
     fields: [
       { name: 'name', type: 'string', required: true, description: 'Your name' },
       { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
       { name: 'rating', type: 'number', required: true, description: 'Rating (1-5)', minimum: 1, maximum: 5 },
       { name: 'comments', type: 'string', required: false, description: 'Additional comments', maxLength: 500 },
       { name: 'would_recommend', type: 'boolean', required: true, description: 'Would you recommend us?' }
+    ]
+  },
+  {
+    name: 'Booking Form',
+    description: 'Appointment booking',
+    fields: [
+      { name: 'name', type: 'string', required: true, description: 'Full name' },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'phone', type: 'string', required: true, description: 'Phone number' },
+      { name: 'date', type: 'string', required: true, description: 'Booking date', format: 'date' },
+      { name: 'time', type: 'string', required: true, description: 'Preferred time' },
+      { name: 'service', type: 'string', required: true, description: 'Service type' }
+    ]
+  },
+  {
+    name: 'Job Application',
+    description: 'Employment application',
+    fields: [
+      { name: 'full_name', type: 'string', required: true, description: 'Full name' },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'phone', type: 'string', required: true, description: 'Phone number' },
+      { name: 'resume', type: 'string', required: true, description: 'Resume/CV' },
+      { name: 'cover_letter', type: 'string', required: false, description: 'Cover letter' },
+      { name: 'position', type: 'string', required: true, description: 'Position applied for' }
+    ]
+  },
+  {
+    name: 'Support Ticket',
+    description: 'Help desk request',
+    fields: [
+      { name: 'name', type: 'string', required: true, description: 'Your name' },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'subject', type: 'string', required: true, description: 'Issue subject' },
+      { name: 'priority', type: 'string', required: true, description: 'Priority level' },
+      { name: 'description', type: 'string', required: true, description: 'Issue description', minLength: 20 },
+      { name: 'attachments', type: 'string', required: false, description: 'File attachments' }
+    ]
+  },
+  {
+    name: 'Order Form',
+    description: 'Purchase order',
+    fields: [
+      { name: 'customer_name', type: 'string', required: true, description: 'Customer name' },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'product', type: 'string', required: true, description: 'Product name' },
+      { name: 'quantity', type: 'number', required: true, description: 'Quantity', minimum: 1 },
+      { name: 'shipping_address', type: 'string', required: true, description: 'Shipping address' },
+      { name: 'payment_method', type: 'string', required: true, description: 'Payment method' }
     ]
   }
 ];
@@ -159,9 +234,22 @@ interface SortableFieldItemProps {
   onToggleRequired: (id: string) => void;
   onDuplicate: (id: string) => void;
   onRemove: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<SchemaField>) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }
 
-const SortableFieldItem: React.FC<SortableFieldItemProps> = ({ field, index, totalFields, onToggleRequired, onDuplicate, onRemove }) => {
+const SortableFieldItem: React.FC<SortableFieldItemProps> = ({ 
+  field, 
+  index, 
+  totalFields, 
+  onToggleRequired, 
+  onDuplicate, 
+  onRemove,
+  onUpdate,
+  isExpanded,
+  onToggleExpand
+}) => {
   const {
     attributes,
     listeners,
@@ -211,9 +299,112 @@ const SortableFieldItem: React.FC<SortableFieldItemProps> = ({ field, index, tot
               )}
             </div>
           </div>
-        </div>
+      </div>
 
-        <div className="flex items-center gap-2">
+      {/* Expandable Validation Editor */}
+      {isExpanded && (
+        <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+          <h4 className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Validation Rules</h4>
+          <div className="grid grid-cols-2 gap-3">
+            {/* String validations */}
+            {field.type === 'string' && (
+              <>
+                <div>
+                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Min Length</label>
+                  <input
+                    type="number"
+                    value={field.minLength || ''}
+                    onChange={(e) => onUpdate(field.id, { minLength: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                    placeholder="Min"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Max Length</label>
+                  <input
+                    type="number"
+                    value={field.maxLength || ''}
+                    onChange={(e) => onUpdate(field.id, { maxLength: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                    placeholder="Max"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Pattern (Regex)</label>
+                  <input
+                    type="text"
+                    value={field.pattern || ''}
+                    onChange={(e) => onUpdate(field.id, { pattern: e.target.value || undefined })}
+                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
+                    placeholder="e.g., ^[A-Z].*"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Format</label>
+                  <select
+                    value={field.format || ''}
+                    onChange={(e) => onUpdate(field.id, { format: e.target.value || undefined })}
+                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                  >
+                    <option value="">None</option>
+                    <option value="email">Email</option>
+                    <option value="uri">URL</option>
+                    <option value="date">Date</option>
+                    <option value="time">Time</option>
+                    <option value="date-time">DateTime</option>
+                  </select>
+                </div>
+              </>
+            )}
+            
+            {/* Number validations */}
+            {(field.type === 'number' || field.type === 'integer') && (
+              <>
+                <div>
+                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Minimum</label>
+                  <input
+                    type="number"
+                    value={field.minimum !== undefined ? field.minimum : ''}
+                    onChange={(e) => onUpdate(field.id, { minimum: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                    placeholder="Min value"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-600 dark:text-neutral-400">Maximum</label>
+                  <input
+                    type="number"
+                    value={field.maximum !== undefined ? field.maximum : ''}
+                    onChange={(e) => onUpdate(field.id, { maximum: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full mt-1 px-2 py-1 text-xs border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                    placeholder="Max value"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={onToggleExpand}
+            className="mt-3 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            Hide Validation
+          </button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mt-3">
+        {/* Edit Validation Button */}
+        {!isExpanded && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onToggleExpand}
+            className="hover:bg-indigo-100 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-xs"
+            title="Edit validation"
+          >
+            Edit Validation
+          </Button>
+        )}
           {/* Duplicate Button */}
           <Button
             size="sm"
@@ -265,6 +456,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('string');
   const [newFieldDescription, setNewFieldDescription] = useState('');
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -330,6 +523,13 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       setFields([...fields, newField]);
       toast.success('Field duplicated');
     }
+  };
+
+  // Update field properties (for validation editing)
+  const updateField = (id: string, updates: Partial<SchemaField>) => {
+    setFields(fields.map(f => 
+      f.id === id ? { ...f, ...updates } : f
+    ));
   };
 
   // Handle drag end for reordering
@@ -481,8 +681,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           </Button>
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
-               Quick Add Common Fields
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300 text-center">
+              ⚡ Quick Add Common Fields
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {FIELD_TEMPLATES.map((template) => (
@@ -528,23 +728,19 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               <ArrowRight className="h-5 w-5 text-green-600" />
             </Button>
           </div>
-          {/* Template Selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-              📋 Load Template:
-            </label>
-            <select
-              onChange={(e) => e.target.value && loadSchemaTemplate(e.target.value)}
-              className="flex-1 px-3 py-2 border-2 border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              defaultValue=""
+          {/* Template Button - Opens Modal */}
+          <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 mt-2">
+            <Button
+              onClick={() => setShowTemplateModal(true)}
+              variant="outline"
+              size="lg"
+              className="w-full gap-2 border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
             >
-              <option value="">-- Select a template --</option>
-              {SCHEMA_TEMPLATES.map((template) => (
-                <option key={template.name} value={template.name}>
-                  {template.name} - {template.description}
-                </option>
-              ))}
-            </select>
+              <FileJson className="h-5 w-5 text-indigo-600" />
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                Quick Start Templates
+              </span>
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
@@ -577,6 +773,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                       onToggleRequired={toggleRequired}
                       onDuplicate={duplicateField}
                       onRemove={removeField}
+                      onUpdate={updateField}
+                      isExpanded={expandedFieldId === field.id}
+                      onToggleExpand={() => setExpandedFieldId(expandedFieldId === field.id ? null : field.id)}
                     />
                   ))}
                 </div>
@@ -597,6 +796,45 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           </pre>
         </CardContent>
       </Card>
+
+      {/* Template Selection Modal */}
+      <AlertDialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
+        <AlertDialogContent className="max-w-4xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quick Start Templates</AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose a pre-built template to get started quickly
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="grid grid-cols-3 gap-3 my-4 max-h-[500px] overflow-y-auto pr-2">
+            {SCHEMA_TEMPLATES.map((template) => (
+              <button
+                key={template.name}
+                onClick={() => {
+                  loadSchemaTemplate(template.name);
+                  setShowTemplateModal(false);
+                }}
+                className="text-left p-4 rounded-lg border-2 border-neutral-200 dark:border-neutral-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all group"
+              >
+                <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {template.name}
+                </div>
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+                  {template.description}
+                </div>
+                <div className="text-xs text-neutral-400 dark:text-neutral-500 mt-2 font-mono">
+                  {template.fields.length} fields
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-end">
+            <AlertDialogCancel className="mt-0">Cancel</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
