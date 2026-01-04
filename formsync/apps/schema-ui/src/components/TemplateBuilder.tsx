@@ -225,8 +225,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                        {field.name[0].toUpperCase()}
+                      <div className="w-12 h-12 rounded-xl border-2 border-transparent bg-gradient-to-br from-indigo-500 to-purple-600 bg-clip-border flex items-center justify-center shadow-lg relative">
+                        <div className="absolute inset-0.5 bg-white dark:bg-neutral-800 rounded-lg"></div>
+                        <span className="relative z-10 bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold text-lg">
+                          {field.name[0].toUpperCase()}
+                        </span>
                       </div>
                       <div className="flex-1">
                         <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">{field.name}</div>
@@ -242,14 +245,20 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                     <div className="flex items-center gap-3">
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={() => toggleRequired(field.id)}
-                        className={`min-w-[100px] ${
-                          field.required
-                            ? 'bg-gradient-to-r from-indigo-500 to-purple-00 hover:from-indigo-700 hover:to-purple-700 text-white'
-                            : 'border-2 border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'
-                        }`}
+                        className="min-w-[100px] border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
                       >
-                        {field.required ? '✓ Required' : 'Optional'}
+                        {field.required ? (
+                          <>
+                            <Check className="h-4 w-4 text-indigo-600 mr-1" />
+                            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                              Required
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-neutral-600 dark:text-neutral-400">Optional</span>
+                        )}
                       </Button>
                       <Button
                         size="sm"
