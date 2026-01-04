@@ -47,12 +47,14 @@ interface TechnicalEditorProps {
   onGenerate?: () => void;
   isGenerating?: boolean;
   onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => void;
+  schemaFromBuilder?: string; // Schema transferred from Template Builder
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onGenerate,
   isGenerating = false,
   onStageUpdate,
+  schemaFromBuilder,
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');
@@ -106,6 +108,21 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     },
     [onStageUpdate]
   );
+
+  // Track if we've already loaded this schema to prevent infinite toast
+  const loadedSchemaRef = React.useRef<string>('');
+
+  // Populate editor when schema is transferred from Template Builder
+  useEffect(() => {
+    if (schemaFromBuilder && schemaFromBuilder.trim() && loadedSchemaRef.current !== schemaFromBuilder) {
+      loadedSchemaRef.current = schemaFromBuilder;
+      setEditorValue(schemaFromBuilder);
+      setFormat('json'); // Template Builder always generates JSON
+      toast.success('Schema loaded from Template Builder!');
+      onStageUpdate?.('Enter Schema', 'complete');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schemaFromBuilder]); // Only depend on schemaFromBuilder
 
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
