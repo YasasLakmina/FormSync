@@ -43,6 +43,13 @@ const SchemaLoader: React.FC = () => {
                     });
                     console.log('✅ Dispatched FormModel to context');
 
+                    // Store schemaId in context for backend export
+                    dispatch({
+                        type: 'SET_SCHEMA_ID',
+                        payload: schemaId
+                    });
+                    console.log('✅ Stored schemaId in context:', schemaId);
+
                     // Clean up URL (remove schema parameter)
                     window.history.replaceState({}, '', window.location.pathname);
 

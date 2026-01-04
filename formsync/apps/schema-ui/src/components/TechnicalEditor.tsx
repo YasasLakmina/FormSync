@@ -436,12 +436,12 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Right: Generate Code Button */}
-        {onGenerate && (
+        {/* Right: Generate Code Button - HIDDEN (backend download now available from Form Builder) */}
+        {/* {onGenerate && (
           <div className="flex items-end">
             <GenerateButton onClick={onGenerate} isGenerating={isGenerating} disabled={false} />
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Action Buttons Row - Below Format Selector */}
