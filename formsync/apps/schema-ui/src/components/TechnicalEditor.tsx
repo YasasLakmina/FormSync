@@ -64,6 +64,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showQualityMetrics, setShowQualityMetrics] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [showSchemaTemplates, setShowSchemaTemplates] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -453,6 +454,69 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         {onGenerate && (
           <div className="flex items-end">
             <GenerateButton onClick={onGenerate} isGenerating={isGenerating} disabled={false} />
+          </div>
+        )}
+      </div>
+
+      {/* Schema Templates Section - Professional & Clean */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            Quick Start Templates
+          </h3>
+          <button
+            onClick={() => setShowSchemaTemplates(!showSchemaTemplates)}
+            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            {showSchemaTemplates ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        
+        {showSchemaTemplates && (
+          <div className="grid grid-cols-3 gap-2 p-4 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
+            {[
+              { name: 'Contact Form', desc: 'Basic contact information', fields: ['name', 'email', 'phone', 'message'] },
+              { name: 'Newsletter Signup', desc: 'Email subscription', fields: ['email', 'first_name', 'last_name', 'consent'] },
+              { name: 'Login Form', desc: 'User authentication', fields: ['email', 'password', 'remember_me'] },
+              { name: 'Registration Form', desc: 'New user signup', fields: ['username', 'email', 'password', 'confirm_password', 'terms_accepted'] },
+              { name: 'Feedback Form', desc: 'Customer feedback', fields: ['name', 'email', 'rating', 'comments', 'would_recommend'] },
+              { name: 'Booking Form', desc: 'Appointment booking', fields: ['name', 'email', 'phone', 'date', 'time', 'service'] },
+              { name: 'Job Application', desc: 'Employment application', fields: ['full_name', 'email', 'phone', 'resume', 'cover_letter', 'position'] },
+              { name: 'Support Ticket', desc: 'Help desk request', fields: ['name', 'email', 'subject', 'priority', 'description', 'attachments'] },
+              { name: 'Order Form', desc: 'Purchase order', fields: ['customer_name', 'email', 'product', 'quantity', 'shipping_address', 'payment_method'] },
+            ].map((template) => (
+              <button
+                key={template.name}
+                onClick={() => {
+                  const schemaTemplate = JSON.stringify(
+                    {
+                      $schema: 'http://json-schema.org/draft-07/schema#',
+                      type: 'object',
+                      properties: Object.fromEntries(
+                        template.fields.map(field => [field, { type: 'string' }])
+                      ),
+                      required: template.fields.slice(0, 2)
+                    },
+                    null,
+                    2
+                  );
+                  setEditorValue(schemaTemplate);
+                  setFormat('json');
+                  toast.success(`Loaded ${template.name} template`);
+                }}
+                className="text-left p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-white dark:hover:bg-neutral-800 transition-all group"
+              >
+                <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {template.name}
+                </div>
+                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                  {template.desc}
+                </div>
+                <div className="text-xs text-neutral-400 dark:text-neutral-500 mt-1.5 font-mono">
+                  {template.fields.length} fields
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
