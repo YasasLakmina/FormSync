@@ -68,3 +68,43 @@ XML Example
   <salary>75000</salary>
   <isPermanent>true</isPermanent>
 </Employee>
+
+
+new json example
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Employee Registration Form",
+  "description": "Please fill in the basic details of the employee.",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "title": "Username",
+      "description": "Enter a unique username"
+    },
+    "age": {
+      "type": "integer",
+      "title": "Age",
+      "description": "Enter employee age"
+    },
+    "isEmployee": {
+      "type": "boolean",
+      "title": "Currently Employed"
+    },
+    "department": {
+      "type": "string",
+      "title": "Department",
+      "enum": ["IT", "HR", "Finance"],
+      "description": "Select the department"
+    },
+    "skills": {
+      "type": "array",
+      "title": "Skills",
+      "description": "List of skills",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["username"]
+}
