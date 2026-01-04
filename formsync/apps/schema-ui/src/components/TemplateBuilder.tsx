@@ -10,9 +10,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, FileJson, Trash2, ArrowRight, Check, Copy, ChevronUp, ChevronDown, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft } from 'lucide-react';
+import { Plus, FileJson, Trash2, ArrowRight, Check, Copy, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface SchemaField {
   id: string;
@@ -148,11 +151,128 @@ const SCHEMA_TEMPLATES: SchemaTemplate[] = [
   }
 ];
 
+// Sortable Field Item Component
+interface SortableFieldItemProps {
+  field: SchemaField;
+  index: number;
+  totalFields: number;
+  onToggleRequired: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onRemove: (id: string) => void;
+}
+
+const SortableFieldItem: React.FC<SortableFieldItemProps> = ({ field, index, totalFields, onToggleRequired, onDuplicate, onRemove }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: field.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="p-5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-lg transition-all bg-white dark:bg-neutral-800"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 flex-1">
+          {/* Drag Handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-5 w-5 text-neutral-400" />
+          </div>
+
+          <div className="w-12 h-12 rounded-xl border border-transparent bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-border flex items-center justify-center shadow-lg relative">
+            <div className="absolute inset-[1px] bg-white dark:bg-neutral-800 rounded-lg"></div>
+            <span className="relative z-10 bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold text-lg">
+              {field.name[0].toUpperCase()}
+            </span>
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">{field.name}</div>
+            <div className="text-sm text-neutral-500">
+              Type: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{field.type}</span>
+              {field.description && (
+                <span className="ml-2 text-neutral-400">• {field.description}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Duplicate Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onDuplicate(field.id)}
+            className="hover:bg-purple-100 dark:hover:bg-purple-950/30 text-purple-600 dark:text-purple-400"
+            title="Duplicate field"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+
+          {/* Required/Optional Toggle */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onToggleRequired(field.id)}
+            className="min-w-[100px] border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+          >
+            {field.required ? (
+              <>
+                <Check className="h-4 w-4 text-indigo-600 mr-1" />
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+                  Required
+                </span>
+              </>
+            ) : (
+              <span className="text-neutral-600 dark:text-neutral-400">Optional</span>
+            )}
+          </Button>
+
+          {/* Delete Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onRemove(field.id)}
+            className="hover:bg-red-100 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
+            title="Delete field"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema }) => {
   const [fields, setFields] = useState<SchemaField[]>([]);
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('string');
   const [newFieldDescription, setNewFieldDescription] = useState('');
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const addField = () => {
     if (!newFieldName.trim()) {
@@ -212,23 +332,29 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     }
   };
 
-  // Move field up
-  const moveFieldUp = (id: string) => {
-    const index = fields.findIndex(f => f.id === id);
-    if (index > 0) {
-      const newFields = [...fields];
-      [newFields[index - 1], newFields[index]] = [newFields[index], newFields[index - 1]];
-      setFields(newFields);
+  // Handle drag end for reordering
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setFields((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
     }
   };
 
-  // Move field down
-  const moveFieldDown = (id: string) => {
-    const index = fields.findIndex(f => f.id === id);
-    if (index < fields.length - 1 && index !== -1) {
-      const newFields = [...fields];
-      [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
+  // Load schema template
+  const loadSchemaTemplate = (templateName: string) => {
+    const template = SCHEMA_TEMPLATES.find(t => t.name === templateName);
+    if (template) {
+      const newFields = template.fields.map(field => ({
+        ...field,
+        id: `field-${Date.now()}-${Math.random()}`
+      }));
       setFields(newFields);
+      toast.success(`Loaded ${template.name} template!`);
     }
   };
 
@@ -237,10 +363,23 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     const required: string[] = [];
 
     fields.forEach(field => {
-      properties[field.name] = {
+      const fieldSchema: any = {
         type: field.type,
         ...(field.description && { description: field.description }),
+        // Add validation properties
+        ...(field.minLength && { minLength: field.minLength }),
+        ...(field.maxLength && { maxLength: field.maxLength }),
+        ...(field.pattern && { pattern: field.pattern }),
+        ...(field.format && { format: field.format }),
+        ...(field.minimum !== undefined && { minimum: field.minimum }),
+        ...(field.maximum !== undefined && { maximum: field.maximum }),
+        ...(field.multipleOf && { multipleOf: field.multipleOf }),
+        // Add default values
+        ...(field.default !== undefined && { default: field.default }),
+        ...(field.placeholder && { 'x-placeholder': field.placeholder }),
+        ...(field.example !== undefined && { examples: [field.example] }),
       };
+      properties[field.name] = fieldSchema;
       if (field.required) {
         required.push(field.name);
       }
@@ -343,7 +482,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
             <h3 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
-              ⚡ Quick Add Common Fields
+               Quick Add Common Fields
             </h3>
             <div className="grid grid-cols-2 gap-2">
               {FIELD_TEMPLATES.map((template) => (
@@ -370,7 +509,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       {/* Center Panel - Field List */}
       <Card className="flex-1 border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg">
         <CardHeader className="border-b border-neutral-200 dark:border-neutral-700">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <CardTitle className="text-lg flex items-center gap-2 text-neutral-800 dark:text-neutral-100">
               <FileJson className="h-5 w-5" />
               Schema Fields ({fields.length})
@@ -389,6 +528,24 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               <ArrowRight className="h-5 w-5 text-green-600" />
             </Button>
           </div>
+          {/* Template Selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              📋 Load Template:
+            </label>
+            <select
+              onChange={(e) => e.target.value && loadSchemaTemplate(e.target.value)}
+              className="flex-1 px-3 py-2 border-2 border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              defaultValue=""
+            >
+              <option value="">-- Select a template --</option>
+              {SCHEMA_TEMPLATES.map((template) => (
+                <option key={template.name} value={template.name}>
+                  {template.name} - {template.description}
+                </option>
+              ))}
+            </select>
+          </div>
         </CardHeader>
         <CardContent className="pt-6">
           {fields.length === 0 ? (
@@ -401,104 +558,30 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {fields.map((field, index) => (
-                <motion.div
-                  key={field.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="p-5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:shadow-lg transition-all bg-white dark:bg-neutral-800"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-12 h-12 rounded-xl border border-transparent bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-border flex items-center justify-center shadow-lg relative">
-                        <div className="absolute inset-[1.5px] bg-white dark:bg-neutral-800 rounded-lg"></div>
-                        <span className="relative z-10 bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold text-lg">
-                          {field.name[0].toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-base text-neutral-800 dark:text-neutral-100">{field.name}</div>
-                        <div className="text-sm text-neutral-500">
-                          Type: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{field.type}</span>
-                          {field.description && (
-                            <span className="ml-2 text-neutral-400">• {field.description}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Move Up Button */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => moveFieldUp(field.id)}
-                        disabled={index === 0}
-                        className="hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 disabled:opacity-30"
-                        title="Move up"
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </Button>
-
-                      {/* Move Down Button */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => moveFieldDown(field.id)}
-                        disabled={index === fields.length - 1}
-                        className="hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 disabled:opacity-30"
-                        title="Move down"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-
-                      {/* Duplicate Button */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => duplicateField(field.id)}
-                        className="hover:bg-purple-100 dark:hover:bg-purple-950/30 text-purple-600 dark:text-purple-400"
-                        title="Duplicate field"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-
-                      {/* Required/Optional Toggle */}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toggleRequired(field.id)}
-                        className="min-w-[100px] border-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
-                      >
-                        {field.required ? (
-                          <>
-                            <Check className="h-4 w-4 text-indigo-600 mr-1" />
-                            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-semibold">
-                              Required
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-neutral-600 dark:text-neutral-400">Optional</span>
-                        )}
-                      </Button>
-
-                      {/* Delete Button */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeField(field.id)}
-                        className="hover:bg-red-100 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
-                        title="Delete field"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={fields.map(f => f.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {fields.map((field, index) => (
+                    <SortableFieldItem
+                      key={field.id}
+                      field={field}
+                      index={index}
+                      totalFields={fields.length}
+                      onToggleRequired={toggleRequired}
+                      onDuplicate={duplicateField}
+                      onRemove={removeField}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </CardContent>
       </Card>
