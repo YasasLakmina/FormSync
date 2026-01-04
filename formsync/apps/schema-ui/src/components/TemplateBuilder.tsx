@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, FileJson, Trash2, ArrowRight, Check } from 'lucide-react';
+import { Plus, FileJson, Trash2, ArrowRight, Check, Copy, ChevronUp, ChevronDown, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -20,11 +20,133 @@ interface SchemaField {
   type: string;
   required: boolean;
   description?: string;
+  // Validation options
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  multipleOf?: number;
+  // Default values
+  default?: any;
+  placeholder?: string;
+  example?: any;
 }
 
 interface TemplateBuilderProps {
   onUseSchema?: (schemaJson: string) => void; // Callback to send schema to Technical Editor
 }
+
+// Pre-built field templates for quick adding
+interface FieldTemplate {
+  name: string;
+  type: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+const FIELD_TEMPLATES: FieldTemplate[] = [
+  {
+    name: 'email',
+    type: 'string',
+    description: 'Email address with validation',
+    icon: <Mail className="h-4 w-4" />,
+    color: 'blue'
+  },
+  {
+    name: 'phone',
+    type: 'string',
+    description: 'Phone number',
+    icon: <Phone className="h-4 w-4" />,
+    color: 'green'
+  },
+  {
+    name: 'website',
+    type: 'string',
+    description: 'URL/Website address',
+    icon: <Link className="h-4 w-4" />,
+    color: 'purple'
+  },
+  {
+    name: 'date',
+    type: 'string',
+    description: 'Date picker',
+    icon: <Calendar className="h-4 w-4" />,
+    color: 'orange'
+  },
+  {
+    name: 'password',
+    type: 'string',
+    description: 'Password field',
+    icon: <Lock className="h-4 w-4" />,
+    color: 'red'
+  },
+  {
+    name: 'description',
+    type: 'string',
+    description: 'Long text area',
+    icon: <AlignLeft className="h-4 w-4" />,
+    color: 'gray'
+  },
+  {
+    name: 'age',
+    type: 'number',
+    description: 'Numeric value',
+    icon: <Hash className="h-4 w-4" />,
+    color: 'indigo'
+  },
+  {
+    name: 'accept_terms',
+    type: 'boolean',
+    description: 'Checkbox/Toggle',
+    icon: <ToggleLeft className="h-4 w-4" />,
+    color: 'teal'
+  }
+];
+
+// Pre-built schema templates
+interface SchemaTemplate {
+  name: string;
+  description: string;
+  fields: Omit<SchemaField, 'id'>[];
+}
+
+const SCHEMA_TEMPLATES: SchemaTemplate[] = [
+  {
+    name: 'Contact Form',
+    description: 'Basic contact form with name, email, and message',
+    fields: [
+      { name: 'name', type: 'string', required: true, description: 'Full name', minLength: 2, maxLength: 100 },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'phone', type: 'string', required: false, description: 'Phone number' },
+      { name: 'message', type: 'string', required: true, description: 'Message content', minLength: 10, maxLength: 1000 }
+    ]
+  },
+  {
+    name: 'User Registration',
+    description: 'User signup form with validation',
+    fields: [
+      { name: 'username', type: 'string', required: true, description: 'Unique username', minLength: 3, maxLength: 20 },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
+      { name: 'age', type: 'number', required: false, description: 'User age', minimum: 13, maximum: 120 },
+      { name: 'accept_terms', type: 'boolean', required: true, description: 'Accept terms and conditions' }
+    ]
+  },
+  {
+    name: 'Survey Form',
+    description: 'Feedback survey with rating',
+    fields: [
+      { name: 'name', type: 'string', required: true, description: 'Your name' },
+      { name: 'email', type: 'string', required: true, description: 'Email address', format: 'email' },
+      { name: 'rating', type: 'number', required: true, description: 'Rating (1-5)', minimum: 1, maximum: 5 },
+      { name: 'comments', type: 'string', required: false, description: 'Additional comments', maxLength: 500 },
+      { name: 'would_recommend', type: 'boolean', required: true, description: 'Would you recommend us?' }
+    ]
+  }
+];
 
 export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema }) => {
   const [fields, setFields] = useState<SchemaField[]>([]);
@@ -61,6 +183,53 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     setFields(fields.map(f => 
       f.id === id ? { ...f, required: !f.required } : f
     ));
+  };
+
+  // Add field from template
+  const addFieldTemplate = (template: FieldTemplate) => {
+    const newField: SchemaField = {
+      id: `field-${Date.now()}`,
+      name: template.name,
+      type: template.type,
+      required: template.name === 'email' || template.name === 'password', // Email and password required by default
+      description: template.description
+    };
+    setFields([...fields, newField]);
+    toast.success(`${template.name} field added!`);
+  };
+
+  // Duplicate field
+  const duplicateField = (id: string) => {
+    const fieldToDup = fields.find(f => f.id === id);
+    if (fieldToDup) {
+      const newField: SchemaField = {
+        ...fieldToDup,
+        id: `field-${Date.now()}`,
+        name: `${fieldToDup.name}_copy`
+      };
+      setFields([...fields, newField]);
+      toast.success('Field duplicated');
+    }
+  };
+
+  // Move field up
+  const moveFieldUp = (id: string) => {
+    const index = fields.findIndex(f => f.id === id);
+    if (index > 0) {
+      const newFields = [...fields];
+      [newFields[index - 1], newFields[index]] = [newFields[index], newFields[index - 1]];
+      setFields(newFields);
+    }
+  };
+
+  // Move field down
+  const moveFieldDown = (id: string) => {
+    const index = fields.findIndex(f => f.id === id);
+    if (index < fields.length - 1 && index !== -1) {
+      const newFields = [...fields];
+      [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
+      setFields(newFields);
+    }
   };
 
   const generateSchema = () => {
@@ -173,7 +342,25 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           </Button>
 
           <div className="pt-4 border-t border-neutral-200 dark:border-neutral-700">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700 dark:text-neutral-300">
+              ⚡ Quick Add Common Fields
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {FIELD_TEMPLATES.map((template) => (
+                <Button
+                  key={template.name}
+                  onClick={() => addFieldTemplate(template)}
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  title={template.description}
+                >
+                  {template.icon}
+                  <span className="text-xs capitalize">{template.name}</span>
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center mt-4">
               Press <kbd className="px-2 py-1 bg-neutral-100 dark:bg-neutral-700 rounded text-neutral-700 dark:text-neutral-300">Enter</kbd> to quickly add
             </p>
           </div>
@@ -242,7 +429,43 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {/* Move Up Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveFieldUp(field.id)}
+                        disabled={index === 0}
+                        className="hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 disabled:opacity-30"
+                        title="Move up"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+
+                      {/* Move Down Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moveFieldDown(field.id)}
+                        disabled={index === fields.length - 1}
+                        className="hover:bg-blue-100 dark:hover:bg-blue-950/30 text-blue-600 dark:text-blue-400 disabled:opacity-30"
+                        title="Move down"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+
+                      {/* Duplicate Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => duplicateField(field.id)}
+                        className="hover:bg-purple-100 dark:hover:bg-purple-950/30 text-purple-600 dark:text-purple-400"
+                        title="Duplicate field"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+
+                      {/* Required/Optional Toggle */}
                       <Button
                         size="sm"
                         variant="outline"
@@ -260,11 +483,14 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                           <span className="text-neutral-600 dark:text-neutral-400">Optional</span>
                         )}
                       </Button>
+
+                      {/* Delete Button */}
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => removeField(field.id)}
                         className="hover:bg-red-100 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
+                        title="Delete field"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
