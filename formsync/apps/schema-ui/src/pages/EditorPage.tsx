@@ -26,6 +26,8 @@ export const EditorPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentSchema, validationResults } = useSchemaStore();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [schemaFromBuilder, setSchemaFromBuilder] = useState<string>(''); // Schema transferred from Template Builder
+  const [activeTab, setActiveTab] = useState('technical'); // Control which tab is active
   const [stages, setStages] = useState<GenerationStage[]>([
     { name: 'Enter Schema', status: 'pending', progress: 0 },
     { name: 'Input Validation', status: 'pending', progress: 0 },
@@ -47,6 +49,19 @@ export const EditorPage: React.FC = () => {
       )
     );
   };
+
+  // Handler to receive schema from Template Builder
+  const handleUseSchemaFromBuilder = (schemaJson: string) => {
+    setSchemaFromBuilder(schemaJson);
+  };
+
+  // Auto-switch to Technical Editor tab AFTER schemaFromBuilder state is set
+  React.useEffect(() => {
+    if (schemaFromBuilder && schemaFromBuilder.trim()) {
+      setActiveTab('technical');
+      toast.success('Schema transferred! Now in Technical Editor.');
+    }
+  }, [schemaFromBuilder]);
 
   const handleGenerate = async () => {
     // Validation check - show error if not valid
@@ -197,7 +212,7 @@ export const EditorPage: React.FC = () => {
 
           <div className="max-w-7xl mx-auto">
             {/* Tabs for Technical Editor and Template Builder */}
-            <Tabs defaultValue="technical" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
                 <TabsTrigger value="technical" className="flex items-center gap-2">
                   <Code2 className="h-4 w-4" />
@@ -220,7 +235,7 @@ export const EditorPage: React.FC = () => {
               </TabsContent>
 
               <TabsContent value="builder" className="mt-0">
-                <TemplateBuilder />
+                <TemplateBuilder onUseSchema={handleUseSchemaFromBuilder} />
               </TabsContent>
             </Tabs>
           </div>

@@ -9,7 +9,6 @@ import Editor from '@monaco-editor/react';
 import { useSchemaStore } from '../stores/schemaStore';
 import { schemaApi } from '../api/schemaApi';
 import { FormatSelector, type FormatType } from './FormatSelector';
-import { TemplateLibrary } from './TemplateLibrary';
 import { SchemaTreeView } from './SchemaTreeView';
 import { SuggestionsPanel } from './SuggestionsPanel';
 import { ValidationDialog } from './ValidationDialog';
@@ -25,7 +24,6 @@ import {
   X,
   TreePine,
   Loader2,
-  Library,
   Undo2,
   Redo2,
   ChevronLeft,
@@ -60,7 +58,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [format, setFormat] = useState<FormatType>('json');
   const [editorValue, setEditorValue] = useState('');
   const [showTreeView, setShowTreeView] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showQualityMetrics, setShowQualityMetrics] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
@@ -108,6 +105,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     },
     [onStageUpdate]
   );
+
+  // Populate editor when schema is transferred from Template Builder
+  useEffect(() => {
+    if (schemaFromBuilder && schemaFromBuilder.trim() && schemaFromBuilder !== editorValue) {
+      setEditorValue(schemaFromBuilder);
+      setFormat('json'); // Template Builder always generates JSON
+      toast.success('Schema loaded from Template Builder!');
+      onStageUpdate?.('Enter Schema', 'complete');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schemaFromBuilder]); // Only run when schemaFromBuilder changes
 
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
@@ -402,17 +410,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     input.click();
   }, []);
 
-  const handleTemplateSelect = useCallback(
-    (schema: any) => {
-      // Set the schema as currentSchema so it displays in the right editor immediately
-      setCurrentSchema(schema);
-      toast.success('Template loaded!', {
-        description: 'Schema is ready to use',
-      });
-    },
-    [setCurrentSchema]
-  );
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -573,18 +570,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             {sidebarExpanded && <span className="text-sm">Upload</span>}
           </Button>
 
-          {/* Templates */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTemplates(true)}
-            className={`w-full justify-start gap-3 h-10 ${!sidebarExpanded && 'px-2'}`}
-            title={!sidebarExpanded ? 'Templates' : undefined}
-          >
-            <Library className="h-4 w-4 flex-shrink-0" />
-            {sidebarExpanded && <span className="text-sm">Templates</span>}
-          </Button>
-
           {/* Schema Navigator */}
           <Button
             variant="outline"
@@ -669,6 +654,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             </CardHeader>
             <CardContent className="flex-1 p-0">
               <Editor
+                key={editorValue ? `editor-loaded-${editorValue.length}` : 'editor-empty'}
                 height="100%"
                 language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
                 value={editorValue}
@@ -767,14 +753,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Template Library Dialog */}
-      {showTemplates && (
-        <TemplateLibrary
-          onSelectTemplate={handleTemplateSelect}
-          onClose={() => setShowTemplates(false)}
-        />
-      )}
 
       {/* Quality Metrics Panel */}
       {showQualityMetrics && qualityMetrics && (
