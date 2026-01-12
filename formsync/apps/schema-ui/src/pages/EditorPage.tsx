@@ -12,10 +12,9 @@ import { TemplateBuilder } from '../components/TemplateBuilder';
 import { FlowDiagram } from '../components/shared/FlowDiagram';
 import { useSchemaStore } from '../stores/schemaStore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Code2, Wand2, Sparkles } from 'lucide-react';
+import { Code2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generationService } from '../services/generationService';
-import { Button } from '../components/ui/button';
 
 export interface GenerationStage {
   name: string;
@@ -162,7 +161,10 @@ export const EditorPage: React.FC = () => {
           content: currentSchema,
           sourceFormat: 'json',
           status: 'validated',
-          userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // Demo user ID
+          userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // Demo user ID
+          // userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // hansi user ID
+          // userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // yasas user ID
+          // userId: '303459c0-1f1c-44c1-a2c6-1f492d2c2965', // thamindu user ID
         }),
       });
 
@@ -208,27 +210,6 @@ export const EditorPage: React.FC = () => {
             <FlowDiagram stages={stages} />
           </div>
 
-          {/* Next: Form Builder Button - Shows after Convert OR AI Enhancement is complete */}
-          {(() => {
-            console.log('[EditorPage] Button condition check:', {
-              stage2: stages[2],
-              stage3: stages[3],
-              shouldShow: stages[2].status === 'complete' || stages[3].status === 'complete'
-            });
-            return (stages[2].status === 'complete' || stages[3].status === 'complete');
-          })() && (
-              <div className="mb-6 flex justify-center">
-                <Button
-                  onClick={handleNextToFormBuilder}
-                  size="lg"
-                  className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl text-white px-8 py-6 text-lg font-semibold rounded-xl transition-all hover:scale-105"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  Next: Form Builder
-                </Button>
-              </div>
-            )}
-
           <div className="max-w-7xl mx-auto">
             {/* Tabs for Technical Editor and Template Builder */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -248,7 +229,8 @@ export const EditorPage: React.FC = () => {
                   onGenerate={handleGenerate}
                   isGenerating={isGenerating}
                   onStageUpdate={handleStageUpdate}
-                  schemaFromBuilder={schemaFromBuilder}
+                  onNextToFormBuilder={handleNextToFormBuilder}
+                  stages={stages}
                 />
               </TabsContent>
 

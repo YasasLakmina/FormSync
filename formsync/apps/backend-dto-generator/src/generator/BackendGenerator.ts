@@ -17,11 +17,10 @@ export class BackendGenerator extends BasePlugin implements BackendGeneratorPlug
         this.mapper = new SchemaMapper();
         this.templateService = new TemplateService();
         this.fileWriter = new FileWriter();
-        console.log('BackendGenerator initialized');
+
     }
 
     async generate(schema: any, config?: BackendGeneratorConfig): Promise<void> {
-        console.log('BackendGenerator: Starting generation process...');
 
         // Default config values
         const outputDir = config?.outputDir || './generated-output';
@@ -33,17 +32,14 @@ export class BackendGenerator extends BasePlugin implements BackendGeneratorPlug
 
             // Map input to InternalModel
             if (schema.content && (schema.name || schema.id)) {
-                console.log('Mapping SchemaPayload to Internal Model...');
                 internalModel = this.mapper.map(schema);
             } else {
-                console.log('Mapping raw JSON Schema to Internal Model...');
                 internalModel = this.mapper.map({
-                    name: 'GeneratedApp',
+                    name: 'ExampleApp',
                     content: schema
                 });
             }
 
-            console.log('Internal Model created. Generating files...');
 
             // 1. Generate POM
             const pomContent = this.templateService.render('pom', {

@@ -5,6 +5,7 @@ import { FormModel } from '@formsync/formgen-core';
 interface BuilderState {
     form: FormModel;
     selectedFieldId: string | null;
+    schemaId: string | null; // Schema ID from API, needed for backend export
 }
 
 // --- Action Definitions ---
@@ -12,7 +13,8 @@ type BuilderAction =
     | { type: 'SELECT_FIELD'; payload: string | null }
     | { type: 'UPDATE_FORM'; payload: FormModel }
     | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormModel['fields'][0]> } }
-    | { type: 'UPDATE_THEME'; payload: Partial<FormModel['theme']> };
+    | { type: 'UPDATE_THEME'; payload: Partial<FormModel['theme']> }
+    | { type: 'SET_SCHEMA_ID'; payload: string | null };
 
 // --- Initial State ---
 // Minimal default state to avoid crashes before data is loaded
@@ -44,6 +46,7 @@ const initialState: BuilderState = {
         fields: [],
     },
     selectedFieldId: null,
+    schemaId: null,
 };
 
 // --- Reducer ---
@@ -72,6 +75,11 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
                     ...state.form,
                     theme: { ...state.form.theme, ...action.payload },
                 },
+            };
+        case 'SET_SCHEMA_ID':
+            return {
+                ...state,
+                schemaId: action.payload,
             };
         default:
             return state;

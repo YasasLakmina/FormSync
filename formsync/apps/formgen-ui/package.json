@@ -12,7 +12,9 @@
     "dependencies": {
         "@formsync/formgen-core": "0.0.1",
         "file-saver": "^2.0.5",
+        "framer-motion": "^12.23.26",
         "jszip": "^3.10.1",
+        "lucide-react": "^0.562.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
     },

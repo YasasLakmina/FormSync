@@ -1,5 +1,99 @@
 import React from 'react';
 import { useBuilder } from '../context/BuilderContext';
+import { FieldModel } from '@formsync/formgen-core';
+
+interface FieldRendererProps {
+    field: FieldModel;
+    selectedFieldId: string | null;
+    dispatch: any;
+    theme: any;
+}
+
+const FieldRenderer: React.FC<FieldRendererProps> = ({ field, selectedFieldId, dispatch, theme }) => {
+    const overrides = field.ui?.styleOverrides;
+    const fieldStyles: React.CSSProperties = {
+        marginBottom: '1.5rem',
+        cursor: 'pointer',
+        // @ts-ignore - Dynamic CSS variables
+        '--field-label-color': overrides?.labelColor,
+        '--field-input-text-color': overrides?.inputTextColor,
+        '--field-bg-color': overrides?.backgroundColor,
+        '--field-border-color': overrides?.borderColor,
+        '--color-primary': overrides?.focusColor || theme.colors.primary, // Override focus color
+    };
+
+    const isSelected = selectedFieldId === field.id;
+
+    if (field.type === 'group') {
+        return (
+            <fieldset
+                key={field.id}
+                className={`field-group ${isSelected ? 'selected' : ''}`}
+                style={{
+                    ...fieldStyles,
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--border-radius, 4px)',
+                    padding: '1rem',
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    dispatch({ type: 'SELECT_FIELD', payload: field.id });
+                }}
+            >
+                <legend style={{
+                    padding: '0 0.5rem',
+                    fontWeight: 600,
+                    color: overrides?.labelColor || theme.colors.text
+                }}>
+                    {field.label}
+                </legend>
+
+                {field.children?.map(child => (
+                    <FieldRenderer
+                        key={child.id}
+                        field={child}
+                        selectedFieldId={selectedFieldId}
+                        dispatch={dispatch}
+                        theme={theme}
+                    />
+                ))}
+            </fieldset>
+        );
+    }
+
+    return (
+        <div
+            key={field.id}
+            className={`field-item ${isSelected ? 'selected' : ''}`}
+            style={fieldStyles}
+            onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: 'SELECT_FIELD', payload: field.id });
+            }}
+        >
+            <label className="field-label" style={{ marginBottom: '0.5rem' }}>
+                {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
+            </label>
+
+            {/* Enhanced Placeholder Input Render */}
+            <div className="field-input-mock" style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 0.5rem',
+                color: field.ui?.placeholder ? '#999' : 'transparent',
+                fontStyle: 'italic'
+            }}>
+                {field.ui?.placeholder || 'Input...'}
+            </div>
+
+            {field.ui?.helpText && (
+                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                    {field.ui.helpText}
+                </small>
+            )}
+        </div>
+    );
+};
 
 export const Canvas: React.FC = () => {
     const { state, dispatch } = useBuilder();
@@ -8,7 +102,7 @@ export const Canvas: React.FC = () => {
     // Derive ordered fields
     const orderedFields = form.layout.order
         .map(id => form.fields.find(f => f.id === id))
-        .filter(f => !!f);
+        .filter((f): f is FieldModel => !!f);
 
     // Apply Theme
     const densityMap = {
@@ -54,52 +148,15 @@ export const Canvas: React.FC = () => {
                     </p>
                 )}
 
-                {orderedFields.map((field) => {
-                    const overrides = field.ui?.styleOverrides;
-                    const fieldStyles: React.CSSProperties = {
-                        marginBottom: '1.5rem',
-                        cursor: 'pointer',
-                        // @ts-ignore - Dynamic CSS variables
-                        '--field-label-color': overrides?.labelColor,
-                        '--field-input-text-color': overrides?.inputTextColor,
-                        '--field-bg-color': overrides?.backgroundColor,
-                        '--field-border-color': overrides?.borderColor,
-                        '--color-primary': overrides?.focusColor || form.theme.colors.primary, // Override focus color
-                    };
-
-                    return (
-                        <div
-                            key={field.id}
-                            className={`field-item ${selectedFieldId === field.id ? 'selected' : ''}`}
-                            style={fieldStyles}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                dispatch({ type: 'SELECT_FIELD', payload: field.id });
-                            }}
-                        >
-                            <label className="field-label" style={{ marginBottom: '0.5rem' }}>
-                                {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
-                            </label>
-
-                            {/* Enhanced Placeholder Input Render */}
-                            <div className="field-input-mock" style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '0 0.5rem',
-                                color: field.ui?.placeholder ? '#999' : 'transparent',
-                                fontStyle: 'italic'
-                            }}>
-                                {field.ui?.placeholder || 'Input...'}
-                            </div>
-
-                            {field.ui?.helpText && (
-                                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
-                                    {field.ui.helpText}
-                                </small>
-                            )}
-                        </div>
-                    );
-                })}
+                {orderedFields.map((field) => (
+                    <FieldRenderer
+                        key={field.id}
+                        field={field}
+                        selectedFieldId={selectedFieldId}
+                        dispatch={dispatch}
+                        theme={form.theme}
+                    />
+                ))}
 
                 {orderedFields.length === 0 && (
                     <div className="text-muted" style={{ textAlign: 'center', padding: '4rem', border: '2px dashed #eee' }}>
