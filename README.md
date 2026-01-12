@@ -45,7 +45,7 @@ FormSync transforms the way developers and non-technical users create and manage
 
 ## 🏗️ Architecture
 
-![FormSync System Architecture](./docs/architecture.png)
+![FormSync System Architecture](./formsync/docs/architecture.png)
 
 FormSync consists of four main components working together:
 
