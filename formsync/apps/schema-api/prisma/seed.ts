@@ -11,13 +11,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create test user
+  // Create test user (password: "demo1234" - bcrypt hash)
   const user = await prisma.user.upsert({
     where: { email: 'demo@formsync.com' },
     update: {},
     create: {
       email: 'demo@formsync.com',
       name: 'Demo User',
+      password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password: "demo1234"
     },
   });
 
