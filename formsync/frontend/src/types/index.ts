@@ -14,7 +14,34 @@ export type FieldType =
   | 'textarea'
   | 'date'
   | 'group'
+  // ── Advanced field types ──────────────────────────────────────────────────
+  | 'file'        // File / image upload with accept + size constraints
+  | 'richtext'    // WYSIWYG / rich-text editor
+  | 'signature'   // Canvas-based signature pad
+  | 'repeater'    // Dynamic array of child field groups
+  | 'typeahead'   // Async-loaded select (fetches from an API URL)
+  | 'calculated'  // Read-only derived value using an x-calc formula
   | 'unknown';
+
+// ─── Condition Rule ──────────────────────────────────────────────────────────
+// Used by x-conditions to show/hide a field based on other field values.
+
+export type ConditionOperator = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'in' | 'notEmpty';
+
+export interface ConditionRule {
+  /** The key of the source field whose value is to be checked */
+  fieldKey: string;
+  operator: ConditionOperator;
+  /** The value to compare against (not used for notEmpty) */
+  value?: string | number | boolean | string[];
+}
+
+/** All rules must pass (AND logic). Use nested groups for OR via separate conditions. */
+export interface FieldConditions {
+  rules: ConditionRule[];
+  /** Default visibility when conditions cannot be evaluated (e.g. preview mode) */
+  defaultVisible?: boolean;
+}
 
 export interface FieldConstraints {
   min?: number;
@@ -34,6 +61,34 @@ export interface FieldStyleOverrides {
   focusColor?: string;
 }
 
+// ─── Advanced UI config extensions ─────────────────────────────────────────
+
+/** Typeahead async source configuration */
+export interface AsyncSourceConfig {
+  /** The API URL to call. Use `{query}` as a placeholder for the search term. */
+  url: string;
+  /** Milliseconds to wait after keypress before fetching (default: 300) */
+  debounceMs?: number;
+  /** JSON path within the response array to use as the option label (default: 'label') */
+  labelPath?: string;
+  /** JSON path within the response array to use as the option value (default: 'value') */
+  valuePath?: string;
+}
+
+/** Grid + advanced UI settings stored under x-ui namespace */
+export interface FieldXUI {
+  /** Column span in a 12-column grid (1–12, default: 12) */
+  colSpan?: number;
+  /** Config for typeahead / async dropdown fields */
+  asyncSource?: AsyncSourceConfig;
+  /** For file fields: comma-separated MIME types or extensions (e.g. 'image/*,.pdf') */
+  accept?: string;
+  /** For file fields: maximum file size in bytes */
+  maxFileSizeBytes?: number;
+  /** For file fields: allow multiple file selection */
+  multiple?: boolean;
+}
+
 export interface FieldUIConfig {
   placeholder?: string;
   helpText?: string;
@@ -41,7 +96,11 @@ export interface FieldUIConfig {
   disabled?: boolean;
   style?: Record<string, string | number>;
   styleOverrides?: FieldStyleOverrides;
-  [key: string]: string | number | boolean | Record<string, unknown> | FieldStyleOverrides | undefined;
+  /** x-conditions: conditional visibility rules for this field */
+  'x-conditions'?: FieldConditions;
+  /** x-ui: advanced grid and type-specific UI configuration */
+  'x-ui'?: FieldXUI;
+  [key: string]: unknown;
 }
 
 export interface FieldModel {
@@ -54,6 +113,10 @@ export interface FieldModel {
   constraints?: FieldConstraints;
   ui?: FieldUIConfig;
   children?: FieldModel[];
+  /** x-calc: formula string for calculated fields (e.g. '{quantity} * {price}') */
+  'x-calc'?: string;
+  /** Step index this field belongs to (0-based). Undefined = not wizard-assigned */
+  stepIndex?: number;
 }
 
 export interface ThemeColors {
@@ -83,8 +146,17 @@ export interface ThemeConfig {
   primaryColor?: string;
 }
 
+/** A named step in a multi-step (wizard) form */
+export interface FormStep {
+  id: string;
+  title: string;
+  description?: string;
+}
+
 export interface LayoutConfig {
   order: string[];
+  /** Optional wizard step definitions. When present, the form renders as a multi-step wizard. */
+  steps?: FormStep[];
 }
 
 export interface SubmitConfig {
