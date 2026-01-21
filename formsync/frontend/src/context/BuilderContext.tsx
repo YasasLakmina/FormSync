@@ -96,13 +96,18 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
             return pushHistory(state, action.payload);
 
         case 'UPDATE_FIELD': {
+            const { fieldId, updates } = action.payload;
             const nextForm: FormModel = {
                 ...state.form,
-                fields: state.form.fields.map((field) =>
-                    field.id === action.payload.fieldId
-                        ? { ...field, ...action.payload.updates }
-                        : field,
-                ),
+                fields: state.form.fields.map((field) => {
+                    if (field.id !== fieldId) return field;
+                    // Deep-merge the `ui` sub-object so partial ui updates
+                    // (e.g. just changing placeholder) don't wipe x-ui, x-conditions, etc.
+                    const mergedUi = updates.ui !== undefined
+                        ? { ...field.ui, ...updates.ui }
+                        : field.ui;
+                    return { ...field, ...updates, ui: mergedUi };
+                }),
             };
             return pushHistory(state, nextForm);
         }

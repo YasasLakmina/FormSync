@@ -131,14 +131,22 @@ export const RightPanel: React.FC = () => {
         dispatch({ type: 'UPDATE_FIELD', payload: { fieldId: selectedField.id, updates } });
     };
 
+    // Dispatch a single ui key change — the reducer deep-merges ui, so
+    // this won't overwrite other ui keys (x-ui, x-conditions, helpText, etc.)
     const handleUiUpdate = (key: string, value: unknown) => {
         if (!selectedField) return;
-        handleUpdate({ ui: { ...selectedField.ui, [key]: value } });
+        dispatch({
+            type: 'UPDATE_FIELD',
+            payload: { fieldId: selectedField.id, updates: { ui: { [key]: value } as FieldModel['ui'] } },
+        });
     };
 
+    // x-ui is nested inside ui.  We need to merge into the existing x-ui object.
+    // Read the LATEST value straight from state (stale-closure safe).
     const handleXUIUpdate = (patch: Record<string, unknown>) => {
         if (!selectedField) return;
-        handleUiUpdate('x-ui', { ...(selectedField.ui?.['x-ui'] ?? {}), ...patch });
+        const currentXUI = state.form.fields.find((f) => f.id === selectedField.id)?.ui?.['x-ui'] ?? {};
+        handleUiUpdate('x-ui', { ...currentXUI, ...patch });
     };
 
     const handleThemeUpdate = (updates: Partial<ThemeConfig>) =>
