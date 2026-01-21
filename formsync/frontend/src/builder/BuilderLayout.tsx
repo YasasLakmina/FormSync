@@ -151,8 +151,8 @@ export const BuilderLayout: React.FC = () => {
                     <Button
                       variant="ghost"
                       className={`gap-2 ${isActive(link.path)
-                          ? "bg-purple-50 text-purple-600"
-                          : "text-neutral-600 hover:text-purple-600"
+                        ? "bg-purple-50 text-purple-600"
+                        : "text-neutral-600 hover:text-purple-600"
                         }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -161,11 +161,6 @@ export const BuilderLayout: React.FC = () => {
                   </Link>
                 );
               })}
-            </div>
-
-            {/* Center: pipeline flow diagram */}
-            <div className="flex-1 min-w-0 overflow-hidden">
-              <FlowDiagram stages={stages} />
             </div>
 
             {/* Right: undo + export + auth */}
@@ -211,8 +206,8 @@ export const BuilderLayout: React.FC = () => {
                     <button
                       onClick={() => setProfileDropdownOpen((o) => !o)}
                       className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-all duration-150 select-none ${profileDropdownOpen
-                          ? "bg-purple-50 ring-1 ring-purple-200"
-                          : "hover:bg-neutral-100"
+                        ? "bg-purple-50 ring-1 ring-purple-200"
+                        : "hover:bg-neutral-100"
                         }`}
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm flex-shrink-0">
@@ -300,8 +295,8 @@ export const BuilderLayout: React.FC = () => {
                       <Button
                         variant="ghost"
                         className={`w-full justify-start gap-2 ${isActive(link.path)
-                            ? "bg-purple-50 text-purple-600"
-                            : "text-neutral-600"
+                          ? "bg-purple-50 text-purple-600"
+                          : "text-neutral-600"
                           }`}
                       >
                         <Icon className="h-4 w-4" />
@@ -315,6 +310,11 @@ export const BuilderLayout: React.FC = () => {
           )}
         </div>
       </nav>
+
+      {/* ── Pipeline progress bar — full width, below navbar ── */}
+      <div className="w-full bg-white border-b border-neutral-200 shadow-sm flex-shrink-0" style={{ overflowX: 'auto' }}>
+        <FlowDiagram stages={stages} />
+      </div>
 
       {/* ── 3-col body ── */}
       <div className="builder-body">
