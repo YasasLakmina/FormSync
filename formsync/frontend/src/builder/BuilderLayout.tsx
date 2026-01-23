@@ -6,7 +6,7 @@ import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
 import { exportReactApp } from "./export-handler";
 import { FlowDiagram, GenerationStage } from "./FlowDiagram";
-import { Sparkles, Undo2 } from "lucide-react";
+import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
 import { Button } from "../components/ui/button";
 
@@ -90,69 +90,38 @@ export const BuilderLayout: React.FC = () => {
 
   return (
     <div className="builder-root">
-      {/* ── Shared Navbar (identical to editor page) ── */}
+      {/* ── Shared Navbar (identical to the editor page) ── */}
       <Navbar />
 
-      {/* ── Progress stepper sub-bar ── */}
+      {/* ── Progress stepper sub-bar — full width, properly padded ── */}
       <div className="builder-stepper-bar">
-        {/* Left gutter — matches the left panel width (240px) */}
-        <div className="builder-stepper-gutter" />
+        <FlowDiagram stages={stages} />
+      </div>
 
-        {/* Stepper centered within the canvas column */}
-        <div className="builder-stepper-content">
-          {/* Right-side action pills */}
-          <div className="builder-stepper-actions">
+      {/* ── 3-col body ── */}
+      <div className="builder-body">
+        {/* Left palette panel */}
+        <aside className="builder-sidebar builder-sidebar--left">
+          <LeftPanel />
+        </aside>
+
+        {/* Center: workspace toolbar → wizard bar → canvas */}
+        <main className="builder-canvas-col">
+          {/* Workspace toolbar: Undo lives here, close to the canvas */}
+          <div className="canvas-toolbar">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => dispatch({ type: "UNDO" })}
               disabled={!canUndo}
               className="gap-1.5 text-neutral-500 h-8 px-3 text-xs"
+              title="Undo last change"
             >
               <Undo2 className="h-3.5 w-3.5" />
               Undo
             </Button>
-
-            {!isFrontendComplete ? (
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="btn-primary"
-                style={{ fontSize: "0.78rem", padding: "0.35rem 0.9rem" }}
-              >
-                <Sparkles size={14} />
-                {isExporting ? "Exporting…" : "Export React App"}
-              </button>
-            ) : (
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="btn-primary"
-                style={{ fontSize: "0.78rem", padding: "0.35rem 0.9rem" }}
-              >
-                <Sparkles size={14} />
-                {isGenerating ? "Generating…" : "Generate Code"}
-              </button>
-            )}
           </div>
 
-          {/* Step flow — occupies remaining width, centered */}
-          <div className="builder-stepper-flow">
-            <FlowDiagram stages={stages} />
-          </div>
-        </div>
-
-        {/* Right gutter — matches the right panel width (288px) */}
-        <div className="builder-stepper-gutter builder-stepper-gutter--right" />
-      </div>
-
-      {/* ── 3-col body ── */}
-      <div className="builder-body">
-        <aside className="builder-sidebar builder-sidebar--left">
-          <LeftPanel />
-        </aside>
-
-        <main className="builder-canvas-col">
           <div className="wizard-bar">
             <WizardControls />
           </div>
@@ -161,8 +130,15 @@ export const BuilderLayout: React.FC = () => {
           </div>
         </main>
 
+        {/* Right properties / theme panel */}
         <aside className="builder-sidebar builder-sidebar--right">
-          <RightPanel />
+          <RightPanel
+            onExport={handleExport}
+            onGenerate={handleGenerate}
+            isExporting={isExporting}
+            isGenerating={isGenerating}
+            isFrontendComplete={isFrontendComplete}
+          />
         </aside>
       </div>
     </div>
