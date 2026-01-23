@@ -123,7 +123,21 @@ const ColorRow: React.FC<{ label: string; value: string; onChange: (v: string) =
 
 // ─── Right Panel ──────────────────────────────────────────────────────────────
 
-export const RightPanel: React.FC = () => {
+interface RightPanelProps {
+    onExport?: () => void;
+    onGenerate?: () => void;
+    isExporting?: boolean;
+    isGenerating?: boolean;
+    isFrontendComplete?: boolean;
+}
+
+export const RightPanel: React.FC<RightPanelProps> = ({
+    onExport,
+    onGenerate,
+    isExporting = false,
+    isGenerating = false,
+    isFrontendComplete = false,
+}) => {
     const { state, dispatch, isWizardMode } = useBuilder();
     // Search recursively so group child fields are also found
     const selectedField = state.selectedFieldId
@@ -221,13 +235,39 @@ export const RightPanel: React.FC = () => {
                         <input className="control-input" value={state.form.submit?.text ?? 'Submit'} onChange={(e) => dispatch({ type: 'UPDATE_FORM', payload: { ...state.form, submit: { ...state.form.submit, text: e.target.value } } })} />
                     </Group>
                 </div>
+
+                {/* ── Pinned export footer ── */}
+                <div className="panel-footer">
+                    {!isFrontendComplete ? (
+                        <button
+                            onClick={onExport}
+                            disabled={isExporting || !onExport}
+                            className="btn-primary"
+                            style={{ width: '100%', justifyContent: 'center', padding: '0.6rem 1rem' }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /></svg>
+                            {isExporting ? 'Exporting…' : 'Export React App'}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={onGenerate}
+                            disabled={isGenerating || !onGenerate}
+                            className="btn-primary"
+                            style={{ width: '100%', justifyContent: 'center', padding: '0.6rem 1rem' }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                            {isGenerating ? 'Generating…' : 'Generate Code'}
+                        </button>
+                    )}
+                </div>
             </div>
         );
     }
 
     // ── Field editor ──────────────────────────────────────────────────────────
 
-    const xui = selectedField.ui?.['x-ui'] ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const xui = (selectedField.ui?.['x-ui'] as any) ?? {};
     const colSpan = xui.colSpan ?? 12;
     const otherFields = state.form.fields.filter((f) => f.id !== selectedField.id);
 
