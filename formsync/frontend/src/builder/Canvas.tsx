@@ -1,62 +1,166 @@
 import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBuilder } from '../context/BuilderContext';
 import { FieldModel } from '../types';
+import { getPlugin } from './plugins/FieldPlugin';
+import { filterVisibleFields, evaluateCalcExpression } from '../lib/conditionEngine';
+
+// ── Register all plugins ───────────────────────────────────────────────────────
+import './plugins/FileFieldPreview';
+import './plugins/RichTextFieldPreview';
+import './plugins/SignatureFieldPreview';
+import './plugins/RepeaterFieldPreview';
+import './plugins/TypeaheadFieldPreview';
+import './plugins/CalculatedFieldPreview';
+
+// ─── Generic Field Mock ───────────────────────────────────────────────────────
+
+const GenericFieldMock: React.FC<{ field: FieldModel }> = ({ field }) => {
+    const base: React.CSSProperties = {
+        width: '100%', border: '1px solid var(--color-border)',
+        borderRadius: 'var(--border-radius)', background: 'var(--color-input-bg)',
+        padding: '0 0.75rem', color: 'var(--color-muted)',
+        fontSize: 'var(--font-size-base)', pointerEvents: 'none',
+    };
+
+    if (field.type === 'checkbox') {
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'none' }}>
+                <input type="checkbox" readOnly style={{ width: 15, height: 15 }} />
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>{field.label}</span>
+            </div>
+        );
+    }
+    if (field.type === 'select') {
+        return (
+            <select disabled style={{ ...base, height: '38px' }}>
+                <option>{field.ui?.placeholder ?? `Select ${field.label}…`}</option>
+                {field.constraints?.enum?.map((opt) => <option key={opt}>{opt}</option>)}
+            </select>
+        );
+    }
+    if (field.type === 'textarea') {
+        return (
+            <textarea
+                readOnly disabled value=""
+                placeholder={field.ui?.placeholder ?? 'Enter text…'}
+                style={{ ...base, minHeight: '80px', padding: '0.5rem 0.75rem', resize: 'vertical' }}
+            />
+        );
+    }
+    return (
+        <input
+            type={field.type === 'password' ? 'password' : field.type === 'date' ? 'date' : 'text'}
+            readOnly disabled
+            placeholder={field.ui?.placeholder ?? `Enter ${field.label.toLowerCase()}…`}
+            style={{ ...base, height: '38px' }}
+        />
+    );
+};
+
+// ─── Field Renderer ───────────────────────────────────────────────────────────
 
 interface FieldRendererProps {
     field: FieldModel;
-    selectedFieldId: string | null;
-    dispatch: any;
-    theme: any;
+    isSelected: boolean;
+    onSelect: () => void;
+    theme: Record<string, string | number>;
+    previewValues: Record<string, unknown>;
 }
 
-const FieldRenderer: React.FC<FieldRendererProps> = ({ field, selectedFieldId, dispatch, theme }) => {
+const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSelect, theme, previewValues }) => {
     const overrides = field.ui?.styleOverrides;
-    const fieldStyles: React.CSSProperties = {
-        marginBottom: '1.5rem',
+    const colSpan = field.ui?.['x-ui']?.colSpan ?? 12;
+    const hasConditions = (field.ui?.['x-conditions']?.rules?.length ?? 0) > 0;
+    const calcValue = field.type === 'calculated' && field['x-calc']
+        ? evaluateCalcExpression(field['x-calc'], previewValues)
+        : undefined;
+
+    const wrapStyle: React.CSSProperties = {
+        gridColumn: `span ${colSpan}`,
+        padding: '0.65rem',
+        border: isSelected ? '2px solid var(--color-primary)' : '2px solid transparent',
+        borderRadius: 'var(--border-radius, 4px)',
+        background: isSelected ? 'rgba(99,102,241,0.04)' : 'transparent',
         cursor: 'pointer',
-        // @ts-ignore - Dynamic CSS variables
-        '--field-label-color': overrides?.labelColor,
-        '--field-input-text-color': overrides?.inputTextColor,
-        '--field-bg-color': overrides?.backgroundColor,
-        '--field-border-color': overrides?.borderColor,
-        '--color-primary': overrides?.focusColor || theme.colors.primary,
+        transition: 'border-color 0.12s',
     };
 
-    const isSelected = selectedFieldId === field.id;
-
+    // Group type
     if (field.type === 'group') {
         return (
             <fieldset
-                key={field.id}
-                className={`field-group ${isSelected ? 'selected' : ''}`}
-                style={{ ...fieldStyles, border: '1px solid var(--color-border)', borderRadius: 'var(--border-radius, 4px)', padding: '1rem' }}
-                onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT_FIELD', payload: field.id }); }}
+                style={{
+                    ...wrapStyle,
+                    border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border, #e5e7eb)',
+                    padding: '1rem', borderRadius: 'var(--border-radius, 4px)',
+                }}
+                onClick={(e) => { e.stopPropagation(); onSelect(); }}
             >
-                <legend style={{ padding: '0 0.5rem', fontWeight: 600, color: overrides?.labelColor || theme.colors.text }}>
+                <legend style={{ padding: '0 0.5rem', fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text)' }}>
                     {field.label}
                 </legend>
-                {field.children?.map(child => (
-                    <FieldRenderer key={child.id} field={child} selectedFieldId={selectedFieldId} dispatch={dispatch} theme={theme} />
-                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '0.65rem' }}>
+                    {field.children?.map((child) => (
+                        <FieldRenderer key={child.id} field={child} isSelected={false} onSelect={() => { }} theme={theme} previewValues={previewValues} />
+                    ))}
+                </div>
             </fieldset>
         );
     }
 
+    const Plugin = getPlugin(field.type);
+    const showCalc = calcValue !== undefined;
+
     return (
-        <div
-            key={field.id}
-            className={`field-item ${isSelected ? 'selected' : ''}`}
-            style={fieldStyles}
-            onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SELECT_FIELD', payload: field.id }); }}
-        >
-            <label className="field-label" style={{ marginBottom: '0.5rem' }}>
-                {field.label} {field.required && <span style={{ color: 'red' }}>*</span>}
-            </label>
-            <div className="field-input-mock" style={{ display: 'flex', alignItems: 'center', padding: '0 0.5rem', color: field.ui?.placeholder ? '#999' : 'transparent', fontStyle: 'italic' }}>
-                {field.ui?.placeholder || 'Input...'}
-            </div>
+        <div style={wrapStyle} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+            {/* Label row */}
+            {field.type !== 'checkbox' && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: overrides?.labelColor || 'var(--color-text)' }}>
+                        {field.label}
+                        {field.required && <span style={{ color: 'var(--color-error)', marginLeft: 2 }}>*</span>}
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                        {colSpan < 12 && (
+                            <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: 8, background: '#e0e7ff', color: '#4338ca', fontWeight: 600 }}>
+                                {colSpan}/12
+                            </span>
+                        )}
+                        {hasConditions && (
+                            <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#92400e', fontWeight: 600 }}>
+                                Conditional
+                            </span>
+                        )}
+                        {field.stepIndex !== undefined && (
+                            <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: 8, background: '#f3f4f6', color: '#6b7280', fontWeight: 600 }}>
+                                S{field.stepIndex + 1}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Input area */}
+            {showCalc ? (
+                <div style={{
+                    display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--border-radius)', background: '#f9fafb',
+                    padding: '0 0.75rem', height: '38px', gap: '0.5rem',
+                }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#6b7280', fontSize: '0.9rem' }}>=</span>
+                    <span style={{ flex: 1, fontSize: '0.875rem', fontFamily: 'monospace', color: '#111827' }}>{calcValue}</span>
+                    <span style={{ fontSize: '0.65rem', padding: '1px 6px', background: '#e5e7eb', borderRadius: 6, color: '#6b7280', fontWeight: 600 }}>Computed</span>
+                </div>
+            ) : Plugin ? (
+                <Plugin field={field} isSelected={isSelected} theme={theme} />
+            ) : (
+                <GenericFieldMock field={field} />
+            )}
+
+            {/* Help text */}
             {field.ui?.helpText && (
-                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                <small style={{ display: 'block', marginTop: '0.3rem', color: 'var(--color-muted)', fontSize: '0.75rem' }}>
                     {field.ui.helpText}
                 </small>
             )}
@@ -64,17 +168,120 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, selectedFieldId, d
     );
 };
 
+// ─── Wizard Step Header ───────────────────────────────────────────────────────
+
+const WizardStepHeader: React.FC<{
+    steps: { id: string; title: string }[];
+    activeStep: number;
+    onStepClick: (i: number) => void;
+}> = ({ steps, activeStep, onStepClick }) => (
+    <div style={{ marginBottom: '2rem' }}>
+        {/* Progress bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '0.75rem' }}>
+            {steps.map((step, i) => (
+                <React.Fragment key={step.id}>
+                    {i > 0 && (
+                        <div style={{
+                            flex: 1, height: 2,
+                            background: i <= activeStep ? 'var(--color-primary)' : '#e5e7eb',
+                            transition: 'background 0.2s',
+                        }} />
+                    )}
+                    <button
+                        onClick={() => onStepClick(i)}
+                        style={{
+                            width: 28, height: 28, borderRadius: '50%', border: 'none',
+                            cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0,
+                            background: i === activeStep ? 'var(--color-primary)' : i < activeStep ? '#10b981' : '#e5e7eb',
+                            color: i <= activeStep ? '#fff' : '#9ca3af',
+                            transition: 'all 0.2s',
+                        }}
+                        title={step.title}
+                    >
+                        {i < activeStep ? '✓' : i + 1}
+                    </button>
+                </React.Fragment>
+            ))}
+        </div>
+        {/* Step label */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Step {activeStep + 1} of {steps.length}
+            </span>
+            <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text)' }}>
+                {steps[activeStep]?.title}
+            </span>
+        </div>
+    </div>
+);
+
+// ─── Live Preview Panel ───────────────────────────────────────────────────────
+
+const PreviewPanel: React.FC<{
+    fields: FieldModel[];
+    values: Record<string, unknown>;
+    onChange: (key: string, val: unknown) => void;
+    onClear: () => void;
+}> = ({ fields, values, onChange, onClear }) => {
+    const previewable = fields.filter(
+        (f) => !['group', 'repeater', 'calculated', 'signature', 'file', 'richtext'].includes(f.type)
+    );
+    if (previewable.length === 0) return null;
+
+    return (
+        <div style={{
+            marginBottom: '1.25rem', padding: '0.75rem', background: '#fffbeb',
+            border: '1px solid #fde68a', borderRadius: 6,
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Preview Values
+                </span>
+                <button
+                    onClick={onClear}
+                    style={{ fontSize: '0.72rem', padding: '2px 8px', border: '1px solid #fde68a', borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#92400e' }}
+                >
+                    Clear
+                </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                {previewable.map((f) => (
+                    <div key={f.id}>
+                        <label style={{ fontSize: '0.68rem', color: '#78350f', display: 'block', marginBottom: 2, fontWeight: 500 }}>{f.label}</label>
+                        {f.type === 'checkbox' ? (
+                            <input type="checkbox" checked={!!values[f.key]} onChange={(e) => onChange(f.key, e.target.checked)} />
+                        ) : f.constraints?.enum ? (
+                            <select value={String(values[f.key] ?? '')} onChange={(e) => onChange(f.key, e.target.value)}
+                                style={{ width: '100%', fontSize: '0.78rem', padding: '2px 4px', border: '1px solid #fde68a', borderRadius: 3 }}>
+                                <option value="">—</option>
+                                {f.constraints.enum.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                        ) : (
+                            <input
+                                type={f.type === 'number' ? 'number' : 'text'}
+                                value={String(values[f.key] ?? '')}
+                                onChange={(e) => onChange(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
+                                style={{ width: '100%', fontSize: '0.78rem', padding: '2px 6px', border: '1px solid #fde68a', borderRadius: 3 }}
+                            />
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// ─── Canvas ───────────────────────────────────────────────────────────────────
+
 export const Canvas: React.FC = () => {
-    const { state, dispatch } = useBuilder();
-    const { form, selectedFieldId } = state;
+    const { state, dispatch, isWizardMode, stepCount } = useBuilder();
+    const { form, selectedFieldId, activeStep, previewValues } = state;
 
-    const orderedFields = form.layout.order
-        .map(id => form.fields.find(f => f.id === id))
-        .filter((f): f is FieldModel => !!f);
+    const [showPreview, setShowPreview] = React.useState(false);
 
-    const densityMap: Record<string, string> = { compact: '8px', normal: '12px', comfortable: '16px' };
+    const densityGap: Record<string, string> = { compact: '0.5rem', normal: '0.75rem', comfortable: '1.25rem' };
 
-    const themeStyles = {
+    const themeVars = {
         '--color-primary': form.theme.colors.primary,
         '--color-bg': form.theme.colors.background,
         '--color-surface': form.theme.colors.surface,
@@ -84,30 +291,125 @@ export const Canvas: React.FC = () => {
         '--color-error': form.theme.colors.error,
         '--color-input-bg': form.theme.colors.inputBackground,
         '--border-radius': `${form.theme.radius}px`,
-        '--spacing-unit': densityMap[form.theme.density] || '12px',
         '--font-family': form.theme.typography.fontFamily,
         '--font-size-base': `${form.theme.typography.baseFontSize}px`,
     } as React.CSSProperties;
 
+    const orderedFields = form.layout.order
+        .map((id) => form.fields.find((f) => f.id === id))
+        .filter((f): f is FieldModel => !!f);
+
+    const visibleFields = filterVisibleFields(orderedFields, previewValues, isWizardMode ? activeStep : undefined);
+
+    const setPreviewValue = (key: string, value: unknown) =>
+        dispatch({ type: 'SET_PREVIEW_VALUE', payload: { key, value } });
+
     return (
         <div className="canvas-area" onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}>
-            <div className="form-preview" style={themeStyles} onClick={(e) => e.stopPropagation()}>
-                <h1 className="form-title">{form.meta?.title || form.name}</h1>
-                {form.meta?.description && (
-                    <p className="text-muted" style={{ marginBottom: '2rem' }}>{form.meta.description}</p>
+            <div className="form-preview" style={themeVars} onClick={(e) => e.stopPropagation()}>
+
+                {/* Toolbar: live preview toggle */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)', fontWeight: 500 }}>Live preview</span>
+                    <button
+                        onClick={() => setShowPreview((v) => !v)}
+                        style={{
+                            fontSize: '0.72rem', padding: '3px 10px', border: '1px solid',
+                            borderColor: showPreview ? '#6366f1' : '#d1d5db', borderRadius: 12,
+                            cursor: 'pointer',
+                            background: showPreview ? '#eef2ff' : '#f9fafb',
+                            color: showPreview ? '#4338ca' : '#64748b', fontWeight: 500,
+                        }}
+                    >
+                        {showPreview ? 'On' : 'Off'}
+                    </button>
+                </div>
+
+                {showPreview && (
+                    <PreviewPanel fields={orderedFields} values={previewValues} onChange={setPreviewValue} onClear={() => dispatch({ type: 'CLEAR_PREVIEW_VALUES' })} />
                 )}
-                {orderedFields.map((field) => (
-                    <FieldRenderer key={field.id} field={field} selectedFieldId={selectedFieldId} dispatch={dispatch} theme={form.theme} />
-                ))}
-                {orderedFields.length === 0 && (
-                    <div className="text-muted" style={{ textAlign: 'center', padding: '4rem', border: '2px dashed #eee' }}>
-                        Form is empty.
+
+                {/* Form header */}
+                <h1 className="form-title" style={{ marginBottom: form.meta?.description ? '0.25rem' : '2rem' }}>
+                    {form.meta?.title ?? form.name}
+                </h1>
+                {form.meta?.description && (
+                    <p className="text-muted" style={{ marginBottom: '2rem', fontSize: '0.875rem' }}>{form.meta.description}</p>
+                )}
+
+                {/* Wizard step header */}
+                {isWizardMode && form.layout.steps && form.layout.steps.length > 0 && (
+                    <WizardStepHeader
+                        steps={form.layout.steps}
+                        activeStep={activeStep}
+                        onStepClick={(i) => dispatch({ type: 'SET_STEP', payload: i })}
+                    />
+                )}
+
+                {/* Field grid */}
+                {visibleFields.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: densityGap[form.theme.density] ?? '0.75rem' }}>
+                        {visibleFields.map((field) => (
+                            <FieldRenderer
+                                key={field.id}
+                                field={field}
+                                isSelected={selectedFieldId === field.id}
+                                onSelect={() => dispatch({ type: 'SELECT_FIELD', payload: field.id })}
+                                theme={themeVars as Record<string, string | number>}
+                                previewValues={previewValues}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{
+                        textAlign: 'center', padding: '3rem',
+                        border: '1px dashed #e5e7eb', borderRadius: 8, color: '#94a3b8', fontSize: '0.875rem',
+                    }}>
+                        {isWizardMode
+                            ? `No fields assigned to "${form.layout.steps?.[activeStep]?.title ?? `Step ${activeStep + 1}`}" — select a field and set its step in the properties panel.`
+                            : 'Add fields from the palette on the left.'}
                     </div>
                 )}
-                <div style={{ marginTop: '2rem' }}>
-                    <button style={{ width: '100%', padding: 'calc(var(--spacing-unit, 12px) * 1.25)', backgroundColor: form.submit?.color || 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 'var(--border-radius, 4px)', fontSize: '1rem', fontWeight: 500, cursor: 'pointer' }}>
-                        {form.submit?.text || 'Submit'}
-                    </button>
+
+                {/* Footer nav */}
+                <div style={{ marginTop: '2rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {isWizardMode && activeStep > 0 && (
+                        <button
+                            onClick={() => dispatch({ type: 'SET_STEP', payload: activeStep - 1 })}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                                padding: '0.6rem 1.25rem', background: 'var(--color-surface)',
+                                color: 'var(--color-text)', border: '1px solid var(--color-border)',
+                                borderRadius: 'var(--border-radius)', fontSize: '0.875rem', cursor: 'pointer',
+                            }}
+                        >
+                            <ChevronLeft size={15} /> Previous
+                        </button>
+                    )}
+                    {isWizardMode && activeStep < stepCount - 1 ? (
+                        <button
+                            onClick={() => dispatch({ type: 'SET_STEP', payload: activeStep + 1 })}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                                padding: '0.6rem 1.25rem', background: 'var(--color-primary)',
+                                color: '#fff', border: 'none', borderRadius: 'var(--border-radius)',
+                                fontSize: '0.875rem', cursor: 'pointer',
+                            }}
+                        >
+                            Next <ChevronRight size={15} />
+                        </button>
+                    ) : (
+                        <button
+                            style={{
+                                padding: '0.6rem 1.75rem',
+                                background: form.submit?.color ?? 'var(--color-primary)',
+                                color: '#fff', border: 'none', borderRadius: 'var(--border-radius)',
+                                fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            {form.submit?.text ?? 'Submit'}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
