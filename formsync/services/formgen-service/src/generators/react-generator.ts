@@ -65,114 +65,100 @@ export default App;
 
 /**
  * Generate JSX for a single field.
- * Handles different field types and applies style overrides.
+ * Handles different field types and applies style overrides as CSS custom properties.
+ *
+ * Design:
+ *  - Style overrides become CSS vars scoped to the field wrapper (--field-label-color etc.)
+ *  - A buildStyle() helper merges layout props + override vars into ONE style={} attribute
+ *    to avoid the invalid-JSX duplicate-style-attribute pitfall.
+ *  - Only non-empty override values emit a CSS var entry (no empty strings polluting styles).
  */
 function generateFieldComponent(field: FieldModel, theme: any): string {
   const { id, key, type, label, required, ui } = field;
   const placeholder = ui?.placeholder || '';
   const helpText = ui?.helpText;
-  const overrides = ui?.styleOverrides;
+  const overrides = ui?.styleOverrides as Record<string, string> | undefined;
 
-  // Build style object if there are overrides
-  const hasStyleOverrides = overrides && Object.keys(overrides).length > 0;
-  const styleObject = hasStyleOverrides ? `
-          '--field-label-color': '${overrides.labelColor || ''}',
-          '--field-input-text-color': '${overrides.inputTextColor || ''}',
-          '--field-bg-color': '${overrides.backgroundColor || ''}',
-          '--field-border-color': '${overrides.borderColor || ''}',
-          '--color-primary': '${overrides.focusColor || theme.colors.primary}',
-        `.trim() : '';
+  // Collect per-field CSS custom property entries (only truthy values)
+  const overrideVars: string[] = overrides
+    ? [
+      overrides.labelColor && `'--field-label-color': '${overrides.labelColor}'`,
+      overrides.inputTextColor && `'--field-input-text-color': '${overrides.inputTextColor}'`,
+      overrides.backgroundColor && `'--field-bg-color': '${overrides.backgroundColor}'`,
+      overrides.borderColor && `'--field-border-color': '${overrides.borderColor}'`,
+      overrides.focusColor && `'--color-primary': '${overrides.focusColor}'`,
+    ].filter(Boolean) as string[]
+    : [];
 
-  const fieldStyle = hasStyleOverrides ? `style={{ ${styleObject} } as React.CSSProperties}` : '';
+  /**
+   * Build a single style={{...}} attribute string that merges:
+   *  - Any extra layout properties (border, padding, display, …)
+   *  - The per-field CSS custom property overrides
+   * Returns an empty string when there is nothing to emit.
+   */
+  const buildStyle = (extra: string[] = []): string => {
+    const all = [...extra, ...overrideVars];
+    return all.length > 0
+      ? `style={{ ${all.join(', ')} } as React.CSSProperties}`
+      : '';
+  };
 
+  // ── group ──────────────────────────────────────────────────────────────────
   if (type === 'group') {
     const children = field.children || [];
-    const childComponents = children.map(child => generateFieldComponent(child, theme)).join('\n');
-    const groupStyle = [
-      'border: "1px solid #e5e7eb"',
-      'borderRadius: "4px"',
-      'padding: "1rem"',
-      'marginBottom: "1.5rem"',
-      ...(hasStyleOverrides ? [
-        `'--field-label-color': '${overrides?.labelColor || ''}'`,
-        `'--field-input-text-color': '${overrides?.inputTextColor || ''}'`,
-        `'--field-bg-color': '${overrides?.backgroundColor || ''}'`,
-        `'--field-border-color': '${overrides?.borderColor || ''}'`,
-      ] : [])
-    ].join(', ');
-
-    return `<fieldset className="field-group" style={{ ${groupStyle} }}>
+    const childComponents = children
+      .map(child => generateFieldComponent(child, theme))
+      .join('\n');
+    const groupExtra = [
+      `border: '1px solid #e5e7eb'`,
+      `borderRadius: '4px'`,
+      `padding: '1rem'`,
+      `marginBottom: '1.5rem'`,
+    ];
+    return `<fieldset className="field-group" ${buildStyle(groupExtra)}>
           <legend className="field-legend" style={{ padding: '0 0.5rem', fontWeight: 600 }}>${escapeHtml(label)}</legend>
           ${childComponents}
         </fieldset>`;
   }
 
-  // Generate input element based on field type
+  // ── input element ──────────────────────────────────────────────────────────
   let inputElement: string;
-
   switch (type) {
     case 'textarea':
-      inputElement = `<textarea
-            name="${key}"
-            id="${id}"
-            className="field-input"
-            placeholder="${escapeHtml(placeholder)}"
-            ${required ? 'required' : ''}
-          />`;
+      inputElement = `<textarea name="${key}" id="${id}" className="field-input" placeholder="${escapeHtml(placeholder)}" ${required ? 'required' : ''}></textarea>`;
       break;
-
-    case 'select':
+    case 'select': {
       const options = field.constraints?.enum || [];
-      inputElement = `<select
-            name="${key}"
-            id="${id}"
-            className="field-input"
-            ${required ? 'required' : ''}
-          >
+      inputElement = `<select name="${key}" id="${id}" className="field-input" ${required ? 'required' : ''}>
             <option value="">${escapeHtml(placeholder) || 'Select...'}</option>
-            ${options.map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('\n            ')}
+            ${options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('\n            ')}
           </select>`;
       break;
-
+    }
     case 'checkbox':
-      inputElement = `<input
-            type="checkbox"
-            name="${key}"
-            id="${id}"
-            className="field-input"
-            style={{ width: 'auto', marginRight: '0.5rem' }}
-          />`;
+      inputElement = `<input type="checkbox" name="${key}" id="${id}" className="field-input" />`;
       break;
-
     default:
       // text, email, password, number, date
-      inputElement = `<input
-            type="${type}"
-            name="${key}"
-            id="${id}"
-            className="field-input"
-            placeholder="${escapeHtml(placeholder)}"
-            ${required ? 'required' : ''}
-          />`;
+      inputElement = `<input type="${type}" name="${key}" id="${id}" className="field-input" placeholder="${escapeHtml(placeholder)}" ${required ? 'required' : ''} />`;
   }
 
-  const isCheckbox = type === 'checkbox';
-
-  if (isCheckbox) {
-    return `        <div className="field-item checkbox-item" ${fieldStyle} style={{ display: 'flex', alignItems: 'center' }}>
-           ${inputElement}
-           <label htmlFor="${id}" className="field-label" style={{ marginBottom: 0 }}>
-             ${escapeHtml(label)}
-             ${required ? '<span className="required">*</span>' : ''}
-           </label>
-           ${helpText ? `<small className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
-         </div>`;
+  // ── checkbox wrapper ───────────────────────────────────────────────────────
+  if (type === 'checkbox') {
+    const checkboxExtra = [`display: 'flex'`, `alignItems: 'center'`];
+    return `<div className="field-item checkbox-item" ${buildStyle(checkboxExtra)}>
+          ${inputElement}
+          <label htmlFor="${id}" className="field-label" style={{ marginBottom: 0 }}>
+            ${escapeHtml(label)}${required ? '<span className="required">*</span>' : ''}
+          </label>
+          ${helpText ? `<small className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
+        </div>`;
   }
 
-  return `        <div className="field-item" ${fieldStyle}>
+  // ── standard field wrapper ─────────────────────────────────────────────────
+  return `<div className="field-item" ${buildStyle()}>
           <label htmlFor="${id}" className="field-label">
-            ${escapeHtml(label)}
-            ${required ? '<span className="required">*</span>' : ''}
+            ${escapeHtml(label)}${required ? '<span className="required">*</span>' : ''}
           </label>
           ${inputElement}
           ${helpText ? `<small className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
