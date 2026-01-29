@@ -79,130 +79,78 @@ export const WizardControls: React.FC = () => {
         setSteps(steps.map((s) => (s.id === id ? { ...s, title } : s)));
     };
 
-    // ── Disabled state ──────────────────────────────────────────────────────────
+    // ─── Disabled (collapsed) state ────────────────────────────────────────────
     if (!isWizardMode) {
         return (
-            <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                margin: '0.5rem 0.75rem', padding: '0.45rem 0.75rem',
-                border: '1px solid #e2e8f0', borderRadius: 8,
-                background: '#f8fafc',
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <Layers size={13} strokeWidth={2} color="#94a3b8" />
-                    <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>Multi-step Wizard</span>
+            <div className="wc-bar">
+                <div className="wc-bar-left">
+                    <Layers size={14} strokeWidth={1.75} className="wc-bar-icon" />
+                    <span className="wc-bar-label">Multi-step Wizard</span>
                 </div>
-                <button
-                    onClick={handleEnable}
-                    style={{
-                        fontSize: '0.72rem', padding: '3px 11px',
-                        border: '1px solid #6366f1', borderRadius: 6,
-                        background: '#eff6ff', color: '#4338ca', cursor: 'pointer', fontWeight: 600,
-                        fontFamily: 'inherit',
-                    }}
-                >
-                    Enable
-                </button>
+                <button className="wc-btn-enable" onClick={handleEnable}>Enable</button>
             </div>
         );
     }
 
-    // ── Enabled state ───────────────────────────────────────────────────────────
+    // ─── Enabled state ──────────────────────────────────────────────────────────
     return (
-        <div style={{
-            margin: '0.5rem 0.75rem',
-            border: '1px solid #c7d2fe', borderRadius: 8,
-            background: '#f5f3ff', overflow: 'hidden',
-        }}>
-            {/* Header */}
-            <div
-                style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.45rem 0.75rem', cursor: 'pointer',
-                    borderBottom: expanded ? '1px solid #c7d2fe' : 'none',
-                    background: '#ede9fe',
-                }}
-                onClick={() => setExpanded((v) => !v)}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <Layers size={13} strokeWidth={2} color="#6366f1" />
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3730a3' }}>
-                        Wizard — {stepCount} steps
-                    </span>
-                    <span style={{
-                        fontSize: '0.6rem', padding: '1px 6px', borderRadius: 8,
-                        background: '#6366f1', color: '#fff', fontWeight: 700, letterSpacing: '0.03em',
-                    }}>
-                        ON
-                    </span>
+        <div className="wc-root">
+            {/* Summary row — always visible */}
+            <div className="wc-summary" onClick={() => setExpanded((v) => !v)}>
+                <div className="wc-summary-left">
+                    <Layers size={14} strokeWidth={1.75} className="wc-summary-icon" />
+                    <span className="wc-summary-title">Wizard</span>
+                    <span className="wc-badge">{stepCount} steps</span>
+                    <span className="wc-on-badge">ON</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <div className="wc-summary-right">
                     <button
+                        className="wc-btn-disable"
                         onClick={(e) => { e.stopPropagation(); handleDisable(); }}
-                        style={{
-                            fontSize: '0.7rem', padding: '2px 8px',
-                            border: '1px solid #e2e8f0', borderRadius: 5,
-                            background: '#fff', color: '#64748b', cursor: 'pointer', fontFamily: 'inherit',
-                        }}
                     >
                         Disable
                     </button>
-                    {expanded ? <ChevronUp size={13} color="#64748b" /> : <ChevronDown size={13} color="#64748b" />}
+                    {expanded
+                        ? <ChevronUp size={13} className="wc-chevron" />
+                        : <ChevronDown size={13} className="wc-chevron" />}
                 </div>
             </div>
 
-            {/* Step list */}
+            {/* Step list — visible when expanded */}
             {expanded && (
-                <div style={{ padding: '0.45rem 0.75rem' }}>
+                <div className="wc-steps">
                     {steps.map((step, i) => {
                         const fieldCount = state.form.fields.filter((f) => f.stepIndex === i).length;
                         const isActive = state.activeStep === i;
                         return (
                             <div
                                 key={step.id}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                    padding: '0.35rem 0.5rem', marginBottom: '0.25rem', borderRadius: 6,
-                                    border: `1px solid ${isActive ? '#a5b4fc' : '#e2e8f0'}`,
-                                    background: isActive ? '#eff6ff' : '#fff',
-                                    cursor: 'pointer', transition: 'all 0.1s',
-                                }}
+                                className={`wc-step-row ${isActive ? 'wc-step-row--active' : ''}`}
                                 onClick={() => dispatch({ type: 'SET_STEP', payload: i })}
                             >
-                                <span style={{
-                                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                                    background: isActive ? '#6366f1' : '#e2e8f0',
-                                    color: isActive ? '#fff' : '#64748b',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '0.65rem', fontWeight: 700,
-                                }}>
+                                {/* Step number badge — circle */}
+                                <div className={`wc-step-num ${isActive ? 'wc-step-num--active' : ''}`}>
                                     {i + 1}
-                                </span>
+                                </div>
 
+                                {/* Editable step title */}
                                 <input
+                                    className="wc-step-input"
                                     value={step.title}
                                     onChange={(e) => { e.stopPropagation(); renameStep(step.id, e.target.value); }}
                                     onClick={(e) => e.stopPropagation()}
-                                    style={{
-                                        flex: 1, border: 'none', background: 'transparent',
-                                        fontSize: '0.78rem', fontWeight: isActive ? 600 : 400,
-                                        color: isActive ? '#3730a3' : '#374151', outline: 'none', fontFamily: 'inherit',
-                                    }}
                                 />
 
-                                <span style={{ fontSize: '0.65rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                                {/* Field count */}
+                                <span className="wc-step-count">
                                     {fieldCount} {fieldCount !== 1 ? 'fields' : 'field'}
                                 </span>
 
+                                {/* Remove button */}
                                 {steps.length > 1 && (
                                     <button
+                                        className="wc-step-remove"
                                         onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}
-                                        style={{
-                                            padding: '2px', border: 'none', background: 'transparent',
-                                            color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.color = '#cbd5e1'; }}
                                     >
                                         <Trash2 size={11} strokeWidth={2} />
                                     </button>
@@ -211,17 +159,8 @@ export const WizardControls: React.FC = () => {
                         );
                     })}
 
-                    <button
-                        onClick={addStep}
-                        style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                            width: '100%', padding: '0.3rem', marginTop: '0.2rem',
-                            border: '1px dashed #c7d2fe', borderRadius: 6,
-                            background: 'transparent', color: '#6366f1',
-                            cursor: 'pointer', fontSize: '0.75rem', fontWeight: 500, fontFamily: 'inherit',
-                        }}
-                    >
-                        <Plus size={11} />
+                    <button className="wc-add-step" onClick={addStep}>
+                        <Plus size={12} />
                         Add step
                     </button>
                 </div>

@@ -15,7 +15,7 @@ export const BuilderLayout: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  type Stage = { name: string; status: 'pending' | 'loading' | 'complete' | 'error' };
+  type Stage = { name: string; status: "pending" | "loading" | "complete" | "error" };
 
   const [stages, setStages] = useState<Stage[]>([
     { name: "Enter Schema", status: "complete" },
@@ -31,9 +31,8 @@ export const BuilderLayout: React.FC = () => {
   const isFrontendComplete =
     stages.find((s) => s.name === "Frontend Generation")?.status === "complete";
 
-  const markStage = (name: string, status: Stage['status']) =>
-    setStages((prev) => prev.map((s) => s.name === name ? { ...s, status } : s));
-  void markStage; // used in export/generate handlers below
+  const markStage = (name: string, status: Stage["status"]) =>
+    setStages((prev) => prev.map((s) => (s.name === name ? { ...s, status } : s)));
 
   const handleExport = async () => {
     try {
@@ -52,22 +51,17 @@ export const BuilderLayout: React.FC = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const genStageNames = ["Backend Generation", "DTO Generation"];
-      for (const name of genStageNames) {
+      for (const name of ["Backend Generation", "DTO Generation"]) {
         markStage(name, "loading");
         await new Promise((r) => setTimeout(r, 600));
         markStage(name, "complete");
       }
       markStage("Frontend Generation", "complete");
-      const dest = state.schemaId
-        ? `/generated?schemaId=${state.schemaId}`
-        : "/generated";
+      const dest = state.schemaId ? `/generated?schemaId=${state.schemaId}` : "/generated";
       window.location.href = dest;
     } catch {
       alert("Generation failed. Please try again.");
-      setStages((prev) =>
-        prev.map((s, idx) => (idx >= 5 ? { ...s, status: "error" } : s)),
-      );
+      setStages((prev) => prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)));
     } finally {
       setIsGenerating(false);
     }
@@ -75,47 +69,50 @@ export const BuilderLayout: React.FC = () => {
 
   return (
     <div className="builder-root">
-      {/* ── Shared Navbar (identical to the editor page) ── */}
+      {/* ── Shared navbar ── */}
       <Navbar />
 
-      {/* ── Progress stepper sub-bar — full width, properly padded ── */}
-      <div className="builder-stepper-bar">
-        <FlowDiagram stages={stages} />
-      </div>
-
-      {/* ── 3-col body ── */}
+      {/* ── Main 3-col body — panels flush to navbar ── */}
       <div className="builder-body">
-        {/* Left palette panel */}
+
+        {/* ── Left: field palette ── */}
         <aside className="builder-sidebar builder-sidebar--left">
           <LeftPanel />
         </aside>
 
-        {/* Center: workspace toolbar → wizard bar → canvas */}
+        {/* ── Center: stepper → wizard bar → canvas ── */}
         <main className="builder-canvas-col">
-          {/* Workspace toolbar: Undo lives here, close to the canvas */}
-          <div className="canvas-toolbar">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => dispatch({ type: "UNDO" })}
-              disabled={!canUndo}
-              className="gap-1.5 text-neutral-500 h-8 px-3 text-xs"
-              title="Undo last change"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              Undo
-            </Button>
+
+          {/* Progress stepper — contained in canvas column */}
+          <div className="canvas-stepper">
+            <FlowDiagram stages={stages} />
           </div>
 
-          <div className="wizard-bar">
+          {/* Wizard controls + Undo on the same bar */}
+          <div className="canvas-toolbar">
             <WizardControls />
+            <div className="canvas-toolbar-actions">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => dispatch({ type: "UNDO" })}
+                disabled={!canUndo}
+                className="gap-1.5 text-neutral-500 h-7 px-2.5 text-xs"
+                title="Undo"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+                Undo
+              </Button>
+            </div>
           </div>
+
+          {/* Scrollable form canvas */}
           <div className="canvas-wrapper">
             <Canvas />
           </div>
         </main>
 
-        {/* Right properties / theme panel */}
+        {/* ── Right: theme / field settings ── */}
         <aside className="builder-sidebar builder-sidebar--right">
           <RightPanel
             onExport={handleExport}
