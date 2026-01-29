@@ -52,7 +52,7 @@ const ConditionBuilder: React.FC<{
     const rules = conditions?.rules ?? [];
 
     const addRule = () =>
-        onChange({ rules: [...rules, { fieldKey: fields[0]?.key ?? '', operator: 'eq', value: '' }] });
+        onChange({ rules: [...rules, { fieldKey: fields[0]?.key ?? '', operator: 'notEmpty' as ConditionOperator }] });
 
     const removeRule = (i: number) => {
         const next = rules.filter((_, idx) => idx !== i);
