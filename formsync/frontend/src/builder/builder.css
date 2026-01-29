@@ -566,7 +566,7 @@
 /* ── Canvas area ──────────────────────────────────────────── */
 
 .canvas-area {
-  background: #f1f5f9;
+  background: var(--color-bg, #f1f5f9);
   padding: 2rem;
   display: flex;
   justify-content: center;
@@ -589,7 +589,7 @@
 }
 
 .form-preview {
-  background: var(--color-bg, #fff);
+  background: var(--color-surface, #fff);
   color: var(--color-text, #111);
   border: 1px solid #e2e8f0;
   width: 100%;

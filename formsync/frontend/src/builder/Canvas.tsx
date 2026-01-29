@@ -360,7 +360,14 @@ export const Canvas: React.FC = () => {
         .map((id) => form.fields.find((f) => f.id === id))
         .filter((f): f is FieldModel => !!f);
 
-    const visibleFields = filterVisibleFields(orderedFields, previewValues, isWizardMode ? activeStep : undefined);
+    // In builder mode: never hide fields by condition — always show everything so designers
+    // can see and configure conditional fields. Conditions only evaluate in Live Preview
+    // (or in the generated/exported form).
+    const visibleFields = showPreview
+        ? filterVisibleFields(orderedFields, previewValues, isWizardMode ? activeStep : undefined)
+        : isWizardMode
+            ? orderedFields.filter((f) => f.stepIndex === undefined || f.stepIndex === activeStep)
+            : orderedFields;
 
     const setPreviewValue = (key: string, value: unknown) =>
         dispatch({ type: 'SET_PREVIEW_VALUE', payload: { key, value } });

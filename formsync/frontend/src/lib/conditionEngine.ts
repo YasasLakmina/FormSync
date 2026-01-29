@@ -38,10 +38,10 @@ function evaluateRule(rule: ConditionRule, values: FormValues): boolean {
             return rawValue !== undefined && rawValue !== null && rawValue !== '' && rawValue !== false;
 
         case 'eq':
-            return coerce(rawValue, 'eq') === coerce(rule.value, 'eq');
+            return coerce(rawValue ?? '', 'eq') === coerce(rule.value ?? '', 'eq');
 
         case 'neq':
-            return coerce(rawValue, 'neq') !== coerce(rule.value, 'neq');
+            return coerce(rawValue ?? '', 'neq') !== coerce(rule.value ?? '', 'neq');
 
         case 'gt':
             return (coerce(rawValue, 'gt') as number) > (coerce(rule.value, 'gt') as number);
