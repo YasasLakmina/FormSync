@@ -13,18 +13,70 @@ import { FormModel, FieldModel } from '../types';
 export function generateAppTsx(formModel: FormModel): string {
   const { fields, layout, theme, meta, submit } = formModel;
 
-  // Get fields in correct order
+  // Get top-level fields in layout order
   const orderedFields = layout.order
     .map(id => fields.find(f => f.id === id))
     .filter((f): f is FieldModel => !!f);
-
-  const fieldComponents = orderedFields.map(field => generateFieldComponent(field, theme)).join('\n\n');
 
   const hasFields = orderedFields.length > 0;
   const title = meta?.title || formModel.name;
   const description = meta?.description;
   const submitText = submit?.text || 'Submit';
   const submitColor = submit?.color;
+
+  // Build the form body — grouped into step sections when wizard mode is on
+  let formBody: string;
+  if (hasFields && layout.steps && layout.steps.length > 0) {
+    // Render each wizard step as a <section> with a heading
+    const sections = layout.steps.map((step, stepIdx) => {
+      // Fields for this step: either assigned to this step OR unassigned (stepIndex === undefined)
+      const stepFields = orderedFields.filter(
+        f => f.stepIndex === stepIdx || f.stepIndex === undefined
+      );
+      const fieldComponents = stepFields
+        .map(f => generateFieldComponent(f, theme))
+        .join('\n\n');
+      return `<section className="form-section">
+          <h2 className="section-title">
+            <span className="section-number">${stepIdx + 1}</span>
+            ${escapeHtml(step.title)}
+          </h2>
+          <div className="section-fields">
+            ${fieldComponents}
+          </div>
+        </section>`;
+    }).join('\n\n        ');
+
+    formBody = `<form onSubmit={handleSubmit}>
+        ${sections}
+
+        <button
+          type="submit"
+          className="submit-button"
+          ${submitColor ? `style={{ '--submit-bg-color': '${submitColor}' } as React.CSSProperties}` : ''}
+        >
+          ${escapeHtml(submitText)}
+        </button>
+      </form>`;
+  } else if (hasFields) {
+    // Flat form — no wizard steps
+    const fieldComponents = orderedFields
+      .map(f => generateFieldComponent(f, theme))
+      .join('\n\n');
+    formBody = `<form onSubmit={handleSubmit}>
+        ${fieldComponents}
+
+        <button
+          type="submit"
+          className="submit-button"
+          ${submitColor ? `style={{ '--submit-bg-color': '${submitColor}' } as React.CSSProperties}` : ''}
+        >
+          ${escapeHtml(submitText)}
+        </button>
+      </form>`;
+  } else {
+    formBody = `<div className="empty-state">Form is empty.</div>`;
+  }
 
   return `import React, { FormEvent } from 'react';
 
@@ -42,19 +94,7 @@ function App() {
       <h1 className="form-title">${escapeHtml(title)}</h1>
       ${description ? `<p className="form-description">${escapeHtml(description)}</p>` : ''}
 
-      ${hasFields ? `<form onSubmit={handleSubmit}>
-        ${fieldComponents}
-
-        <button 
-          type="submit" 
-          className="submit-button"
-          ${submitColor ? `style={{ '--submit-bg-color': '${submitColor}' } as React.CSSProperties}` : ''}
-        >
-          ${escapeHtml(submitText)}
-        </button>
-      </form>` : `<div className="empty-state">
-          Form is empty.
-        </div>`}
+      ${formBody}
     </div>
   );
 }
@@ -62,6 +102,7 @@ function App() {
 export default App;
 `;
 }
+
 
 /**
  * Generate JSX for a single field.
