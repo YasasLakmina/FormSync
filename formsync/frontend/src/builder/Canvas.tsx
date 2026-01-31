@@ -13,21 +13,23 @@ import './plugins/RepeaterFieldPreview';
 import './plugins/TypeaheadFieldPreview';
 import './plugins/CalculatedFieldPreview';
 
-// ─── Generic Field Mock ───────────────────────────────────────────────────────
+// ─── Generic Field Mock (builder preview + live interactive) ─────────────────
 
 type StyleOverrides = Record<string, string>;
 
-const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides }> = ({ field, overrides }) => {
-    // Unique selector used to scope placeholder + focus-ring styles per field
+const GenericFieldMock: React.FC<{
+    field: FieldModel;
+    overrides?: StyleOverrides;
+    /** When set, the field is interactive (Live Preview mode) */
+    liveValue?: unknown;
+    onLiveChange?: (val: unknown) => void;
+}> = ({ field, overrides, liveValue, onLiveChange }) => {
+    const isLive = !!onLiveChange;
     const scopeId = `fm-${field.id}`;
 
     const inputTextColor = overrides?.inputTextColor ?? 'var(--color-muted)';
     const borderColor = overrides?.borderColor ?? 'var(--color-border)';
     const bgColor = overrides?.backgroundColor ?? 'var(--color-input-bg)';
-    // Focus ring: since inputs are disabled, :focus never fires in the builder.
-    // Use the "white gap + outer ring" pattern so the focus ring is visually
-    // distinct from the border (border = edge of the field; ring = outside it).
-    // The 2px white shadow creates a gap between the border and the ring.
     const focusRing = overrides?.focusColor
         ? `0 0 0 2px white, 0 0 0 4px ${overrides.focusColor}`
         : undefined;
@@ -40,58 +42,71 @@ const GenericFieldMock: React.FC<{ field: FieldModel; overrides?: StyleOverrides
         padding: '0 0.75rem',
         color: inputTextColor,
         fontSize: 'var(--font-size-base)',
-        pointerEvents: 'none',
         outline: 'none',
         boxSizing: 'border-box',
         boxShadow: focusRing,
+        // Only lock pointer events in static builder mode
+        pointerEvents: isLive ? 'auto' : 'none',
     };
 
-    // Inject a scoped <style> so ::placeholder picks up the text color.
-    // Inline `color:` on a disabled input does NOT affect placeholder text.
     const placeholderStyle = overrides?.inputTextColor
-        ? `#${scopeId} input::placeholder, #${scopeId} textarea::placeholder, #${scopeId} select { color: ${overrides.inputTextColor} !important; opacity: 1; }`
+        ? `#${scopeId} input::placeholder, #${scopeId} textarea::placeholder { color: ${overrides.inputTextColor} !important; opacity: 1; }`
         : null;
 
     if (field.type === 'checkbox') {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'none' }}>
-                <input type="checkbox" readOnly style={{ width: 15, height: 15 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: isLive ? 'auto' : 'none' }}>
+                <input
+                    type="checkbox"
+                    checked={isLive ? !!liveValue : false}
+                    readOnly={!isLive}
+                    onChange={isLive ? (e) => onLiveChange!(e.target.checked) : undefined}
+                    style={{ width: 15, height: 15 }}
+                />
                 <span style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>{field.label}</span>
             </div>
         );
     }
 
-    const wrapId = scopeId;
     if (field.type === 'select') {
         return (
-            <div id={wrapId}>
+            <div id={scopeId}>
                 {placeholderStyle && <style>{placeholderStyle}</style>}
-                <select disabled style={{ ...base, height: '38px', width: '100%' }}>
-                    <option>{field.ui?.placeholder ?? `Select ${field.label}…`}</option>
-                    {field.constraints?.enum?.map((opt) => <option key={opt}>{opt}</option>)}
+                <select
+                    disabled={!isLive}
+                    value={isLive ? String(liveValue ?? '') : undefined}
+                    onChange={isLive ? (e) => onLiveChange!(e.target.value) : undefined}
+                    style={{ ...base, height: '38px', width: '100%' }}
+                >
+                    <option value="">{field.ui?.placeholder ?? `Select ${field.label}…`}</option>
+                    {field.constraints?.enum?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
             </div>
         );
     }
     if (field.type === 'textarea') {
         return (
-            <div id={wrapId}>
+            <div id={scopeId}>
                 {placeholderStyle && <style>{placeholderStyle}</style>}
                 <textarea
-                    readOnly disabled value=""
+                    readOnly={!isLive} disabled={!isLive}
+                    value={isLive ? String(liveValue ?? '') : ''}
                     placeholder={field.ui?.placeholder ?? 'Enter text…'}
+                    onChange={isLive ? (e) => onLiveChange!(e.target.value) : undefined}
                     style={{ ...base, minHeight: '80px', padding: '0.5rem 0.75rem', resize: 'vertical', width: '100%' }}
                 />
             </div>
         );
     }
     return (
-        <div id={wrapId}>
+        <div id={scopeId}>
             {placeholderStyle && <style>{placeholderStyle}</style>}
             <input
-                type={field.type === 'password' ? 'password' : field.type === 'date' ? 'date' : 'text'}
-                readOnly disabled
+                type={field.type === 'password' ? 'password' : field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : 'text'}
+                readOnly={!isLive} disabled={!isLive}
+                value={isLive ? String(liveValue ?? '') : undefined}
                 placeholder={field.ui?.placeholder ?? `Enter ${field.label.toLowerCase()}…`}
+                onChange={isLive ? (e) => onLiveChange!(field.type === 'number' ? Number(e.target.value) : e.target.value) : undefined}
                 style={{ ...base, height: '38px', width: '100%' }}
             />
         </div>
@@ -105,15 +120,15 @@ interface FieldRendererProps {
     field: FieldModel;
     isSelected: boolean;
     onSelect: (e?: React.MouseEvent) => void;
-    /** Id of the currently selected field (needed for nested child highlighting) */
     selectedFieldId: string | null;
-    /** Dispatch a child field selection request up to the Canvas */
     onSelectChild: (id: string) => void;
     theme: Record<string, string | number>;
     previewValues: Record<string, unknown>;
+    /** When set, Live Preview is active — fields are interactive */
+    onPreviewChange?: (key: string, val: unknown) => void;
 }
 
-const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSelect, selectedFieldId, onSelectChild, theme, previewValues }) => {
+const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSelect, selectedFieldId, onSelectChild, theme, previewValues, onPreviewChange }) => {
     const overrides = field.ui?.styleOverrides as StyleOverrides | undefined;
     const colSpan = field.ui?.['x-ui']?.colSpan ?? 12;
     const hasConditions = (field.ui?.['x-conditions']?.rules?.length ?? 0) > 0;
@@ -121,8 +136,6 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
         ? evaluateCalcExpression(field['x-calc'], previewValues)
         : undefined;
 
-    // Scope the focus color as a CSS variable on the field wrapper so the
-    // browser's :focus ring picks it up via outline: var(--field-focus-color)
     const wrapVars = overrides?.focusColor
         ? { '--field-focus-color': overrides.focusColor } as React.CSSProperties
         : {};
@@ -138,7 +151,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
         transition: 'border-color 0.12s',
     };
 
-    // Group type — children are now selectable
+    // Group type
     if (field.type === 'group') {
         return (
             <fieldset
@@ -163,6 +176,7 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
                             previewValues={previewValues}
                             selectedFieldId={selectedFieldId}
                             onSelectChild={onSelectChild}
+                            onPreviewChange={onPreviewChange}
                         />
                     ))}
                 </div>
@@ -216,7 +230,12 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
             ) : Plugin ? (
                 <Plugin field={field} isSelected={isSelected} theme={theme} />
             ) : (
-                <GenericFieldMock field={field} overrides={overrides} />
+                <GenericFieldMock
+                    field={field}
+                    overrides={overrides}
+                    liveValue={previewValues[field.key]}
+                    onLiveChange={onPreviewChange ? (val) => onPreviewChange(field.key, val) : undefined}
+                />
             )}
 
             {/* Help text */}
@@ -276,62 +295,6 @@ const WizardStepHeader: React.FC<{
     </div>
 );
 
-// ─── Live Preview Panel ───────────────────────────────────────────────────────
-
-const PreviewPanel: React.FC<{
-    fields: FieldModel[];
-    values: Record<string, unknown>;
-    onChange: (key: string, val: unknown) => void;
-    onClear: () => void;
-}> = ({ fields, values, onChange, onClear }) => {
-    const previewable = fields.filter(
-        (f) => !['group', 'repeater', 'calculated', 'signature', 'file', 'richtext'].includes(f.type)
-    );
-    if (previewable.length === 0) return null;
-
-    return (
-        <div style={{
-            marginBottom: '1.25rem', padding: '0.75rem', background: '#fffbeb',
-            border: '1px solid #fde68a', borderRadius: 6,
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                <span style={{ fontWeight: 600, fontSize: '0.75rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Preview Values
-                </span>
-                <button
-                    onClick={onClear}
-                    style={{ fontSize: '0.72rem', padding: '2px 8px', border: '1px solid #fde68a', borderRadius: 4, background: '#fff', cursor: 'pointer', color: '#92400e' }}
-                >
-                    Clear
-                </button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
-                {previewable.map((f) => (
-                    <div key={f.id}>
-                        <label style={{ fontSize: '0.68rem', color: '#78350f', display: 'block', marginBottom: 2, fontWeight: 500 }}>{f.label}</label>
-                        {f.type === 'checkbox' ? (
-                            <input type="checkbox" checked={!!values[f.key]} onChange={(e) => onChange(f.key, e.target.checked)} />
-                        ) : f.constraints?.enum ? (
-                            <select value={String(values[f.key] ?? '')} onChange={(e) => onChange(f.key, e.target.value)}
-                                style={{ width: '100%', fontSize: '0.78rem', padding: '2px 4px', border: '1px solid #fde68a', borderRadius: 3 }}>
-                                <option value="">—</option>
-                                {f.constraints.enum.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                            </select>
-                        ) : (
-                            <input
-                                type={f.type === 'number' ? 'number' : 'text'}
-                                value={String(values[f.key] ?? '')}
-                                onChange={(e) => onChange(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                                style={{ width: '100%', fontSize: '0.78rem', padding: '2px 6px', border: '1px solid #fde68a', borderRadius: 3 }}
-                            />
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
 // ─── Canvas ───────────────────────────────────────────────────────────────────
 
 export const Canvas: React.FC = () => {
@@ -376,26 +339,45 @@ export const Canvas: React.FC = () => {
         <div className="canvas-area" onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}>
             <div className="form-preview" style={themeVars} onClick={(e) => e.stopPropagation()}>
 
-                {/* Toolbar: live preview toggle */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)', fontWeight: 500 }}>Live preview</span>
-                    <button
-                        onClick={() => setShowPreview((v) => !v)}
-                        style={{
-                            fontSize: '0.72rem', padding: '3px 10px', border: '1px solid',
-                            borderColor: showPreview ? '#6366f1' : '#d1d5db', borderRadius: 12,
-                            cursor: 'pointer',
-                            background: showPreview ? '#eef2ff' : '#f9fafb',
-                            color: showPreview ? '#4338ca' : '#64748b', fontWeight: 500,
-                        }}
-                    >
-                        {showPreview ? 'On' : 'Off'}
-                    </button>
+                {/* ── Live Preview Mode Banner + Toggle ──────────────────────── */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    marginBottom: showPreview ? '0.75rem' : '1rem',
+                }}>
+                    {showPreview ? (
+                        <div style={{
+                            flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            background: '#eff6ff', border: '1px solid #bfdbfe',
+                            borderRadius: 8, padding: '0.45rem 0.75rem',
+                        }}>
+                            <span style={{ fontSize: '0.8rem' }}>🧪</span>
+                            <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 600 }}>Test Mode active</span>
+                            <span style={{ fontSize: '0.72rem', color: '#3b82f6' }}>— type into fields to test conditions. Hidden fields may disappear.</span>
+                            <button
+                                onClick={() => { setShowPreview(false); dispatch({ type: 'CLEAR_PREVIEW_VALUES' }); }}
+                                style={{ marginLeft: 'auto', fontSize: '0.7rem', padding: '2px 10px', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 6, color: '#1d4ed8', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Exit Test Mode
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Builder view — fields always visible</span>
+                            <button
+                                onClick={() => setShowPreview(true)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                    fontSize: '0.72rem', padding: '4px 12px',
+                                    border: '1px solid #6366f1', borderRadius: 12,
+                                    cursor: 'pointer', background: '#f5f3ff',
+                                    color: '#4338ca', fontWeight: 600,
+                                }}
+                            >
+                                <span>🧪</span> Test Conditions
+                            </button>
+                        </>
+                    )}
                 </div>
-
-                {showPreview && (
-                    <PreviewPanel fields={orderedFields} values={previewValues} onChange={setPreviewValue} onClear={() => dispatch({ type: 'CLEAR_PREVIEW_VALUES' })} />
-                )}
 
                 {/* Form header */}
                 <h1 className="form-title" style={{ marginBottom: form.meta?.description ? '0.25rem' : '2rem' }}>
@@ -427,6 +409,7 @@ export const Canvas: React.FC = () => {
                                 onSelectChild={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
                                 theme={themeVars as Record<string, string | number>}
                                 previewValues={previewValues}
+                                onPreviewChange={showPreview ? setPreviewValue : undefined}
                             />
                         ))}
                     </div>

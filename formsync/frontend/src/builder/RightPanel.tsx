@@ -296,6 +296,64 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <textarea className="control-input" style={{ height: '56px', resize: 'vertical', paddingTop: '0.5rem' }} value={selectedField.ui?.helpText ?? ''} onChange={(e) => handleUiUpdate('helpText', e.target.value)} placeholder="Describe this field…" />
                 </Group>
 
+                {/* Dropdown options — visible for select fields */}
+                {(selectedField.type === 'select') && (
+                    <>
+                        <Divider title="Dropdown Options" />
+                        <div style={{ marginBottom: '0.5rem' }}>
+                            {(selectedField.constraints?.enum ?? []).length === 0 ? (
+                                <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '0.4rem' }}>No options yet — add some below.</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                                    {(selectedField.constraints?.enum ?? []).map((opt, i) => (
+                                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 5, padding: '2px 8px', fontSize: '0.78rem', color: '#374151' }}>
+                                            {opt}
+                                            <button
+                                                onClick={() => {
+                                                    const next = (selectedField.constraints?.enum ?? []).filter((_, idx) => idx !== i);
+                                                    handleUpdate({ constraints: { ...selectedField.constraints, enum: next } });
+                                                }}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}
+                                            >×</button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                <input
+                                    className="control-input"
+                                    placeholder="Add option…"
+                                    style={{ flex: 1 }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const val = (e.currentTarget.value ?? '').trim();
+                                            if (!val) return;
+                                            const current = selectedField.constraints?.enum ?? [];
+                                            if (!current.includes(val)) {
+                                                handleUpdate({ constraints: { ...selectedField.constraints, enum: [...current, val] } });
+                                            }
+                                            e.currentTarget.value = '';
+                                        }
+                                    }}
+                                />
+                                <button
+                                    style={{ padding: '0 0.75rem', background: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: 5, cursor: 'pointer', color: '#4338ca', fontSize: '0.78rem', fontWeight: 600, flexShrink: 0 }}
+                                    onClick={(e) => {
+                                        const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                        const val = (input?.value ?? '').trim();
+                                        if (!val) return;
+                                        const current = selectedField.constraints?.enum ?? [];
+                                        if (!current.includes(val)) {
+                                            handleUpdate({ constraints: { ...selectedField.constraints, enum: [...current, val] } });
+                                        }
+                                        input.value = '';
+                                    }}
+                                >+ Add</button>
+                            </div>
+                        </div>
+                    </>
+                )}
+
                 {/* Step assignment */}
                 {isWizardMode && state.form.layout.steps && state.form.layout.steps.length > 0 && (
                     <>
