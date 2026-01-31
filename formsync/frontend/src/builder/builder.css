@@ -7,30 +7,30 @@
 
 /* ── Design Tokens ────────────────────────────────────────── */
 :root {
-  --sidebar-bg: #1e1e1e;
-  --sidebar-border: #2c2c2c;
-  --sidebar-hover: #2a2a2a;
-  --sidebar-active: #333333;
-  --sidebar-text: #cccccc;
-  --sidebar-muted: #666666;
-  --sidebar-label: #888888;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e5e5e5;
+  --sidebar-hover: #f5f5f5;
+  --sidebar-active: #e5f3ff;
+  --sidebar-text: #000000;
+  --sidebar-muted: rgba(0, 0, 0, 0.6);
+  --sidebar-label: rgba(0, 0, 0, 0.4);
 
-  --canvas-bg: #2c2c2c;
+  --canvas-bg: #e5e5e5;
   --card-bg: #ffffff;
-  --card-border: #e8e8e8;
+  --card-border: transparent;
 
-  --accent: #4f8ef7;
-  --accent-hover: #3a7aee;
-  --accent-subtle: rgba(79, 142, 247, 0.12);
+  --accent: #18a0fb;
+  --accent-hover: #0d8ce0;
+  --accent-subtle: rgba(24, 160, 251, 0.1);
 
-  --toolbar-bg: #252525;
-  --toolbar-border: #333333;
+  --toolbar-bg: #ffffff;
+  --toolbar-border: #e5e5e5;
 
-  --control-bg: #2a2a2a;
-  --control-border: #3a3a3a;
-  --control-text: #cccccc;
+  --control-bg: #ffffff;
+  --control-border: #e5e5e5;
+  --control-text: #000000;
 
-  --divider: #2e2e2e;
+  --divider: #e5e5e5;
 }
 
 /* ── Root layout ──────────────────────────────────────────── */

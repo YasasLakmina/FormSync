@@ -347,15 +347,15 @@ export const Canvas: React.FC = () => {
                     {showPreview ? (
                         <div style={{
                             flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            background: '#f0f7ff', border: '1px solid #c3dafe',
+                            background: '#e8f4ff', border: '1px solid #b3dbff',
                             borderRadius: 5, padding: '0.35rem 0.65rem',
                         }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-                            <span style={{ fontSize: '0.7rem', color: '#1d4ed8', fontWeight: 600 }}>Test Mode</span>
-                            <span style={{ fontSize: '0.68rem', color: '#3b82f6' }}>Type into fields to test conditions</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#18a0fb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            <span style={{ fontSize: '0.7rem', color: '#18a0fb', fontWeight: 600 }}>Test Mode</span>
+                            <span style={{ fontSize: '0.68rem', color: '#0d8ce0' }}>Type into fields to test conditions</span>
                             <button
                                 onClick={() => { setShowPreview(false); dispatch({ type: 'CLEAR_PREVIEW_VALUES' }); }}
-                                style={{ marginLeft: 'auto', fontSize: '0.67rem', padding: '2px 9px', background: 'transparent', border: '1px solid #93c5fd', borderRadius: 4, color: '#1d4ed8', cursor: 'pointer', fontWeight: 500 }}
+                                style={{ marginLeft: 'auto', fontSize: '0.67rem', padding: '2px 9px', background: 'transparent', border: '1px solid #b3dbff', borderRadius: 4, color: '#18a0fb', cursor: 'pointer', fontWeight: 500 }}
                             >
                                 Exit
                             </button>
