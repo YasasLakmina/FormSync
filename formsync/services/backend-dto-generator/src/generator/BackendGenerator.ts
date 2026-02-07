@@ -7,6 +7,12 @@ import { TemplateService } from '../service/TemplateService';
 import { FileWriter } from '../service/FileWriter';
 import * as path from 'path';
 
+/** Derives a Java base package from a schema name (e.g. "Employee" -> "com.employee"). */
+function schemaNameToBasePackage(name: string): string {
+    const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'app';
+    return `com.${normalized}`;
+}
+
 export class BackendGenerator extends BasePlugin implements BackendGeneratorPlugin {
     private mapper: SchemaMapper;
     private templateService: TemplateService;
@@ -24,7 +30,10 @@ export class BackendGenerator extends BasePlugin implements BackendGeneratorPlug
 
         // Default config values
         const outputDir = config?.outputDir || './generated-output';
-        const basePackage = config?.basePackage || 'com.example.demo';
+        const schemaName = (schema.content && (schema.name || schema.id))
+            ? String(schema.name || schema.id)
+            : (schema.title || 'App');
+        const basePackage = config?.basePackage ?? schemaNameToBasePackage(schemaName);
         const packagePath = basePackage.replace(/\./g, '/');
 
         try {
