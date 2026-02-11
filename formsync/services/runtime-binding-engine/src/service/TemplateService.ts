@@ -91,6 +91,14 @@ export class TemplateService {
             return str.replace(/\\/g, '\\\\');
         });
 
+        /** Escapes a string for use inside Java @Schema(example = "...") */
+        handlebars.registerHelper('escapeSchemaExample', (str: string) => {
+            if (str == null) return '';
+            return String(str)
+                .replace(/\\/g, '\\\\')
+                .replace(/"/g, '\\"');
+        });
+
         handlebars.registerHelper('eq', function (this: any, arg1, arg2, options) {
             return (arg1 === arg2) ? options.fn(this) : options.inverse(this);
         });
@@ -324,6 +332,7 @@ export class TemplateService {
         this.loadTemplate('not-found-exception', path.join(templatesDir, 'java/not-found-exception.hbs'));
         this.loadTemplate('api-error', path.join(templatesDir, 'java/api-error.hbs'));
         this.loadTemplate('exception-handler', path.join(templatesDir, 'java/exception-handler.hbs'));
+        this.loadTemplate('openapi-config', path.join(templatesDir, 'java/openapi-config.hbs'));
 
         // README
         this.loadTemplate('readme', path.join(templatesDir, 'readme.hbs'));
