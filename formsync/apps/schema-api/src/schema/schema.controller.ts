@@ -37,6 +37,7 @@ import {
   UpdateSchemaDto,
   ApplySuggestionDto,
   RecalculateQualityDto,
+  SuggestNameDto,
 } from './dto/schema.dto';
 
 @ApiTags('schema')
@@ -81,6 +82,18 @@ export class SchemaController {
   @Post('enhance')
   async enhance(@Body() dto: EnhanceSchemaDto) {
     return this.schemaService.enhanceSchema(dto);
+  }
+
+  /**
+   * POST /schema/suggest-name
+   * Use AI to suggest a schema name based on fields or content
+   */
+  @Post('suggest-name')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Suggest schema name using AI', tags: ['ai'] })
+  @ApiResponse({ status: 200, description: 'Name suggested successfully' })
+  async suggestName(@Body() dto: SuggestNameDto) {
+    return this.schemaService.suggestSchemaName(dto);
   }
 
   /**
