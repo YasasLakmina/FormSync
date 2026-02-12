@@ -162,3 +162,16 @@ export class RecalculateQualityDto {
   @IsArray()
   aiChanges: any[];
 }
+
+// ===== Suggest Name DTO =====
+export class SuggestNameDto {
+  @ApiPropertyOptional({ description: 'Field names from the schema' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  fields?: string[];
+
+  @ApiPropertyOptional({ description: 'Raw schema content for context' })
+  @IsOptional()
+  schemaContent?: any;
+}
