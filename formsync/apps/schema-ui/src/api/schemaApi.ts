@@ -99,6 +99,11 @@ export interface RecalculateQualityRequest {
   aiChanges: any[];
 }
 
+export interface SuggestNameRequest {
+  fields?: string[];
+  schemaContent?: any;
+}
+
 export const schemaApi = {
   // Convert schema
   convert: (data: ConvertSchemaRequest) => apiClient.post('/schema/convert', data),
@@ -111,6 +116,9 @@ export const schemaApi = {
 
   // Enhance with AI
   enhance: (data: EnhanceSchemaRequest) => apiClient.post('/schema/enhance', data),
+
+  // Suggest schema name with AI
+  suggestName: (data: SuggestNameRequest) => apiClient.post('/schema/suggest-name', data),
 
   // Apply or undo a suggestion
   applySuggestion: (data: ApplySuggestionRequest) =>
