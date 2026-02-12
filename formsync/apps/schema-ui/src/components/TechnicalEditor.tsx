@@ -176,25 +176,27 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   // Helper to ensure schema has a name
   const ensureSchemaName = useCallback(async (): Promise<string> => {
-    if (schemaName.trim()) {
-      return schemaName.trim();
+    if (schemaName && schemaName.trim()) {
+      return schemaName;
     }
 
-    // Generate AI suggestion if no name provided
+    // No name - get AI suggestion from raw input
     try {
       let fields: string[] = [];
       try {
-        const parsedSchema = JSON.parse(editorValue);
-        if (parsedSchema.properties) {
-          fields = Object.keys(parsedSchema.properties);
+        const parsed = JSON.parse(editorValue);
+        if (parsed.properties) {
+          fields = Object.keys(parsed.properties);
         }
       } catch (e) {
         // Ignore
       }
 
       const response = await schemaApi.suggestName({
-        fields,
-        schemaContent: editorValue,
+        rawInput: editorValue,  // Pass raw XML/YAML/JSON to LLM
+        format,                   // Pass format so LLM knows what it's analyzing
+        fields,                   // Fallback for pattern matching
+        schemaContent: editorValue, // Additional fallback
       });
 
       const suggestedName = response.data.suggestedName;
@@ -206,7 +208,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setSchemaName(fallbackName);
       return fallbackName;
     }
-  }, [schemaName, editorValue]);
+  }, [schemaName, editorValue, format]);
 
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
@@ -215,6 +217,13 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const handleValidate = useCallback(async () => {
     if (!editorValue.trim()) {
       toast.error('Please enter some code to validate');
+      return;
+    }
+
+    // Check if schema name is provided
+    if (!schemaName || !schemaName.trim()) {
+      toast.error('Please enter a schema name before validation');
+      setValidationError('Schema name is required');
       return;
     }
 
@@ -236,15 +245,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       });
 
       // Special case: If format is already JSON, also trigger semantic validation
+      // but DO NOT populate the output - user must click "Convert" for that
       if (format === 'json') {
         try {
           const schema = JSON.parse(editorValue);
           // Only validate if it looks like a schema (has type or properties)
-          // or just simple validation
           if (typeof schema === 'object' && schema !== null) {
             await useSchemaStore.getState().validateSchema(schema);
-            // Also update current schema in store if it's JSON
-            setCurrentSchema(schema);
+            // DO NOT set current schema here - validation should not populate output
           }
         } catch (e) {
           // Ignore parse errors here as syntax check passed
@@ -297,7 +305,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     } finally {
       setValidateLoading(false);
     }
-  }, [editorValue, format, clearError, onStageUpdate, setCurrentSchema]);
+  }, [editorValue, format, schemaName, clearError, onStageUpdate]);
 
   // 2. Convert to JSON Schema
   const handleConvert = useCallback(async () => {
@@ -306,19 +314,22 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       return;
     }
 
+    // Check if schema name is provided
+    if (!schemaName || !schemaName.trim()) {
+      toast.error('Please enter a schema name before conversion');
+      return;
+    }
+
     clearError();
     setConvertLoading(true);
     onStageUpdate?.('Schema Conversion', 'loading');
     try {
-      // Ensure schema has a name
-      const finalName = await ensureSchemaName();
-
-      // Convert and get the schema back (updated store action returns it)
+      // Convert and get the schema back
       const schema = await convertSchema(editorValue, format);
 
-      // Add name to schema's title property
+      // Use manually entered schema name
       if (schema) {
-        schema.title = finalName;
+        schema.title = schemaName.trim();
         setCurrentSchema(schema);
       }
 
@@ -327,10 +338,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Trigger semantic validation on the converted schema
       if (schema) {
-        // onStageUpdate?.('Input Validation', 'loading'); // REMOVED: Keep it green since it was already validated 
-        // Actually Input Validation stage is technically done, but we need semantic validity for generation
         await useSchemaStore.getState().validateSchema(schema);
-        // We don't necessarily need to show a toast here as convert success is shown
       }
 
     } catch (error) {
@@ -339,7 +347,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     } finally {
       setConvertLoading(false);
     }
-  }, [editorValue, format, convertSchema, clearError, onStageUpdate, ensureSchemaName, setCurrentSchema]);
+  }, [editorValue, format, schemaName, convertSchema, clearError, onStageUpdate, setCurrentSchema]);
 
   // Quick Fix - Apply syntax corrections
   const handleAIFix = useCallback(async () => {

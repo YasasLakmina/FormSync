@@ -100,6 +100,8 @@ export interface RecalculateQualityRequest {
 }
 
 export interface SuggestNameRequest {
+  rawInput?: string;
+  format?: string;
   fields?: string[];
   schemaContent?: any;
 }
