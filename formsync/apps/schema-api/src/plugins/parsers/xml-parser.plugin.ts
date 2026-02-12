@@ -24,6 +24,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
       allowBooleanAttributes: false,
       trimValues: true,
       ignoreDeclaration: true,
+      parseTagValue: false, // CRITICAL: Don't parse "E1024" as null, keep as string
       isArray: (name) => {
         // Always treat these as arrays for consistent processing
         return ['Field', 'property', 'value', 'field', 'option', 'Option'].includes(name);
@@ -367,6 +368,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
   /**
    * Build JSON Schema for a single field (with Options support)
+   * NOTE: Does NOT add examples or x-accessibility (those come from AI Enhancement)
    */
   private buildFieldSchema(field: any): any {
     const fieldType = field['@_type'] || 'text';
@@ -431,12 +433,6 @@ export class XmlParserPlugin implements FormatParserPlugin {
     const description = getFieldValue(field, 'Description', 'description');
     if (description) {
       fieldSchema.description = description;
-    }
-
-    // Add placeholder as example
-    const placeholder = getFieldValue(field, 'Placeholder', 'placeholder');
-    if (placeholder) {
-      fieldSchema.examples = [placeholder];
     }
 
     // Handle Options for select/enum fields

@@ -185,6 +185,7 @@ export class SchemaService {
     try {
       // Extract field names from DTO
       let fields: string[] = [];
+      let schemaTitle: string | undefined;
       
       if (dto.fields && dto.fields.length > 0) {
         fields = dto.fields;
@@ -196,15 +197,27 @@ export class SchemaService {
           if (parsed.properties) {
             fields = Object.keys(parsed.properties);
           }
+          // Check if schema already has a meaningful title
+          if (parsed.title && parsed.title !== 'Generated Schema') {
+            schemaTitle = parsed.title;
+          }
         } catch (e) {
           // Ignore parse errors
         }
       }
 
-      if (!fields || fields.length === 0) {
-        // No fields - return generic name
+      // If schema already has a title, use it
+      if (schemaTitle) {
         return {
-          suggestedName: `Form Schema`,
+          suggestedName: schemaTitle,
+          confidence: 'high',
+        };
+      }
+
+      if (!fields || fields.length === 0) {
+        // No fields and no title - return generic name
+        return {
+          suggestedName: 'Generated Schema',
           confidence: 'low',
         };
       }
@@ -223,7 +236,7 @@ export class SchemaService {
       
       // Fallback to generic name
       return {
-        suggestedName: `Form Schema`,
+        suggestedName: 'Generated Schema',
         confidence: 'low',
       };
     }
