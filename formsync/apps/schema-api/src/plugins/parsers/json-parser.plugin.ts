@@ -78,10 +78,9 @@ export class JsonParserPlugin implements FormatParserPlugin {
   }
 
   /**
-   * Infer JSON Schema from data structure
-   * This is a basic implementation - can be enhanced
+   * Infer JSON Schema from data structure with smart type detection
    */
-  private inferSchemaFromData(data: any): any {
+  private inferSchemaFromData(data: any, isRoot: boolean = true): any {
     const type = Array.isArray(data) ? 'array' : typeof data;
 
     if (type === 'object' && data !== null) {
@@ -89,26 +88,133 @@ export class JsonParserPlugin implements FormatParserPlugin {
       const required: string[] = [];
 
       for (const [key, value] of Object.entries(data)) {
-        properties[key] = this.inferSchemaFromData(value);
+        properties[key] = this.inferSchemaFromData(value, false);
         required.push(key);
       }
 
-      return {
-        $schema: 'http://json-schema.org/draft-07/schema#',
+      const schema: any = {
         type: 'object',
         properties,
-        required,
+        ...(required.length > 0 && { required }),
       };
+
+      // Add $schema, title and description only at root
+      if (isRoot) {
+        const title = this.generateTitleFromFields(Object.keys(properties));
+        schema.$schema = 'http://json-schema.org/draft-07/schema#';
+        schema.title = title;
+        schema.description = `Schema for ${title.replace(' Schema', '')}`;
+      }
+
+      return schema;
     }
 
     if (type === 'array') {
-      const items = data.length > 0 ? this.inferSchemaFromData(data[0]) : { type: 'string' };
+      const items = data.length > 0 ? this.inferSchemaFromData(data[0], false) : { type: 'string' };
       return {
         type: 'array',
         items,
       };
     }
 
-    return { type: type === 'object' ? 'null' : type };
+    // Smart type detection for primitives
+    return this.inferPrimitiveType(data, '');
+  }
+
+  /**
+   * Infer primitive type with smart detection
+   */
+  private inferPrimitiveType(value: any, fieldName: string): any {
+    if (value === null || value === undefined) {
+      return { type: 'string' };
+    }
+
+    const strValue = String(value).trim();
+
+    // Boolean detection
+    if (typeof value === 'boolean' || /^(true|false)$/i.test(strValue)) {
+      return { type: 'boolean' };
+    }
+
+    // Date detection
+    if (/^\d{4}-\d{2}-\d{2}/.test(strValue)) {
+      return {
+        type: 'string',
+        format: 'date',
+      };
+    }
+
+    // Email detection
+    if (/@.*\./.test(strValue)) {
+      return {
+        type: 'string',
+        format: 'email',
+      };
+    }
+
+    // Numeric detection
+    const numValue = Number(strValue);
+    if (!isNaN(numValue) && strValue !== '') {
+      // Integer
+      if (/^-?\d+$/.test(strValue)) {
+        return {
+          type: 'integer',
+          minimum: 0,
+          maximum: 150,
+        };
+      }
+      // Number
+      return {
+        type: 'number',
+        minimum: 0,
+      };
+    }
+
+    // Default: string
+    return { type: 'string' };
+  }
+
+  /**
+   * Generate meaningful title from field names
+   */
+  private generateTitleFromFields(fields: string[]): string {
+    // Common patterns
+    const patterns = [
+      { keywords: ['user', 'username', 'password', 'email'], name: 'User' },
+      { keywords: ['login', 'username', 'password'], name: 'Login' },
+      { keywords: ['contact', 'phone', 'email', 'message'], name: 'Contact' },
+      { keywords: ['address', 'street', 'city', 'zip'], name: 'Address' },
+      { keywords: ['order', 'product', 'quantity', 'price'], name: 'Order' },
+      { keywords: ['employee', 'salary', 'department'], name: 'Employee' },
+    ];
+
+    const lowerFields = fields.map(f => f.toLowerCase());
+    
+    for (const pattern of patterns) {
+      const matchCount = pattern.keywords.filter(kw =>
+        lowerFields.some(f => f.includes(kw))
+      ).length;
+      
+      if (matchCount >= 1) {
+        return `${pattern.name} Schema`;
+      }
+    }
+
+    // Use first field as basis, stripping common suffixes
+    if (fields.length > 0) {
+      let fieldName = fields[0];
+      // Strip common suffixes: Id, Name, Code, Number, Date, etc.
+      fieldName = fieldName.replace(/(Id|Name|Code|Number|Date|Time|Status|Type)$/i, '');
+      
+      const formatted = fieldName
+        .replace(/([A-Z])/g, ' $1')
+        .trim()
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+      return `${formatted} Schema`;
+    }
+
+    return 'Generated Schema';
   }
 }
