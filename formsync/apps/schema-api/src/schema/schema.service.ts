@@ -179,11 +179,11 @@ export class SchemaService {
 
   /**
    * POST /schema/suggest-name
-   * Suggest a meaningful schema name based on field names and content
+   * Suggest schema name using pattern matching
    */
   async suggestSchemaName(dto: SuggestNameDto) {
     try {
-      // Extract field names from DTO
+      // Extract field names from DTO for pattern matching
       let fields: string[] = [];
       let schemaTitle: string | undefined;
       
@@ -222,14 +222,14 @@ export class SchemaService {
         };
       }
 
-      // Analyze fields to generate a contextual name
+      // Fallback: Pattern-based name generation
       const suggestedName = this.generateNameFromFields(fields);
 
       console.log('[SchemaService] Suggested name:', suggestedName, 'from fields:', fields);
 
       return {
         suggestedName,
-        confidence: 'high',
+        confidence: 'medium',
       };
     } catch (error) {
       console.error('[SchemaService] Failed to suggest name:', error);
