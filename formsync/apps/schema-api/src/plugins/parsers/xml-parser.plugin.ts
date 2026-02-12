@@ -536,14 +536,37 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
       // Add $schema and title ONLY at root level
       if (isRoot) {
+        console.log('[XML Parser] extractedRootName:', extractedRootName);
         const title = this.generateMeaningfulTitle(extractedRootName);
+        console.log('[XML Parser] Generated title:', title);
         const description = extractedRootName ? `Schema for ${extractedRootName.replace(/([A-Z])/g, ' $1').trim()}` : 'Generated schema from XML data';
+        
+        // FLATTEN ROOT: If there's only one top-level property, flatten it
+        const topLevelKeys = Object.keys(properties);
+        console.log('[XML Parser] Top-level keys:', topLevelKeys);
+        if (topLevelKeys.length === 1 && topLevelKeys[0] === extractedRootName) {
+          console.log('[XML Parser] Flattening root element:', extractedRootName);
+          // Extract nested properties from the root wrapper
+          const rootElement = properties[extractedRootName];
+          if (rootElement.type === 'object' && rootElement.properties) {
+            return {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              type: 'object',
+              title,
+              description,
+              properties: rootElement.properties,
+              ...(rootElement.required && { required: rootElement.required }),
+            };
+          }
+        }
         
         return {
           $schema: 'http://json-schema.org/draft-07/schema#',
-          ...schema,
+          type: 'object',
           title,
           description,
+          properties,
+          ...(required.length > 0 && { required }),
         };
       }
 
@@ -633,7 +656,6 @@ export class XmlParserPlugin implements FormatParserPlugin {
           return {
             type: 'number',
             minimum: 0,
-            multipleOf: 0.01,
           };
         }
         
@@ -681,7 +703,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
   /**
    * Generate meaningful title from root element name
-   * EmployeeRecord → "Employee Record"
+   * EmployeeRecord → "Employee Record Schema"
    */
   private generateMeaningfulTitle(rootElementName?: string): string {
     if (!rootElementName) {
@@ -689,12 +711,14 @@ export class XmlParserPlugin implements FormatParserPlugin {
     }
     
     // Convert camelCase/PascalCase to Title Case with spaces
-    return rootElementName
+    const titleCase = rootElementName
       .replace(/([A-Z])/g, ' $1')
       .trim()
       .replace(/\s+/g, ' ')
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
+    
+    return `${titleCase} Schema`;
   }
 }
