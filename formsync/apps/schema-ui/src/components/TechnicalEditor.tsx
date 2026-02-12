@@ -45,6 +45,7 @@ interface TechnicalEditorProps {
   onStageUpdate?: (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => void;
   onNextToFormBuilder?: () => void;
   stages?: any[];
+  schemaFromBuilder?: string; // Schema transferred from Template Builder
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
@@ -53,6 +54,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onStageUpdate,
   onNextToFormBuilder,
   stages = [],
+  schemaFromBuilder,
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>('json');

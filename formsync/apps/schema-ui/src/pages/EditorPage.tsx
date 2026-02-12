@@ -231,6 +231,7 @@ export const EditorPage: React.FC = () => {
                   onStageUpdate={handleStageUpdate}
                   onNextToFormBuilder={handleNextToFormBuilder}
                   stages={stages}
+                  schemaFromBuilder={schemaFromBuilder}
                 />
               </TabsContent>
 
