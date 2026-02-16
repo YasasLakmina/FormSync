@@ -68,6 +68,14 @@ export class SchemaEnhancerService {
     schema: any,
     options?: EnhancementOptions
   ): Promise<EnhancementResultWithSuggestions> {
+    // ✅ Check enhancement counter - limit to 2 enhancements
+    const existingMetadata = schema['x-formsync-metadata'];
+    const enhancementCount = existingMetadata?.enhancementCount || 0;
+    
+    if (enhancementCount >= 2) {
+      throw new Error('Schema has already been enhanced 2 times. Maximum enhancement limit reached.');
+    }
+
     // ✅ FIX #2: Remove enhancement marker before processing to allow re-enhancement
     // (Frontend should prevent this, but backend should be resilient)
     const cleanSchema = { ...schema };
@@ -88,12 +96,14 @@ export class SchemaEnhancerService {
     // ✅ FIX #5: Validate all suggestions before returning
     suggestions = this.validateSuggestions(suggestions, enhancedSchema);
 
-    // ✅ FIX #2: Mark schema as enhanced
+    // ✅ FIX #2: Mark schema as enhanced with counter
     enhancedSchema['x-formsync-metadata'] = {
       enhanced: true,
       enhancedAt: new Date().toISOString(),
       enhancementVersion: '1.0',
       model: result.model || this.llmPlugin['model'] || 'unknown',
+      enhancementCount: enhancementCount + 1,
+      previousEnhancementAt: existingMetadata?.enhancedAt,
     };
 
     // Calculate quality score for CURRENT state (enhanced schema, NO suggestions applied)
