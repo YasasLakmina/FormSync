@@ -25,6 +25,7 @@ import {
   UpdateSchemaDto,
   ApplySuggestionDto,
   RecalculateQualityDto,
+  SuggestNameDto,
 } from './dto/schema.dto';
 
 @Injectable()
@@ -131,6 +132,8 @@ export class SchemaService {
           s.id === dto.suggestion.id ? result.suggestion.applied : s.applied
         ).length,
         totalSuggestions: dto.allSuggestions.length,
+        totalChanges: dto.aiChanges.length,
+        accessibilityCoverage: this.calculateAccessibilityCoverage(result.schema),
       },
     };
   }
@@ -158,6 +161,7 @@ export class SchemaService {
 
   /**
    * Helper: Calculate accessibility coverage for backward compatibility
+   * UPDATED: Matches Quality Engine logic - only counts user-input fields
    */
   private calculateAccessibilityCoverage(schema: any): number {
     let total = 0;
@@ -165,10 +169,25 @@ export class SchemaService {
 
     const walk = (obj: any) => {
       if (!obj?.properties) return;
-      for (const prop of Object.values(obj.properties)) {
-        total++;
-        if ((prop as any)['x-accessibility']) covered++;
-        if ((prop as any).type === 'object') walk(prop);
+      for (const [key, prop] of Object.entries(obj.properties)) {
+        const property = prop as any;
+        const type = Array.isArray(property.type) ? property.type[0] : property.type;
+        
+        // Only count user-input fields (string, number, integer, boolean)
+        // NOT structural fields (object, array)
+        const isUserInputField = ['string', 'number', 'integer', 'boolean'].includes(type);
+        
+        if (isUserInputField) {
+          total++;
+          if (property['x-accessibility']?.label) {
+            covered++;
+          }
+        }
+        
+        // Recurse into nested objects
+        if (property.type === 'object' && property.properties) {
+          walk(property);
+        }
       }
     };
 
@@ -177,11 +196,164 @@ export class SchemaService {
   }
 
   /**
+   * DELETE /schema/cache
+   * Clear all cached conversion results
+   */
+  async clearCache(): Promise<{ success: boolean; message: string }> {
+    await this.redis.flushAll();
+    return {
+      success: true,
+      message: 'Cache cleared successfully',
+    };
+  }
+
+  /**
+   * POST /schema/suggest-name
+   * Suggest schema name using pattern matching
+   */
+  async suggestSchemaName(dto: SuggestNameDto) {
+    try {
+      // Extract field names from DTO for pattern matching
+      let fields: string[] = [];
+      let schemaTitle: string | undefined;
+      
+      if (dto.fields && dto.fields.length > 0) {
+        fields = dto.fields;
+      } else if (dto.schemaContent) {
+        try {
+          const parsed = typeof dto.schemaContent === 'string' 
+            ? JSON.parse(dto.schemaContent) 
+            : dto.schemaContent;
+          if (parsed.properties) {
+            fields = Object.keys(parsed.properties);
+          }
+          // Check if schema already has a meaningful title
+          if (parsed.title && parsed.title !== 'Generated Schema') {
+            schemaTitle = parsed.title;
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+
+      // If schema already has a title, use it
+      if (schemaTitle) {
+        return {
+          suggestedName: schemaTitle,
+          confidence: 'high',
+        };
+      }
+
+      if (!fields || fields.length === 0) {
+        // No fields and no title - return generic name
+        return {
+          suggestedName: 'Generated Schema',
+          confidence: 'low',
+        };
+      }
+
+      // Fallback: Pattern-based name generation
+      const suggestedName = this.generateNameFromFields(fields);
+
+      console.log('[SchemaService] Suggested name:', suggestedName, 'from fields:', fields);
+
+      return {
+        suggestedName,
+        confidence: 'medium',
+      };
+    } catch (error) {
+      console.error('[SchemaService] Failed to suggest name:', error);
+      
+      // Fallback to generic name
+      return {
+        suggestedName: 'Generated Schema',
+        confidence: 'low',
+      };
+    }
+  }
+
+  /**
+   * Helper: Generate a contextual name from field names
+   */
+  private generateNameFromFields(fields: string[]): string {
+    // Common patterns and their schema names
+    const patterns = [
+      { keywords: ['user', 'username', 'password', 'email'], name: 'User Registration' },
+      { keywords: ['login', 'username', 'password'], name: 'Login Form' },
+      { keywords: ['contact', 'phone', 'email', 'message'], name: 'Contact Form' },
+      { keywords: ['address', 'street', 'city', 'zip', 'state'], name: 'Address Information' },
+      { keywords: ['payment', 'card', 'billing'], name: 'Payment Information' },
+      { keywords: ['profile', 'bio', 'avatar'], name: 'User Profile' },
+      { keywords: ['order', 'product', 'quantity', 'price'], name: 'Order Form' },
+      { keywords: ['feedback', 'rating', 'comment'], name: 'Feedback Form' },
+      { keywords: ['survey', 'question', 'answer'], name: 'Survey Form' },
+    ];
+
+    // Convert fields to lowercase for matching
+    const lowerFields = fields.map(f => f.toLowerCase());
+    
+    // Find best matching pattern
+    for (const pattern of patterns) {
+      const matchCount = pattern.keywords.filter(kw => 
+        lowerFields.some(f => f.includes(kw))
+      ).length;
+      
+      // If at least 2 keywords match, use this pattern
+      if (matchCount >= 2) {
+        return pattern.name;
+      }
+    }
+
+    // No pattern matched - generate from first field
+    const primaryField = fields[0];
+    const formatted = primaryField
+      .split(/[_-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    
+    return `${formatted} Form`;
+  }
+
+  /**
    * POST /schema/validate-syntax
    * Validate syntax ONLY without converting
    * (NEW method for frontend validation button)
    */
   async validateSyntaxOnly(dto: ConvertSchemaDto) {
+    // Check if input is already an enhanced schema (JSON only)
+    if (dto.format === 'json' || !dto.format) {
+      try {
+        const parsed = JSON.parse(dto.input);
+        const metadata = parsed['x-formsync-metadata'];
+        
+        if (metadata && metadata.enhanced === true) {
+          const enhancementCount = metadata.enhancementCount || 1;
+          const enhancedAt = metadata.enhancedAt 
+            ? new Date(metadata.enhancedAt).toLocaleString() 
+            : 'unknown time';
+          const model = metadata.model || 'AI';
+          
+          throw new BadRequestException({
+            message: 'Already enhanced schema detected',
+            error: 'This appears to be a schema that has already been enhanced by the system',
+            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? 's' : ''} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
+            isEnhancedSchema: true,
+            metadata: {
+              enhancementCount,
+              enhancedAt: metadata.enhancedAt,
+              model,
+            },
+          });
+        }
+      } catch (parseError) {
+        // If it's our enhanced schema error, re-throw it
+        if (parseError instanceof BadRequestException) {
+          throw parseError;
+        }
+        // Otherwise, continue with normal validation (might be invalid JSON)
+      }
+    }
+    
     // Perform strict syntax validation (no conversion)
     const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);
     
@@ -237,6 +409,40 @@ export class SchemaService {
    * ENHANCED: Performs STRICT SYNTAX VALIDATION before any processing
    */
   async convertSchema(dto: ConvertSchemaDto) {
+    // STEP 0: Check if input is already an enhanced schema (JSON only)
+    if (dto.format === 'json' || !dto.format) {
+      try {
+        const parsed = JSON.parse(dto.input);
+        const metadata = parsed['x-formsync-metadata'];
+        
+        if (metadata && metadata.enhanced === true) {
+          const enhancementCount = metadata.enhancementCount || 1;
+          const enhancedAt = metadata.enhancedAt 
+            ? new Date(metadata.enhancedAt).toLocaleString() 
+            : 'unknown time';
+          const model = metadata.model || 'AI';
+          
+          throw new BadRequestException({
+            message: 'Already enhanced schema detected',
+            error: 'This appears to be a schema that has already been enhanced by the system',
+            details: `This schema was enhanced ${enhancementCount} time${enhancementCount > 1 ? 's' : ''} using ${model} at ${enhancedAt}. Please use the original raw schema as input instead.`,
+            isEnhancedSchema: true,
+            metadata: {
+              enhancementCount,
+              enhancedAt: metadata.enhancedAt,
+              model,
+            },
+          });
+        }
+      } catch (parseError) {
+        // If it's our enhanced schema error, re-throw it
+        if (parseError instanceof BadRequestException) {
+          throw parseError;
+        }
+        // Otherwise, continue with normal validation (might be invalid JSON or YAML/XML)
+      }
+    }
+    
     // STEP 1: STRICT SYNTAX VALIDATION (NEW)
     // Validate syntax BEFORE any other processing
     const syntaxValidation = this.syntaxValidator.validateSyntax(dto.input, dto.format);

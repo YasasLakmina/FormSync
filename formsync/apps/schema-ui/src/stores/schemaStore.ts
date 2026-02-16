@@ -145,12 +145,79 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       const response = await schemaApi.enhance({ schema, ...options });
       const data = response.data;
 
+      // ✅ FIX: Don't merge suggestions when re-enhancing - use fresh ones
+      // This prevents duplicate suggestions and quality score reduction
+      // Only preserve APPLIED suggestions from previous enhancement
+      const state = get();
+      const existingSuggestions = state.suggestions || [];
+      const newSuggestions = data.suggestions || [];
+      
+      // Keep only applied suggestions from before
+      const appliedSuggestions = existingSuggestions.filter(s => s.applied);
+      
+      // Merge: Applied suggestions + new suggestions (no duplicates)
+      const mergedSuggestions = [...appliedSuggestions];
+      
+      for (const newSugg of newSuggestions) {
+        // Check if this suggestion already exists (in applied OR pending)
+        const alreadyExists = existingSuggestions.some(
+          s => s.path === newSugg.path && 
+               JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
+        );
+        
+        if (!alreadyExists) {
+          mergedSuggestions.push(newSugg);
+        } else {
+          console.log('[SchemaStore] Skipping duplicate suggestion:', newSugg.path, newSugg.rule);
+        }
+      }
+
+      // ✅ FIX: If we have applied suggestions, recalculate quality to get correct score
+      // Backend doesn't know about previously applied suggestions, so we need to update
+      const hasAppliedSuggestions = mergedSuggestions.some(s => s.applied);
+      
+      if (hasAppliedSuggestions && state.currentSchema) {
+        // Recalculate quality with correct applied count
+        try {
+          const recalcResponse = await schemaApi.recalculateQuality({
+            baseSchema: data.enhancedSchema,
+            allSuggestions: mergedSuggestions,
+            aiChanges: data.changes || [],
+          });
+          
+          const recalcData = recalcResponse.data;
+          
+          set({
+            enhancedSchema: data.enhancedSchema,
+            baseSchema: data.enhancedSchema,
+            currentSchema: state.currentSchema, // Preserve current (has applied changes)
+            enhancements: data.changes || [],
+            suggestions: mergedSuggestions,
+            aiChanges: data.changes || [],
+            qualityMetrics: {
+              qualityScore: recalcData.quality?.score || recalcData.qualityScore,
+              qualityBreakdown: recalcData.quality?.breakdown || recalcData.qualityBreakdown,
+              issues: recalcData.quality?.issues || recalcData.issues || [],
+              explanations: data.explanations || [],
+              metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+              appliedSuggestionsCount: recalcData.appliedSuggestionsCount || mergedSuggestions.filter(s => s.applied).length,
+              totalSuggestionsCount: recalcData.totalSuggestionsCount || mergedSuggestions.length,
+            },
+            loading: false,
+          });
+          return;
+        } catch (recalcError) {
+          console.warn('[SchemaStore] Failed to recalculate quality, using default:', recalcError);
+          // Fall through to default set below
+        }
+      }
+
       set({
         enhancedSchema: data.enhancedSchema,
         baseSchema: data.enhancedSchema, // Store base schema (with auto-fixes, no suggestions)
-        currentSchema: data.enhancedSchema, // Initialize current schema
+        currentSchema: state.currentSchema || data.enhancedSchema, // ✅ Preserve current if exists (has applied changes)
         enhancements: data.changes || [],
-        suggestions: data.suggestions || [], // Store AI suggestions
+        suggestions: mergedSuggestions, // ✅ Applied + new unique suggestions
         aiChanges: data.changes || [], // Store auto-applied changes
         qualityMetrics: {
           qualityScore: data.quality?.score || data.qualityScore || 0,
@@ -165,8 +232,8 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
           metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
-          appliedSuggestionsCount: 0, // No suggestions applied yet
-          totalSuggestionsCount: (data.suggestions || []).length,
+          appliedSuggestionsCount: mergedSuggestions.filter(s => s.applied).length,
+          totalSuggestionsCount: mergedSuggestions.length,
         },
         loading: false,
       });

@@ -1,12 +1,13 @@
 /**
- * Comprehensive Schema Quality Report Component
+ * Professional Schema Quality Report Component
  *
- * Displays detailed quality evaluation including:
- * - Overall quality score with status badge
- * - 5-dimensional breakdown
- * - Detected issues and warnings
- * - AI enhancement summary
- * - Improvement tips
+ * Enterprise-grade quality evaluation display with:
+ * - Overall quality score with visual status indicator
+ * - Critical metrics dashboard (Score, Critical Issues, Accessibility)
+ * - Priority-based action recommendations
+ * - Dimensional breakdown with pass/fail criteria
+ * - Severity-categorized issues (Critical, Warning)
+ * - AI enhancement summary with applied improvements
  */
 
 import React from 'react';
@@ -23,6 +24,10 @@ import {
   Shield,
   Accessibility,
   Sparkles,
+  AlertCircle,
+  XCircle,
+  ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -60,8 +65,8 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
     if (score >= 90)
       return {
         label: 'Excellent',
-        color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-        textColor: 'text-green-600 dark:text-green-400',
+        color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+        textColor: 'text-emerald-600 dark:text-emerald-400',
       };
     if (score >= 75)
       return {
@@ -72,8 +77,8 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
     if (score >= 60)
       return {
         label: 'Fair',
-        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-        textColor: 'text-yellow-600 dark:text-yellow-400',
+        color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+        textColor: 'text-amber-600 dark:text-amber-400',
       };
     return {
       label: 'Needs Improvement',
@@ -85,76 +90,137 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
   const qualityLevel = getQualityLevel(metrics.qualityScore);
   const accessibilityPercent = Math.round(metrics.metrics.accessibilityCoverage * 100);
 
-  // Dimension details
+  // Categorize issues by severity
+  const categorizeIssues = () => {
+    const critical: string[] = [];
+    const warnings: string[] = [];
+
+    metrics.issues.forEach((issue) => {
+      const lower = issue.toLowerCase();
+      if (
+        lower.includes('missing required') ||
+        lower.includes('accessibility') ||
+        lower.includes('critical')
+      ) {
+        critical.push(issue);
+      } else {
+        warnings.push(issue);
+      }
+    });
+
+    // Add accessibility as critical if below 30%
+    if (accessibilityPercent < 30 && !critical.some(i => i.toLowerCase().includes('accessibility'))) {
+      critical.unshift(`Low accessibility coverage (${accessibilityPercent}%): Add descriptions to improve usability and compliance`);
+    }
+
+    return { critical, warnings };
+  };
+
+  const { critical, warnings } = categorizeIssues();
+  const criticalCount = critical.length;
+
+  // Dimension details with pass/fail thresholds
   const dimensions = [
     {
       name: 'Structural Completeness',
       score: metrics.qualityBreakdown.structure,
       max: 25,
-      description: 'Schema structure and nesting',
+      threshold: 20, // 80% to pass
+      description: 'JSON Schema Draft-07 compliance',
       icon: Target,
       color: 'text-blue-600',
     },
     {
-      name: 'Validation Strength',
+      name: 'Validation Coverage',
       score: metrics.qualityBreakdown.validation,
       max: 25,
-      description: 'Field validation coverage',
+      threshold: 20,
+      description: 'Field constraints',
       icon: Shield,
       color: 'text-purple-600',
     },
     {
-      name: 'Accessibility & Metadata',
+      name: 'Accessibility Compliance',
       score: metrics.qualityBreakdown.accessibility,
       max: 20,
-      description: 'Descriptions and a11y labels',
+      threshold: 15, // 75% to pass
+      description: 'WCAG & documentation',
       icon: Accessibility,
-      color: 'text-green-600',
+      color: 'text-emerald-600',
     },
     {
       name: 'Consistency & Safety',
       score: metrics.qualityBreakdown.consistency,
       max: 20,
-      description: 'Logical consistency checks',
+      threshold: 15,
+      description: 'Type safety & boundaries',
       icon: CheckCircle,
       color: 'text-indigo-600',
     },
     {
-      name: 'AI Improvement Depth',
+      name: 'Enhancement Impact',
       score: metrics.qualityBreakdown.improvement,
       max: 10,
-      description: 'Meaningful AI enhancements',
+      threshold: 7, // 70% to pass
+      description: 'Human-validated improvements',
       icon: Sparkles,
       color: 'text-amber-600',
     },
   ];
 
-  // Generate improvement tips from issues
-  const generateTips = () => {
-    const tips: string[] = [];
+  // Generate priority actions
+  const generatePriorityActions = () => {
+    const actions: Array<{ priority: 'high' | 'medium' | 'low'; text: string }> = [];
 
-    if (metrics.qualityBreakdown.validation < 20) {
-      tips.push('Add validation rules (patterns, min/max length) to improve data quality');
+    // Critical: Accessibility
+    if (accessibilityPercent < 30) {
+      actions.push({
+        priority: 'high',
+        text: `Add descriptions to fields (${100 - accessibilityPercent}% missing accessibility metadata)`,
+      });
     }
-    if (metrics.qualityBreakdown.accessibility < 15) {
-      tips.push('Add descriptions and accessibility labels for better usability');
+
+    // High: Low validation
+    if (metrics.qualityBreakdown.validation < 15) {
+      actions.push({
+        priority: 'high',
+        text: 'Add validation rules (patterns, min/max, formats) to critical fields',
+      });
     }
+
+    // Medium: Partial accessibility
+    if (accessibilityPercent >= 30 && accessibilityPercent < 70) {
+      actions.push({
+        priority: 'medium',
+        text: `Improve accessibility coverage from ${accessibilityPercent}% to 70%+`,
+      });
+    }
+
+    // Medium: Structure issues
     if (metrics.qualityBreakdown.structure < 20) {
-      tips.push('Ensure all nested objects define properties and arrays define items');
+      actions.push({
+        priority: 'medium',
+        text: 'Define properties for all objects and items for all arrays',
+      });
     }
 
-    // Add specific tips from issues
-    metrics.issues.slice(0, 3).forEach((issue) => {
-      const cleanIssue = issue.replace(/^\d+\s+field\(s\)\s+/, '');
-      if (!tips.some((t) => t.includes(cleanIssue.substring(0, 20)))) {
-        tips.push(cleanIssue.charAt(0).toUpperCase() + cleanIssue.slice(1));
-      }
-    });
+    // Low: Apply AI suggestions
+    if (
+      metrics.appliedSuggestionsCount !== undefined &&
+      metrics.totalSuggestionsCount !== undefined &&
+      metrics.appliedSuggestionsCount < metrics.totalSuggestionsCount
+    ) {
+      const remaining = metrics.totalSuggestionsCount - metrics.appliedSuggestionsCount;
+      actions.push({
+        priority: 'low',
+        text: `Review and apply ${remaining} remaining AI suggestion${remaining > 1 ? 's' : ''}`,
+      });
+    }
 
-    return tips.slice(0, 4); // Max 4 tips
+    return actions.slice(0, 4); // Max 4 actions
   };
 
-  const improvementTips = generateTips();
+  const priorityActions = generatePriorityActions();
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -162,18 +228,18 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
       >
         <Card className="bg-white dark:bg-neutral-900 shadow-2xl">
           {/* Header Section */}
-          <CardHeader className="border-b border-neutral-200 dark:border-neutral-800 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-neutral-800 dark:to-neutral-900">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl font-bold flex items-center gap-3">
-                  <span>Schema Quality Report</span>
+          <CardHeader className="border-b border-neutral-200 dark:border-neutral-800 pb-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <CardTitle className="text-2xl font-bold">Schema Quality Report</CardTitle>
                   <Badge className={qualityLevel.color}>{qualityLevel.label}</Badge>
-                </CardTitle>
-                <CardDescription className="mt-2">
+                </div>
+                <CardDescription>
                   Comprehensive evaluation across 5 quality dimensions
                 </CardDescription>
               </div>
@@ -182,29 +248,160 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
               </Button>
             </div>
 
-            {/* Overall Score */}
-            <div className="mt-4 text-center py-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-              <div className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-1">
-                Overall Quality Score
+            {/* Key Metrics Dashboard */}
+            <div className="grid grid-cols-3 gap-4 mt-6">
+              {/* Overall Score */}
+              <div className="col-span-1 p-6 bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-800 dark:to-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-700 text-center">
+                <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-2 uppercase tracking-wide">
+                  Overall Score
+                </div>
+                <div className={`text-5xl font-bold ${qualityLevel.textColor}`}>
+                  {metrics.qualityScore}
+                </div>
+                <div className="text-sm text-neutral-500 mt-1">out of 100</div>
               </div>
-              <div className={`text-5xl font-bold ${qualityLevel.textColor}`}>
-                {metrics.qualityScore}
-                <span className="text-2xl text-neutral-500 ml-1">/100</span>
+
+              {/* Critical Issues */}
+              <div className="p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700">
+                <div className="flex items-center gap-2 mb-1">
+                  {criticalCount === 0 ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-600" />
+                  )}
+                  <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
+                    Critical Issues
+                  </div>
+                </div>
+                <div
+                  className={`text-3xl font-bold ${criticalCount === 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                >
+                  {criticalCount}
+                </div>
+                <div className="text-xs text-neutral-500 mt-1">
+                  {criticalCount === 0 ? 'All checks passed' : 'Requires attention'}
+                </div>
+              </div>
+
+              {/* Accessibility Coverage */}
+              <div
+                className={`p-4 rounded-xl border ${
+                  accessibilityPercent >= 70
+                    ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
+                    : accessibilityPercent >= 30
+                      ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
+                      : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Accessibility
+                    className={`h-5 w-5 ${
+                      accessibilityPercent >= 70
+                        ? 'text-emerald-600'
+                        : accessibilityPercent >= 30
+                          ? 'text-amber-600'
+                          : 'text-red-600'
+                    }`}
+                  />
+                  <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
+                    Accessibility
+                  </div>
+                </div>
+                <div
+                  className={`text-3xl font-bold ${
+                    accessibilityPercent >= 70
+                      ? 'text-emerald-600'
+                      : accessibilityPercent >= 30
+                        ? 'text-amber-600'
+                        : 'text-red-600'
+                  }`}
+                >
+                  {accessibilityPercent}%
+                </div>
+                <div className="text-xs text-neutral-500 mt-1">
+                  {accessibilityPercent >= 70
+                    ? 'Good coverage'
+                    : accessibilityPercent >= 30
+                      ? 'Needs improvement'
+                      : 'Critical gap'}
+                </div>
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="pt-6 space-y-6 overflow-y-auto max-h-[60vh]">
-            {/* Quality Breakdown Section */}
+            {/* Priority Actions Section */}
+            {priorityActions.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <ArrowRight className="h-5 w-5 text-blue-600" />
+                  Recommended Actions
+                </h3>
+                <div className="space-y-3">
+                  {priorityActions.map((action, idx) => {
+                    const priorityConfig = {
+                      high: {
+                        icon: AlertCircle,
+                        color: 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800',
+                        iconColor: 'text-red-600',
+                        badge: 'bg-red-600 text-white',
+                        label: 'HIGH',
+                      },
+                      medium: {
+                        icon: AlertTriangle,
+                        color:
+                          'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800',
+                        iconColor: 'text-amber-600',
+                        badge: 'bg-amber-600 text-white',
+                        label: 'MEDIUM',
+                      },
+                      low: {
+                        icon: Info,
+                        color: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800',
+                        iconColor: 'text-blue-600',
+                        badge: 'bg-blue-600 text-white',
+                        label: 'LOW',
+                      },
+                    };
+
+                    const config = priorityConfig[action.priority];
+                    const Icon = config.icon;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg border ${config.color} flex items-start gap-3`}
+                      >
+                        <Icon className={`h-5 w-5 ${config.iconColor} mt-0.5 flex-shrink-0`} />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className={`${config.badge} text-xs px-2 py-0.5`}>
+                              {config.label} PRIORITY
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                            {action.text}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Quality Dimension Breakdown */}
             <div>
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
-                Quality Breakdown
+                Quality Dimension Breakdown
               </h3>
               <div className="space-y-3">
                 {dimensions.map((dim, idx) => {
                   const percentage = (dim.score / dim.max) * 100;
+                  const passed = dim.score >= dim.threshold;
                   const Icon = dim.icon;
+                  
                   return (
                     <div
                       key={idx}
@@ -216,23 +413,36 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                           <span className="font-medium text-neutral-900 dark:text-neutral-100">
                             {dim.name}
                           </span>
+                          {passed ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-amber-600" />
+                          )}
                         </div>
-                        <span
-                          className={`font-bold ${dim.score === dim.max ? 'text-green-600' : 'text-neutral-700 dark:text-neutral-300'}`}
-                        >
-                          {Math.round(dim.score)} / {dim.max}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`font-bold ${passed ? 'text-emerald-600' : 'text-amber-600'}`}
+                          >
+                            {Math.round(dim.score)}
+                          </span>
+                          <span className="text-neutral-500">/ {dim.max}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="space-y-1">
                         <div className="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
                           <div
-                            className={`h-full ${percentage >= 80 ? 'bg-green-500' : percentage >= 60 ? 'bg-blue-500' : 'bg-yellow-500'}`}
+                            className={`h-full transition-all ${passed ? 'bg-emerald-500' : percentage >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
-                        <span className="text-xs text-neutral-600 dark:text-neutral-400">
-                          {dim.description}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-neutral-600 dark:text-neutral-400">
+                            {dim.description}
+                          </span>
+                          <span className="text-xs text-neutral-500">
+                            {passed ? 'Passed' : `${Math.round((dim.threshold / dim.max) * 100)}% required`}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -240,130 +450,114 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
               </div>
             </div>
 
-            {/* Issues & Warnings Section */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                Issues & Warnings
-              </h3>
-              {metrics.issues.length > 0 ? (
-                <div className="space-y-2">
-                  {metrics.issues.map((issue, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded border border-amber-200 dark:border-amber-800 flex items-start gap-2"
-                    >
-                      <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-amber-900 dark:text-amber-100">{issue}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-800 text-center">
-                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <span className="text-sm font-medium text-green-900 dark:text-green-100">
-                    No critical issues detected
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* AI Enhancement Summary */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                AI Enhancement Summary
-              </h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                  <div className="text-2xl font-bold text-indigo-600">{accessibilityPercent}%</div>
-                  <div className="text-sm text-indigo-900 dark:text-indigo-100">
-                    Accessibility Coverage
-                  </div>
-                </div>
-                {metrics.appliedSuggestionsCount !== undefined &&
-                  metrics.totalSuggestionsCount !== undefined && (
-                    <>
-                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {metrics.appliedSuggestionsCount}/{metrics.totalSuggestionsCount}
-                        </div>
-                        <div className="text-sm text-blue-900 dark:text-blue-100">
-                          Suggestions Applied
-                        </div>
-                      </div>
-                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                        <div className="text-2xl font-bold text-green-600">
-                          {metrics.totalSuggestionsCount > 0
-                            ? Math.round(
-                                (metrics.appliedSuggestionsCount / metrics.totalSuggestionsCount) *
-                                  100
-                              )
-                            : 0}
-                          %
-                        </div>
-                        <div className="text-sm text-green-900 dark:text-green-100">
-                          Engagement Rate
-                        </div>
-                      </div>
-                    </>
-                  )}
-              </div>
-
-              {metrics.explanations.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mb-2">
-                    Example Enhancements:
-                  </div>
-                  {metrics.explanations.slice(0, 3).map((exp, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700"
-                    >
-                      <div className="flex items-start gap-2">
-                        <Badge variant="outline" className="text-xs mt-0.5 flex-shrink-0">
-                          {exp.action}
-                        </Badge>
-                        <div className="flex-1 text-sm">
-                          <div className="font-medium text-neutral-900 dark:text-neutral-100 mb-1">
-                            {exp.path}
-                          </div>
-                          <div className="text-neutral-600 dark:text-neutral-400">{exp.reason}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Improvement Tips Section */}
-            {improvementTips.length > 0 && (
+            {/* Issues Section */}
+            {(critical.length > 0 || warnings.length > 0) && (
               <div>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Info className="h-5 w-5 text-blue-600" />
-                  Improvement Tips
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  Detected Issues
                 </h3>
-                <div className="space-y-2">
-                  {improvementTips.map((tip, idx) => (
+                <div className="space-y-3">
+                  {/* Critical Issues */}
+                  {critical.map((issue, idx) => (
                     <div
-                      key={idx}
-                      className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800 flex items-start gap-2"
+                      key={`critical-${idx}`}
+                      className="p-3 bg-red-50 dark:bg-red-950/20 rounded border border-red-200 dark:border-red-800 flex items-start gap-2"
                     >
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                        {idx + 1}
+                      <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <Badge className="bg-red-600 text-white text-xs mb-1">CRITICAL</Badge>
+                        <p className="text-sm text-red-900 dark:text-red-100">{issue}</p>
                       </div>
-                      <span className="text-sm text-blue-900 dark:text-blue-100">{tip}</span>
+                    </div>
+                  ))}
+
+                  {/* Warnings */}
+                  {warnings.map((issue, idx) => (
+                    <div
+                      key={`warning-${idx}`}
+                      className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded border border-amber-200 dark:border-amber-800 flex items-start gap-2"
+                    >
+                      <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <Badge className="bg-amber-600 text-white text-xs mb-1">WARNING</Badge>
+                        <p className="text-sm text-amber-900 dark:text-amber-100">{issue}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Footer Info */}
+            {/* No Issues State */}
+            {critical.length === 0 && warnings.length === 0 && (
+              <div className="p-6 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800 text-center">
+                <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto mb-3" />
+                <p className="font-medium text-emerald-900 dark:text-emerald-100 mb-1">
+                  No critical issues detected
+                </p>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                  Your schema meets all quality standards
+                </p>
+              </div>
+            )}
+
+            {/* AI Enhancement Summary */}
+            {metrics.explanations.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  AI Improvements Applied
+                </h3>
+                <div className="grid gap-3">
+                  {metrics.explanations.slice(0, 3).map((exp, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800"
+                    >
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-4 w-4 text-purple-600 mt-1 flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className="text-xs">
+                              {exp.action}
+                            </Badge>
+                            <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">
+                              {exp.path}
+                            </span>
+                          </div>
+                          <p className="text-sm text-neutral-700 dark:text-neutral-300">
+                            {exp.reason}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Applied Suggestions Counter */}
+                  {metrics.appliedSuggestionsCount !== undefined &&
+                    metrics.totalSuggestionsCount !== undefined && (
+                      <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 text-center">
+                        <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                          <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
+                            {metrics.appliedSuggestionsCount}
+                          </span>{' '}
+                          of{' '}
+                          <span className="font-bold text-lg text-neutral-900 dark:text-neutral-100">
+                            {metrics.totalSuggestionsCount}
+                          </span>{' '}
+                          AI suggestions applied
+                        </div>
+                      </div>
+                    )}
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
             <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 text-center">
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                💡 This report is generated using deterministic, rule-based quality evaluation
+                Report generated using deterministic quality evaluation • Scores update in real-time
               </p>
             </div>
           </CardContent>
