@@ -47,7 +47,7 @@ export function generateAppTsx(formModel: FormModel): string {
         </section>`;
     }).join('\n\n        ');
 
-    formBody = `<form onSubmit={handleSubmit}>
+    formBody = `<form onSubmit={handleSubmit} noValidate>
         ${sections}
 
         <button
@@ -63,7 +63,7 @@ export function generateAppTsx(formModel: FormModel): string {
     const fieldComponents = orderedFields
       .map(f => generateFieldComponent(f, theme))
       .join('\n\n');
-    formBody = `<form onSubmit={handleSubmit}>
+    formBody = `<form onSubmit={handleSubmit} noValidate>
         ${fieldComponents}
 
         <button
@@ -95,6 +95,8 @@ ${fieldIdMapEntries}
 
 function App() {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Drives the aria-live announcement region — screen readers read this after submit.
+  const [statusMessage, setStatusMessage] = useState<string>('');
 
   const validate = (data: Record<string, FormDataEntryValue>): Record<string, string> => {
     const errs: Record<string, string> = {};
@@ -109,21 +111,42 @@ function App() {
     const data = Object.fromEntries(formData.entries());
     const errs = validate(data);
     setErrors(errs);
-    if (Object.keys(errs).length > 0) {
-      // Move focus to the first invalid field so keyboard/AT users are guided.
+    const errorCount = Object.keys(errs).length;
+    if (errorCount > 0) {
+      // Announce a summary to screen readers via the polite live region.
+      setStatusMessage(
+        errorCount === 1
+          ? '1 error found. Please review the highlighted field.'
+          : errorCount + ' errors found. Please review the highlighted fields.'
+      );
+      // Move focus AND scroll to the first invalid field.
       const firstErrorKey = Object.keys(errs)[0];
       const firstErrorId = FIELD_ID_MAP[firstErrorKey];
       if (firstErrorId) {
-        (document.getElementById(firstErrorId) as HTMLElement | null)?.focus();
+        const el = document.getElementById(firstErrorId) as HTMLElement | null;
+        el?.focus();
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
     }
+    // Clear any prior status message on a clean submission.
+    setStatusMessage('');
     console.log('Form submitted:', data);
     // Add your form submission logic here
   };
 
   return (
     <div className="form-container">
+      {/* Visually hidden — screen readers announce statusMessage when it changes. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {statusMessage}
+      </div>
+
       <h1 className="form-title">${escapeHtml(title)}</h1>
       ${description ? `<p className="form-description">${escapeHtml(description)}</p>` : ''}
 
@@ -147,11 +170,25 @@ export default App;
  *    to avoid the invalid-JSX duplicate-style-attribute pitfall.
  *  - Only non-empty override values emit a CSS var entry (no empty strings polluting styles).
  */
+/** WCAG 1.3.5 — maps field keys to HTML autocomplete tokens so password
+ *  managers and assistive technology can identify the purpose of each input. */
+const AUTO_COMPLETE_MAP: Record<string, string> = {
+  name: 'name', firstName: 'given-name', lastName: 'family-name',
+  email: 'email', phone: 'tel', mobile: 'tel',
+  password: 'current-password', newPassword: 'new-password',
+  street: 'street-address', city: 'address-level2', state: 'address-level1',
+  zip: 'postal-code', country: 'country-name',
+  organisation: 'organization', company: 'organization',
+};
+
 function generateFieldComponent(field: FieldModel, theme: any): string {
   const { id, key, type, label, required, ui } = field;
-  const placeholder = ui?.placeholder || '';
+  // date/number inputs don't benefit from placeholder — omit it to keep markup clean.
+  const placeholder = (type === 'date' || type === 'number') ? '' : (ui?.placeholder || '');
   const helpText = ui?.helpText;
   const overrides = ui?.styleOverrides as Record<string, string> | undefined;
+  // Look up autoComplete token for this field key (WCAG 1.3.5).
+  const autoComplete = AUTO_COMPLETE_MAP[key] ?? '';
 
   // Collect per-field CSS custom property entries (only truthy values)
   const overrideVars: string[] = overrides
@@ -210,18 +247,21 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
   const ariaInvalid = `aria-invalid={errors['${key}'] ? 'true' : 'false'}`;
   const ariaErrMsg = `aria-errormessage="${id}-error"`;
 
+  const autoCompleteAttr = autoComplete ? `autoComplete="${autoComplete}"` : '';
+
   switch (type) {
     case 'textarea':
       inputElement = `<textarea
             name="${key}"
             id="${id}"
             className="field-input"
-            placeholder="${escapeHtml(placeholder)}"
+            ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
             ${required ? 'required' : ''}
             ${ariaRequired}
             ${ariaInvalid}
             ${ariaErrMsg}
             ${ariaDescribedBy}
+            ${autoCompleteAttr}
           ></textarea>`;
       break;
     case 'select': {
@@ -235,6 +275,7 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
             ${ariaInvalid}
             ${ariaErrMsg}
             ${ariaDescribedBy}
+            ${autoCompleteAttr}
           >
             <option value="">${escapeHtml(placeholder) || 'Select...'}</option>
             ${options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('\n            ')}
@@ -242,7 +283,8 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
       break;
     }
     case 'checkbox':
-      // Checkboxes use aria-checked semantics; aria-required still applies
+      // Checkboxes use aria-checked semantics; aria-required still applies.
+      // autoComplete is not applicable to checkboxes — omitted intentionally.
       inputElement = `<input
             type="checkbox"
             name="${key}"
@@ -261,12 +303,13 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
             name="${key}"
             id="${id}"
             className="field-input"
-            placeholder="${escapeHtml(placeholder)}"
+            ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
             ${required ? 'required' : ''}
             ${ariaRequired}
             ${ariaInvalid}
             ${ariaErrMsg}
             ${ariaDescribedBy}
+            ${autoCompleteAttr}
           />`;
   }
 
