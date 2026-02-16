@@ -670,7 +670,6 @@ export class XmlParserPlugin implements FormatParserPlugin {
       if (/^-?\d+\.\d+$/.test(strValue)) {
         const schema: any = {
           type: 'number',
-          multipleOf: 0.01,
         };
         
         // Add minimum for money fields
