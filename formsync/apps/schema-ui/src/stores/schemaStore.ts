@@ -159,14 +159,16 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       const mergedSuggestions = [...appliedSuggestions];
       
       for (const newSugg of newSuggestions) {
-        // Check if this suggestion is already applied
-        const alreadyApplied = appliedSuggestions.some(
+        // Check if this suggestion already exists (in applied OR pending)
+        const alreadyExists = existingSuggestions.some(
           s => s.path === newSugg.path && 
                JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
         );
         
-        if (!alreadyApplied) {
+        if (!alreadyExists) {
           mergedSuggestions.push(newSugg);
+        } else {
+          console.log('[SchemaStore] Skipping duplicate suggestion:', newSugg.path, newSugg.rule);
         }
       }
 
