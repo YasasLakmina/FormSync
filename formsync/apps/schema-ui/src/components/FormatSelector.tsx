@@ -24,6 +24,10 @@ const formats = [
     icon: FileJson,
     color: 'from-blue-500 to-cyan-500',
     bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+    borderColor: 'border-blue-500',
+    hoverBorderColor: 'hover:border-blue-300 dark:hover:border-blue-600',
+    ringColor: 'ring-blue-400/50',
+    textColor: 'text-blue-700 dark:text-blue-300',
   },
   {
     type: 'yaml' as FormatType,
@@ -32,6 +36,10 @@ const formats = [
     icon: FileCode,
     color: 'from-purple-500 to-pink-500',
     bgColor: 'bg-purple-50 dark:bg-purple-950/30',
+    borderColor: 'border-purple-500',
+    hoverBorderColor: 'hover:border-purple-300 dark:hover:border-purple-600',
+    ringColor: 'ring-purple-400/50',
+    textColor: 'text-purple-700 dark:text-purple-300',
   },
   {
     type: 'xml' as FormatType,
@@ -40,6 +48,10 @@ const formats = [
     icon: FileType,
     color: 'from-orange-500 to-red-500',
     bgColor: 'bg-orange-50 dark:bg-orange-950/30',
+    borderColor: 'border-orange-500',
+    hoverBorderColor: 'hover:border-orange-300 dark:hover:border-orange-600',
+    ringColor: 'ring-orange-400/50',
+    textColor: 'text-orange-700 dark:text-orange-300',
   },
 ];
 
@@ -58,8 +70,8 @@ export const FormatSelector: React.FC<FormatSelectorProps> = ({ selected, onChan
               'relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
               'border-2 cursor-pointer group',
               isSelected
-                ? 'border-primary-500 shadow-lg scale-105'
-                : 'border-neutral-200 dark:border-neutral-700 hover:border-primary-300 dark:hover:border-primary-600',
+                ? `${format.borderColor} shadow-lg scale-105`
+                : `border-neutral-200 dark:border-neutral-700 ${format.hoverBorderColor}`,
               format.bgColor
             )}
             whileHover={{ y: -2 }}
@@ -80,7 +92,7 @@ export const FormatSelector: React.FC<FormatSelectorProps> = ({ selected, onChan
             <div className="text-left">
               <div className={cn(
                 'font-semibold text-sm',
-                isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-neutral-700 dark:text-neutral-300'
+                isSelected ? format.textColor : 'text-neutral-700 dark:text-neutral-300'
               )}>
                 {format.label}
               </div>
@@ -94,7 +106,7 @@ export const FormatSelector: React.FC<FormatSelectorProps> = ({ selected, onChan
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center"
+                className={`absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br ${format.color} rounded-full flex items-center justify-center shadow-lg`}
               >
                 <span className="text-white text-xs font-bold">✓</span>
               </motion.div>

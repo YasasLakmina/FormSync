@@ -28,6 +28,7 @@ import {
   Redo2,
   ChevronLeft,
   ChevronRight,
+  Wand2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -69,6 +70,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const isUndoRedoAction = useRef(false);
   const historyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Schema name state
+  const [schemaName, setSchemaName] = useState('');
+  const [nameSuggestionLoading, setNameSuggestionLoading] = useState(false);
+
   // Validation state
   const [isInputValid, setIsInputValid] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
@@ -82,6 +87,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const {
     currentSchema,
     convertedSchema,
+    baseSchema,
     suggestions,
     qualityMetrics,
     validationResults,
@@ -95,7 +101,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Computed - prioritize currentSchema so applied suggestions show immediately
   const displaySchema = currentSchema || convertedSchema;
 
+  // Stable ref for onStageUpdate to prevent editor re-renders
+  const onStageUpdateRef = useRef(onStageUpdate);
+  useEffect(() => {
+    onStageUpdateRef.current = onStageUpdate;
+  }, [onStageUpdate]);
+
   // Handle editor value change - Update "Enter Schema" stage
+  // Using empty deps array to prevent Monaco onChange from being recreated
   const handleEditorChange = useCallback(
     (value: string | undefined) => {
       const newValue = value || '';
@@ -103,7 +116,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Update "Enter Schema" stage based on content
       if (newValue.trim()) {
-        onStageUpdate?.('Enter Schema', 'complete');
+        onStageUpdateRef.current?.('Enter Schema', 'complete');
       }
 
       // Add to history (debounced to avoid too many entries)
@@ -132,7 +145,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         }, 500); // 500ms debounce
       }
     },
-    [onStageUpdate]
+    [] // Empty deps - handler is stable
   );
 
   // Populate editor when schema is transferred from Template Builder
@@ -140,6 +153,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     if (schemaFromBuilder && schemaFromBuilder.trim() && schemaFromBuilder !== editorValue) {
       setEditorValue(schemaFromBuilder);
       setFormat('json'); // Template Builder always generates JSON
+      
+      // Extract schema name from title if present
+      try {
+        const schema = JSON.parse(schemaFromBuilder);
+        if (schema.title) {
+          setSchemaName(schema.title);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+      
       toast.success('Schema loaded from Template Builder!');
       onStageUpdate?.('Enter Schema', 'complete');
     }
@@ -166,6 +190,44 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setHistoryIndex(0);
     }
   }, [editorValue, history.length]);
+  // AI Suggest Name Handler
+  const handleSuggestName = useCallback(async () => {
+    if (!editorValue.trim()) {
+      toast.error('Please enter schema content first');
+      return;
+    }
+
+    setNameSuggestionLoading(true);
+    try {
+      // Parse schema to extract field names
+      let fields: string[] = [];
+      try {
+        const parsedSchema = JSON.parse(editorValue);
+        if (parsedSchema.properties) {
+          fields = Object.keys(parsedSchema.properties);
+        }
+      } catch (e) {
+        // If not JSON, try to extract field-like patterns
+      }
+
+      const response = await schemaApi.suggestName({
+        fields,
+        schemaContent: editorValue,
+      });
+
+      const suggestedName = response.data.suggestedName;
+      setSchemaName(suggestedName);
+      toast.success('AI suggested a schema name!', {
+        description: `"${suggestedName}"`,
+      });
+    } catch (error: any) {
+      toast.error('Failed to suggest name', {
+        description: error.response?.data?.message || 'Please try again',
+      });
+    } finally {
+      setNameSuggestionLoading(false);
+    }
+  }, [editorValue]);
 
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
@@ -174,6 +236,13 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const handleValidate = useCallback(async () => {
     if (!editorValue.trim()) {
       toast.error('Please enter some code to validate');
+      return;
+    }
+
+    // Check if schema name is provided
+    if (!schemaName || !schemaName.trim()) {
+      toast.error('Please enter a schema name before validation');
+      setValidationError('Schema name is required');
       return;
     }
 
@@ -195,15 +264,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       });
 
       // Special case: If format is already JSON, also trigger semantic validation
+      // but DO NOT populate the output - user must click "Convert" for that
       if (format === 'json') {
         try {
           const schema = JSON.parse(editorValue);
           // Only validate if it looks like a schema (has type or properties)
-          // or just simple validation
           if (typeof schema === 'object' && schema !== null) {
             await useSchemaStore.getState().validateSchema(schema);
-            // Also update current schema in store if it's JSON
-            setCurrentSchema(schema);
+            // DO NOT set current schema here - validation should not populate output
           }
         } catch (e) {
           // Ignore parse errors here as syntax check passed
@@ -214,6 +282,24 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       setShowValidationDialog(true);
     } catch (error: any) {
       setIsInputValid(false);
+
+      // Check if this is an already enhanced schema
+      if (error.response?.data?.isEnhancedSchema) {
+        const backendError = error.response.data;
+        const metadata = backendError.metadata || {};
+        
+        setValidationError(backendError.details || 'This is already an enhanced schema');
+        
+        onStageUpdate?.('Input Validation', 'error');
+        
+        toast.error('Already Enhanced Schema Detected', {
+          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || 'AI'}. Please use the original raw schema instead.`,
+          duration: 6000,
+        });
+        
+        setShowValidationDialog(true);
+        return;
+      }
 
       // Check if this is a syntax validation error from backend
       if (error.response?.data?.syntaxErrors || error.response?.data?.formatMismatch) {
@@ -256,7 +342,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     } finally {
       setValidateLoading(false);
     }
-  }, [editorValue, format, clearError, onStageUpdate, setCurrentSchema]);
+  }, [editorValue, format, schemaName, clearError, onStageUpdate]);
 
   // 2. Convert to JSON Schema
   const handleConvert = useCallback(async () => {
@@ -265,31 +351,51 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       return;
     }
 
+    // Check if schema name is provided
+    if (!schemaName || !schemaName.trim()) {
+      toast.error('Please enter a schema name before conversion');
+      return;
+    }
+
     clearError();
     setConvertLoading(true);
     onStageUpdate?.('Schema Conversion', 'loading');
     try {
-      // Convert and get the schema back (updated store action returns it)
+      // Convert and get the schema back
       const schema = await convertSchema(editorValue, format);
+
+      // Use manually entered schema name
+      if (schema) {
+        schema.title = schemaName.trim();
+        setCurrentSchema(schema);
+      }
 
       toast.success('Schema converted to JSON Schema successfully!');
       onStageUpdate?.('Schema Conversion', 'complete');
 
       // Trigger semantic validation on the converted schema
       if (schema) {
-        // onStageUpdate?.('Input Validation', 'loading'); // REMOVED: Keep it green since it was already validated 
-        // Actually Input Validation stage is technically done, but we need semantic validity for generation
         await useSchemaStore.getState().validateSchema(schema);
-        // We don't necessarily need to show a toast here as convert success is shown
       }
 
-    } catch (error) {
-      toast.error('Failed to convert schema');
+    } catch (error: any) {
+      // Check if this is an already enhanced schema
+      if (error.response?.data?.isEnhancedSchema) {
+        const backendError = error.response.data;
+        const metadata = backendError.metadata || {};
+        
+        toast.error('Already Enhanced Schema Detected', {
+          description: `Enhanced ${metadata.enhancementCount || 1} time(s) using ${metadata.model || 'AI'}. Please use the original raw schema instead.`,
+          duration: 6000,
+        });
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Failed to convert schema');
+      }
       onStageUpdate?.('Schema Conversion', 'error');
     } finally {
       setConvertLoading(false);
     }
-  }, [editorValue, format, convertSchema, clearError, onStageUpdate]);
+  }, [editorValue, format, schemaName, convertSchema, clearError, onStageUpdate, setCurrentSchema]);
 
   // Quick Fix - Apply syntax corrections
   const handleAIFix = useCallback(async () => {
@@ -356,21 +462,56 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       return;
     }
 
+    // ✅ Check enhancement limit (max 2 times)
+    const metadata = displaySchema['x-formsync-metadata'];
+    const enhancementCount = metadata?.enhancementCount || 0;
+    
+    if (enhancementCount >= 2) {
+      toast.error('Enhancement limit reached', {
+        description: 'Schema has already been enhanced 2 times. This is the maximum allowed to prevent over-optimization.',
+      });
+      return;
+    }
+
+    // ✅ FIX: If schema already has suggestions, use baseSchema to avoid losing them
+    // This prevents suggestions from disappearing when clicking enhance again
+    const schemaToEnhance = (suggestions && suggestions.length > 0 && baseSchema) 
+      ? baseSchema 
+      : displaySchema;
+
+    // Log for debugging
+    if (suggestions && suggestions.length > 0) {
+      console.log('[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions');
+    }
+
     clearError();
     setEnhanceLoading(true);
     onStageUpdate?.('AI Enhancement', 'loading');
     try {
-      await enhanceSchema(displaySchema);
-      toast.success('Schema enhanced with AI suggestions!');
+      await enhanceSchema(schemaToEnhance);
+      
+      // Show enhancement count in success message
+      const newCount = enhancementCount + 1;
+      const remainingEnhancements = 2 - newCount;
+      
+      toast.success('Schema enhanced with AI suggestions!', {
+        description: remainingEnhancements > 0 
+          ? `You can enhance ${remainingEnhancements} more time${remainingEnhancements > 1 ? 's' : ''}.`
+          : 'This was your final enhancement (2/2).',
+      });
+      
       setShowSuggestions(true); // Auto-show suggestions panel
       onStageUpdate?.('AI Enhancement', 'complete');
-    } catch (error) {
-      toast.error('Failed to enhance schema');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to enhance schema';
+      toast.error('Enhancement failed', {
+        description: errorMessage,
+      });
       onStageUpdate?.('AI Enhancement', 'error');
     } finally {
       setEnhanceLoading(false);
     }
-  }, [displaySchema, enhanceSchema, clearError, onStageUpdate]);
+  }, [displaySchema, baseSchema, suggestions, enhanceSchema, clearError, onStageUpdate]);
 
   // Handle suggestion apply/undo
   const handleSuggestionAction = useCallback(
@@ -486,6 +627,22 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   return (
     <div className="flex flex-col gap-4 h-full">
+      {/* Schema Name Input Section */}
+      <div className="w-full">
+        <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
+          Schema Name
+        </h3>
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            placeholder="e.g., User Registration Form, Contact Schema"
+            value={schemaName}
+            onChange={(e) => setSchemaName(e.target.value)}
+            className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          />
+        </div>
+      </div>
+
       {/* Header Row: Format Selector (Left) + Next: Form Builder Button (Right) */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         {/* Left: Format Selector */}
@@ -715,12 +872,44 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             </CardHeader>
             <CardContent className="flex-1 p-0">
               <Editor
-                key={editorValue ? `editor-loaded-${editorValue.length}` : 'editor-empty'}
                 height="100%"
                 language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
                 value={editorValue}
                 onChange={handleEditorChange}
                 theme="vs-dark"
+                onMount={(editor, monaco) => {
+                  // Add keyboard shortcuts
+                  editor.addAction({
+                    id: 'enhance-schema',
+                    label: 'Enhance Schema with AI',
+                    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+                    run: () => {
+                      if (!enhanceLoading && displaySchema) {
+                        handleEnhance();
+                      }
+                    },
+                  });
+
+                  editor.addAction({
+                    id: 'format-document',
+                    label: 'Format Document',
+                    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
+                    run: () => {
+                      editor.getAction('editor.action.formatDocument')?.run();
+                    },
+                  });
+
+                  editor.addAction({
+                    id: 'validate-input',
+                    label: 'Validate Input',
+                    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV],
+                    run: () => {
+                      if (!validateLoading) {
+                        handleValidate();
+                      }
+                    },
+                  });
+                }}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,

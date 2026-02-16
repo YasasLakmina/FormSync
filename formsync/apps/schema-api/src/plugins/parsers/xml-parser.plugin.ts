@@ -24,6 +24,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
       allowBooleanAttributes: false,
       trimValues: true,
       ignoreDeclaration: true,
+      parseTagValue: false, // CRITICAL: Don't parse "E1024" as null, keep as string
       isArray: (name) => {
         // Always treat these as arrays for consistent processing
         return ['Field', 'property', 'value', 'field', 'option', 'Option'].includes(name);
@@ -367,6 +368,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
   /**
    * Build JSON Schema for a single field (with Options support)
+   * NOTE: Does NOT add examples or x-accessibility (those come from AI Enhancement)
    */
   private buildFieldSchema(field: any): any {
     const fieldType = field['@_type'] || 'text';
@@ -433,12 +435,6 @@ export class XmlParserPlugin implements FormatParserPlugin {
       fieldSchema.description = description;
     }
 
-    // Add placeholder as example
-    const placeholder = getFieldValue(field, 'Placeholder', 'placeholder');
-    if (placeholder) {
-      fieldSchema.examples = [placeholder];
-    }
-
     // Handle Options for select/enum fields
     const options = field.Options || field.options;
     if (options) {
@@ -489,18 +485,27 @@ export class XmlParserPlugin implements FormatParserPlugin {
   /**
    * Generic data structure inference (fallback for non-form XML)
    * 
-   * FIXED: Generates proper JSON Schema instead of schema-of-schema
-   * - $schema only at root level
-   * - XML elements → JSON properties
-   * - Nested elements → nested objects
-   * - Repeated elements → arrays
+   * ENHANCED for Better Quality:
+   * - Smart type detection (string vs integer vs number vs boolean)
+   * - Meaningful titles from root element
+   * - Validation rules (pattern, format, min/max)
+   * - Does NOT add examples or x-accessibility (those come from AI Enhancement)
    */
-  private inferSchemaFromData(data: any, isRoot: boolean = true): any {
+  private inferSchemaFromData(data: any, isRoot: boolean = true, rootElementName?: string, fieldName?: string): any {
     const type = Array.isArray(data) ? 'array' : typeof data;
 
     if (type === 'object' && data !== null) {
       const properties: Record<string, any> = {};
       const required: string[] = [];
+      
+      // Extract root element name for title generation
+      let extractedRootName = rootElementName;
+      if (isRoot && !extractedRootName) {
+        const keys = Object.keys(data).filter(k => !k.startsWith('@_') && k !== '_text');
+        if (keys.length > 0) {
+          extractedRootName = keys[0];
+        }
+      }
 
       for (const [key, value] of Object.entries(data)) {
         // Skip XML parser metadata
@@ -508,8 +513,8 @@ export class XmlParserPlugin implements FormatParserPlugin {
           continue;
         }
         
-        // Recursively infer schema for nested elements (NOT as root)
-        properties[key] = this.inferSchemaFromData(value, false);
+        // Recursively infer schema for nested elements
+        properties[key] = this.inferSchemaFromData(value, false, extractedRootName, key);
         required.push(key);
       }
 
@@ -522,7 +527,6 @@ export class XmlParserPlugin implements FormatParserPlugin {
       if (Object.keys(properties).length > 0) {
         schema.properties = properties;
       } else {
-        // If no properties, allow any additional properties
         schema.additionalProperties = true;
       }
 
@@ -530,11 +534,40 @@ export class XmlParserPlugin implements FormatParserPlugin {
         schema.required = required;
       }
 
-      // Add $schema ONLY at root level
+      // Add $schema and title ONLY at root level
       if (isRoot) {
+        console.log('[XML Parser] extractedRootName:', extractedRootName);
+        const title = this.generateMeaningfulTitle(extractedRootName);
+        console.log('[XML Parser] Generated title:', title);
+        // Generate description from title (remove " Schema" suffix)
+        const description = `Schema for ${title.replace(' Schema', '')}`;
+        
+        // FLATTEN ROOT: If there's only one top-level property, flatten it
+        const topLevelKeys = Object.keys(properties);
+        console.log('[XML Parser] Top-level keys:', topLevelKeys);
+        if (topLevelKeys.length === 1 && topLevelKeys[0] === extractedRootName) {
+          console.log('[XML Parser] Flattening root element:', extractedRootName);
+          // Extract nested properties from the root wrapper
+          const rootElement = properties[extractedRootName];
+          if (rootElement.type === 'object' && rootElement.properties) {
+            return {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              title,
+              description,
+              type: 'object',
+              properties: rootElement.properties,
+              ...(rootElement.required && { required: rootElement.required }),
+            };
+          }
+        }
+        
         return {
           $schema: 'http://json-schema.org/draft-07/schema#',
-          ...schema,
+          title,
+          description,
+          type: 'object',
+          properties,
+          ...(required.length > 0 && { required }),
         };
       }
 
@@ -542,15 +575,150 @@ export class XmlParserPlugin implements FormatParserPlugin {
     }
 
     if (type === 'array') {
-      // Infer items schema from first element (NOT as root)
-      const items = data.length > 0 ? this.inferSchemaFromData(data[0], false) : { type: 'string' };
+      // Infer items schema from first element
+      const items = data.length > 0 ? this.inferSchemaFromData(data[0], false, rootElementName, fieldName) : { type: 'string' };
       return {
         type: 'array',
         items,
       };
     }
 
-    // Primitive types
-    return { type: type === 'object' ? 'null' : type };
+    // Primitive types - ENHANCED TYPE DETECTION
+    return this.inferPrimitiveType(data, fieldName || '');
+  }
+
+  /**
+   * Smart type detection for primitive values
+   * NOTE: Does NOT add examples or x-accessibility (those come from AI Enhancement)
+   */
+  private inferPrimitiveType(value: any, fieldName: string): any {
+    const strValue = String(value).trim();
+    const lowerFieldName = fieldName.toLowerCase();
+    
+    // Priority 1: Field name patterns for integers
+    if (/^(age|count|quantity|numberof|years|level|rank)$/i.test(fieldName)) {
+      const numValue = Number(strValue);
+      if (!isNaN(numValue)) {
+        const schema: any = {
+          type: 'integer',
+        };
+        
+        // Add age-specific constraints
+        if (lowerFieldName === 'age') {
+          schema.minimum = 0;
+          schema.maximum = 150;
+        } else {
+          schema.minimum = 0;
+        }
+        
+        return schema;
+      }
+    }
+    
+    // Priority 2: Boolean detection
+    if (strValue === 'true' || strValue === 'false') {
+      return {
+        type: 'boolean',
+      };
+    }
+    
+    // Priority 3: ISO Date detection (YYYY-MM-DD pattern)
+    if (/^\d{4}-\d{2}-\d{2}/.test(strValue)) {
+      return {
+        type: 'string',
+        format: 'date',
+      };
+    }
+    
+    // Priority 4: Email detection
+    if (/@.*\./.test(strValue)) {
+      return {
+        type: 'string',
+        format: 'email',
+      };
+    }
+    
+    // Priority 5: Numeric detection
+    const numValue = Number(strValue);
+    if (!isNaN(numValue) && strValue !== '') {
+      // Check if it's a pure integer (no letters, no decimals)
+      if (/^-?\d+$/.test(strValue)) {
+        // Could be integer, but check for ID patterns first
+        if (/id$/i.test(fieldName) || /^(code|ref|number)/i.test(fieldName)) {
+          // IDs with numbers only should still be strings for safety
+          return {
+            type: 'string',
+            pattern: '^[A-Za-z0-9]+$',
+          };
+        }
+        
+        // Check field name for money/salary patterns
+        if (/^(salary|price|amount|cost|fee|payment)$/i.test(fieldName)) {
+          return {
+            type: 'number',
+            minimum: 0,
+          };
+        }
+        
+        // Pure integer
+        return {
+          type: 'integer',
+        };
+      }
+      
+      // Has decimal point - it's a number
+      if (/^-?\d+\.\d+$/.test(strValue)) {
+        const schema: any = {
+          type: 'number',
+        };
+        
+        // Add minimum for money fields
+        if (/^(salary|price|amount|cost|fee|payment)$/i.test(fieldName)) {
+          schema.minimum = 0;
+        }
+        
+        return schema;
+      }
+    }
+    
+    // Priority 6: Mixed alphanumeric (e.g., "E1024", "ABC123") - definitely string
+    if (/[a-zA-Z]/.test(strValue) && /\d/.test(strValue)) {
+      const schema: any = {
+        type: 'string',
+      };
+      
+      // Add pattern for ID fields
+      if (/id$/i.test(fieldName)) {
+        schema.pattern = '^[A-Za-z0-9]+$';
+      }
+      
+      return schema;
+    }
+    
+    // Default: string
+    return {
+      type: 'string',
+    };
+  }
+
+  /**
+   * Generate meaningful title from root element name
+   * EmployeeRecord → "Employee Record Schema"
+   */
+  private generateMeaningfulTitle(rootElementName?: string): string {
+    if (!rootElementName) {
+      return 'Generated Schema';
+    }
+    
+    // Convert camelCase/PascalCase to Title Case with spaces
+    const titleCase = rootElementName
+      .replace(/([A-Z])/g, ' $1')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+    
+    return `${titleCase} Schema`;
   }
 }

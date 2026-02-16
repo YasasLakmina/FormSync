@@ -37,6 +37,7 @@ import {
   UpdateSchemaDto,
   ApplySuggestionDto,
   RecalculateQualityDto,
+  SuggestNameDto,
 } from './dto/schema.dto';
 
 @ApiTags('schema')
@@ -81,6 +82,18 @@ export class SchemaController {
   @Post('enhance')
   async enhance(@Body() dto: EnhanceSchemaDto) {
     return this.schemaService.enhanceSchema(dto);
+  }
+
+  /**
+   * POST /schema/suggest-name
+   * Use AI to suggest a schema name based on fields or content
+   */
+  @Post('suggest-name')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Suggest schema name using AI', tags: ['ai'] })
+  @ApiResponse({ status: 200, description: 'Name suggested successfully' })
+  async suggestName(@Body() dto: SuggestNameDto) {
+    return this.schemaService.suggestSchemaName(dto);
   }
 
   /**
@@ -137,6 +150,13 @@ export class SchemaController {
   @ApiResponse({ status: 404, description: 'Schema not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateSchemaDto) {
     return this.schemaService.updateSchema(id, dto);
+  }
+
+  @Delete('cache')
+  @ApiOperation({ summary: 'Clear all cached conversion results', tags: ['cache'] })
+  @ApiResponse({ status: 200, description: 'Cache cleared successfully' })
+  async clearCache() {
+    return this.schemaService.clearCache();
   }
 
   @Delete(':id')

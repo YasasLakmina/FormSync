@@ -68,8 +68,21 @@ export class SchemaEnhancerService {
     schema: any,
     options?: EnhancementOptions
   ): Promise<EnhancementResultWithSuggestions> {
+    // ✅ Check enhancement counter - limit to 2 enhancements
+    const existingMetadata = schema['x-formsync-metadata'];
+    const enhancementCount = existingMetadata?.enhancementCount || 0;
+    
+    if (enhancementCount >= 2) {
+      throw new Error('Schema has already been enhanced 2 times. Maximum enhancement limit reached.');
+    }
+
+    // ✅ FIX #2: Remove enhancement marker before processing to allow re-enhancement
+    // (Frontend should prevent this, but backend should be resilient)
+    const cleanSchema = { ...schema };
+    delete cleanSchema['x-formsync-metadata'];
+
     // Delegate to LLM provider for raw AI enhancement + suggestions
-    const result = await this.llmPlugin.enhanceSchema(schema, options);
+    const result = await this.llmPlugin.enhanceSchema(cleanSchema, options);
 
     if (!result.success) {
       throw new Error(result.errors?.join(', ') || 'Schema enhancement failed');
@@ -78,7 +91,20 @@ export class SchemaEnhancerService {
     // Extract results
     const enhancedSchema = result.enhancedSchema;
     const changes = result.changes || [];
-    const suggestions = result.suggestions || [];
+    let suggestions = result.suggestions || [];
+
+    // ✅ FIX #5: Validate all suggestions before returning
+    suggestions = this.validateSuggestions(suggestions, enhancedSchema);
+
+    // ✅ FIX #2: Mark schema as enhanced with counter
+    enhancedSchema['x-formsync-metadata'] = {
+      enhanced: true,
+      enhancedAt: new Date().toISOString(),
+      enhancementVersion: '1.0',
+      model: result.model || this.llmPlugin['model'] || 'unknown',
+      enhancementCount: enhancementCount + 1,
+      previousEnhancementAt: existingMetadata?.enhancedAt,
+    };
 
     // Calculate quality score for CURRENT state (enhanced schema, NO suggestions applied)
     const quality = this.qualityEngine.evaluate(
@@ -226,4 +252,112 @@ export class SchemaEnhancerService {
       allSuggestions
     );
   }
+
+  /**
+   * ✅ FIX #5: Validate AI suggestions before presenting to user
+   * 
+   * Validates that AI suggestions are:
+   * - Syntactically valid
+   * - Logically consistent
+   * - Don't violate JSON Schema rules
+   * - Examples match patterns and constraints
+   * 
+   * Filters out invalid suggestions to prevent broken schemas.
+   */
+  private validateSuggestions(suggestions: SchemaSuggestion[], schema: any): SchemaSuggestion[] {
+    const validated: SchemaSuggestion[] = [];
+
+    for (const suggestion of suggestions) {
+      const validation = this.validateSingleSuggestion(suggestion);
+      
+      if (validation.valid) {
+        validated.push(suggestion);
+      } else {
+        console.warn(
+          `[SchemaEnhancer] Invalid suggestion filtered out: ${suggestion.path} - ${suggestion.description}`,
+          validation.errors
+        );
+      }
+    }
+
+    console.log(
+      `[SchemaEnhancer] Validated suggestions: ${validated.length}/${suggestions.length} passed`
+    );
+
+    return validated;
+  }
+
+  /**
+   * Validate a single suggestion
+   */
+  private validateSingleSuggestion(suggestion: SchemaSuggestion): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    const rule = suggestion.rule || {};
+
+    // Validate minLength/maxLength
+    if (rule.minLength !== undefined) {
+      if (rule.minLength < 0) {
+        errors.push('minLength cannot be negative');
+      }
+      if (rule.maxLength !== undefined && rule.minLength > rule.maxLength) {
+        errors.push('minLength cannot exceed maxLength');
+      }
+    }
+
+    // Validate minimum/maximum
+    if (rule.minimum !== undefined && rule.maximum !== undefined) {
+      if (rule.minimum > rule.maximum) {
+        errors.push('minimum cannot exceed maximum');
+      }
+    }
+
+    // Validate pattern (regex)
+    if (rule.pattern) {
+      try {
+        new RegExp(rule.pattern);
+      } catch (e) {
+        errors.push(`Invalid regex pattern: ${rule.pattern}`);
+      }
+    }
+
+    // Validate examples against rules
+    if (rule.examples && Array.isArray(rule.examples)) {
+      for (const example of rule.examples) {
+        // String validation
+        if (typeof example === 'string') {
+          if (rule.minLength && example.length < rule.minLength) {
+            errors.push(`Example "${example}" shorter than minLength (${rule.minLength})`);
+          }
+          if (rule.maxLength && example.length > rule.maxLength) {
+            errors.push(`Example "${example}" longer than maxLength (${rule.maxLength})`);
+          }
+          if (rule.pattern) {
+            try {
+              if (!new RegExp(rule.pattern).test(example)) {
+                errors.push(`Example "${example}" doesn't match pattern: ${rule.pattern}`);
+              }
+            } catch (e) {
+              // Pattern already validated above
+            }
+          }
+        }
+
+        // Number validation
+        if (typeof example === 'number') {
+          if (rule.minimum !== undefined && example < rule.minimum) {
+            errors.push(`Example ${example} below minimum (${rule.minimum})`);
+          }
+          if (rule.maximum !== undefined && example > rule.maximum) {
+            errors.push(`Example ${example} above maximum (${rule.maximum})`);
+          }
+        }
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
 }
+

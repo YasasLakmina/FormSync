@@ -78,4 +78,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.del(keys);
     }
   }
+
+  /**
+   * Flush all cache (clear entire Redis database)
+   */
+  async flushAll(): Promise<void> {
+    await this.client.flushAll();
+  }
 }

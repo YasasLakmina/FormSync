@@ -103,6 +103,71 @@ For EACH field and object node, check:
 5. Consistency and safety
 
 ------------------------------------------------
+🔒 CRITICAL PRESERVATION RULES (MUST FOLLOW)
+------------------------------------------------
+
+NEVER suggest changes to fields that ALREADY have these user-defined properties:
+
+1. DO NOT suggest different "pattern" if field already has pattern
+2. DO NOT suggest different "minLength" if field already has minLength
+3. DO NOT suggest different "maxLength" if field already has maxLength
+4. DO NOT suggest different "minimum" if field already has minimum
+5. DO NOT suggest different "maximum" if field already has maximum
+6. DO NOT suggest different "enum" if field already has enum
+7. DO NOT suggest different "format" if field already has format
+8. DO NOT suggest weaker validation constraints
+9. DO NOT replace user-provided descriptions with generic ones
+
+ONLY suggest ADDING missing properties, NEVER replacing existing ones.
+
+🚫 SKIP FIELDS THAT ARE ALREADY COMPLETE:
+
+A field is COMPLETE if it has ALL of the following:
+- ✅ description (non-empty, not "No description provided")
+- ✅ examples (array with at least one value)
+- ✅ At least one validation rule (pattern, minLength, minimum, format, etc.)
+- ✅ x-accessibility (for user-input fields like string, number, boolean)
+
+EXAMPLE - Field with complete metadata (SKIP IT):
+{
+  "email": {
+    "type": "string",
+    "pattern": "^[a-z0-9]+@example\\.com$",
+    "description": "User email address",
+    "examples": ["user@example.com"],
+    "x-accessibility": { "label": "Email", "hint": "Enter your email" }
+  }
+}
+→ NO SUGGESTIONS NEEDED - Field is complete ✅
+
+EXAMPLE - Field missing only examples (SUGGEST):
+{
+  "name": {
+    "type": "string",
+    "minLength": 1,
+    "description": "User full name",
+    "x-accessibility": { "label": "Name", "hint": "Enter your name" }
+  }
+}
+→ SUGGEST: Add examples: ["John Doe", "Jane Smith"]
+
+EXAMPLE - Field missing validation (SUGGEST):
+{
+  "age": {
+    "type": "integer",
+    "description": "User age",
+    "examples": [25, 30]
+  }
+}
+→ SUGGEST: Add minimum: 0, maximum: 120
+
+IMPORTANT: 
+- If schema has x-formsync-metadata.enhanced = true, be EXTRA CAREFUL
+- Most fields will already be complete
+- Only suggest for genuinely missing properties
+- User-defined constraints are SACRED. Only suggest additions to empty fields.
+
+------------------------------------------------
 VALIDATION SUGGESTIONS (HIGH PRIORITY)
 ------------------------------------------------
 
@@ -132,13 +197,47 @@ METADATA SUGGESTIONS (MANDATORY)
 
 For EVERY field and object node:
 - Suggest a description if missing
+- Suggest examples if missing (CRITICAL FOR ALL FIELDS)
 - Description must be a single, clear sentence
 
-Examples suggestions:
-- email → ["user@example.com"]
-- date → ["1990-01-01"]
-- number → [42]
-- enum → [firstEnumValue]
+EXAMPLES SUGGESTIONS (MANDATORY):
+
+For EVERY field WITHOUT examples array, you MUST suggest adding examples.
+
+Example format by type:
+- string (email) → examples: ["user@example.com", "admin@company.com"]
+- string (generic) → examples: ["Sample text", "Example value"]
+- string (name) → examples: ["John Doe", "Jane Smith"]
+- string (phone) → examples: ["+1-234-567-8900"]
+- string (date) → examples: ["2024-01-15"]
+- number → examples: [100, 250, 500]
+- integer → examples: [1, 10, 100]
+- integer (age) → examples: [25, 30, 45]
+- boolean → examples: [true, false]
+- enum → examples: [firstEnumValue, secondEnumValue]
+- array → examples: [["item1", "item2"]]
+
+CRITICAL RULES FOR EXAMPLES:
+1. Check EVERY field in the schema
+2. If examples array is missing or empty → MUST generate suggestion
+3. If examples array exists and has values → NO suggestion needed
+4. Always provide 1-3 realistic example values
+5. Example values must match the field type and format
+6. Make examples domain-appropriate (e.g., realistic names, emails, dates)
+
+EXAMPLE SUGGESTION FORMAT:
+{
+  "id": "metadata-properties.email-examples-<timestamp>",
+  "path": "properties.email",
+  "category": "metadata",
+  "rule": {
+    "examples": ["user@example.com", "admin@company.com"]
+  },
+  "description": "Add example values to demonstrate expected email format",
+  "applied": false,
+  "impactedDimensions": ["accessibility"],
+  "estimatedImpact": 3
+}
 
 ------------------------------------------------
 ACCESSIBILITY SUGGESTIONS (MANDATORY — CRITICAL)
@@ -497,38 +596,24 @@ function validateSchemaInvariant(original: any, enhanced: any, path = ''): Array
   return diffs;
 }
 
+/**
+ * Auto-fill missing metadata (description only)
+ * Examples are now generated as AI suggestions instead of auto-filled
+ */
 function autoFillMissingMeta(schema: any) {
   if (!isObject(schema)) return;
   const props = schema.properties ?? {};
   for (const [k, v] of Object.entries(props)) {
     if (!v) continue;
+    
+    // Only auto-fill description if missing
     if ((v as any).description == null) {
       (v as any).description = `No description provided for ${k}.`;
     }
-    if (!Array.isArray((v as any).examples) || (v as any).examples.length === 0) {
-      let example: any = null;
-      switch ((v as any).type) {
-        case 'string':
-          example =
-            (v as any).format === 'email'
-              ? 'user@example.com'
-              : ((v as any).enum?.[0] ?? `${k} example`);
-          break;
-        case 'number':
-          example = (v as any).minimum ?? 1;
-          break;
-        case 'array':
-          example = [];
-          break;
-        case 'object':
-          example = {};
-          break;
-        default:
-          example = null;
-      }
-      (v as any).examples = example != null ? [example] : [];
-    }
-
+    
+    // DO NOT auto-fill examples - let AI generate them as suggestions
+    // This ensures examples appear in the suggestions panel for user review
+    
     if ((v as any).type === 'object' && (v as any).properties) {
       autoFillMissingMeta(v);
     }

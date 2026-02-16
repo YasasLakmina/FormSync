@@ -162,3 +162,26 @@ export class RecalculateQualityDto {
   @IsArray()
   aiChanges: any[];
 }
+
+// ===== Suggest Name DTO =====
+export class SuggestNameDto {
+  @ApiPropertyOptional({ description: 'Raw input (XML, YAML, or JSON) to analyze for name suggestion' })
+  @IsOptional()
+  @IsString()
+  rawInput?: string;
+
+  @ApiPropertyOptional({ description: 'Format of raw input (xml, yaml, json)' })
+  @IsOptional()
+  @IsString()
+  format?: string;
+
+  @ApiPropertyOptional({ description: 'Field names from the schema (fallback if no rawInput)' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  fields?: string[];
+
+  @ApiPropertyOptional({ description: 'Raw schema content for context (fallback)' })
+  @IsOptional()
+  schemaContent?: any;
+}

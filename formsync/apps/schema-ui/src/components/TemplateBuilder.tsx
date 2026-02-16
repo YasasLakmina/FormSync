@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, FileJson, Trash2, ArrowRight, Check, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft } from 'lucide-react';
+import { Plus, FileJson, Trash2, ArrowRight, Check, GripVertical, Mail, Phone, Link, Calendar, Lock, AlignLeft, Hash, ToggleLeft, Wand2, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -24,6 +24,7 @@ import {
   AlertDialogDescription,
   AlertDialogCancel,
 } from './ui/alert-dialog';
+import { schemaApi } from '../api/schemaApi';
 
 interface SchemaField {
   id: string;
@@ -348,6 +349,10 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
   const [newFieldDescription, setNewFieldDescription] = useState('');
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
+  
+  // Schema name state
+  const [schemaName, setSchemaName] = useState('');
+  const [nameSuggestionLoading, setNameSuggestionLoading] = useState(false);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -430,11 +435,13 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         id: `field-${Date.now()}-${Math.random()}`
       }));
       setFields(newFields);
+      // Auto-fill schema name from template
+      setSchemaName(template.name);
       toast.success(`Loaded ${template.name} template!`);
     }
   };
 
-  const generateSchema = () => {
+  const generateSchema = (schemaTitle?: string) => {
     const properties: any = {};
     const required: string[] = [];
 
@@ -464,6 +471,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     const schema = {
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
+      ...(schemaTitle && { title: schemaTitle }),
       properties,
       ...(required.length > 0 && { required }),
     };
@@ -471,13 +479,53 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     return schema;
   };
 
-  const handleUseSchema = () => {
+  // AI Suggest Name Handler
+  const handleSuggestName = async () => {
+    if (fields.length === 0) {
+      toast.error('Please add at least one field first');
+      return;
+    }
+
+    setNameSuggestionLoading(true);
+    try {
+      const fieldNames = fields.map(f => f.name);
+      const response = await schemaApi.suggestName({ fields: fieldNames });
+      const suggestedName = response.data.suggestedName;
+      setSchemaName(suggestedName);
+      toast.success('AI suggested a schema name!', {
+        description: `"${suggestedName}"`,
+      });
+    } catch (error: any) {
+      toast.error('Failed to suggest name', {
+        description: error.response?.data?.message || 'Please try again',
+      });
+    } finally {
+      setNameSuggestionLoading(false);
+    }
+  };
+
+  const handleUseSchema = async () => {
     if (fields.length === 0) {
       toast.error('Please add at least one field before using the schema');
       return;
     }
 
-    const schema = generateSchema();
+    // Ensure schema has a name (use AI if not provided)
+    let finalName = schemaName.trim();
+    if (!finalName) {
+      try {
+        const fieldNames = fields.map(f => f.name);
+        const response = await schemaApi.suggestName({ fields: fieldNames });
+        finalName = response.data.suggestedName;
+        setSchemaName(finalName);
+      } catch (error) {
+        // Fallback to generic name
+        finalName = `Schema ${new Date().getTime()}`;
+        setSchemaName(finalName);
+      }
+    }
+
+    const schema = generateSchema(finalName);
     const schemaJson = JSON.stringify(schema, null, 2);
     
     // Send to Technical Editor via callback
@@ -495,10 +543,28 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         <CardHeader className="border-b border-indigo-200 dark:border-indigo-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
           <CardTitle className="text-lg flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
             <Plus className="h-5 w-5" />
-            Add New Field
+            Create Your Schema
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
+          {/* Schema Name Input */}
+          <div>
+            <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
+              Schema Name *
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g., Contact Form, User Registration"
+                value={schemaName}
+                onChange={(e) => setSchemaName(e.target.value)}
+                className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4" />
+
           <div>
             <label className="text-sm font-semibold mb-2 block text-neutral-700 dark:text-neutral-300">
               Field Name *
@@ -664,7 +730,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         </CardHeader>
         <CardContent className="pt-6">
           <pre className="text-xs bg-neutral-900 dark:bg-neutral-950 text-green-400 p-4 rounded-lg overflow-auto max-h-[600px] font-mono">
-            {JSON.stringify(generateSchema(), null, 2)}
+            {JSON.stringify(generateSchema(schemaName || undefined), null, 2)}
           </pre>
         </CardContent>
       </Card>
