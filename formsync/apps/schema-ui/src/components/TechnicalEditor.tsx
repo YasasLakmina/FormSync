@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 
 // History entry for undo/redo
 interface HistoryEntry {
-  schema: any;
+  content: string; // Editor text content
   timestamp: number;
   action: string;
 }
@@ -67,6 +67,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const isUndoRedoAction = useRef(false);
+  const historyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Schema name state
   const [schemaName, setSchemaName] = useState('');
@@ -116,6 +118,32 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       if (newValue.trim()) {
         onStageUpdateRef.current?.('Enter Schema', 'complete');
       }
+
+      // Add to history (debounced to avoid too many entries)
+      if (!isUndoRedoAction.current && newValue.trim()) {
+        if (historyTimerRef.current) {
+          clearTimeout(historyTimerRef.current);
+        }
+        
+        historyTimerRef.current = setTimeout(() => {
+          setHistory((prevHistory) => {
+            const newEntry: HistoryEntry = {
+              content: newValue,
+              timestamp: Date.now(),
+              action: 'edit',
+            };
+
+            // Don't add if content is same as last entry
+            if (prevHistory.length > 0 && prevHistory[prevHistory.length - 1].content === newValue) {
+              return prevHistory;
+            }
+
+            const newHistory = [...prevHistory.slice(-49), newEntry]; // Keep last 50 entries
+            setHistoryIndex(newHistory.length - 1);
+            return newHistory;
+          });
+        }, 500); // 500ms debounce
+      }
     },
     [] // Empty deps - handler is stable
   );
@@ -142,6 +170,26 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemaFromBuilder]); // Only run when schemaFromBuilder changes
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (historyTimerRef.current) {
+        clearTimeout(historyTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Initialize history with first non-empty content
+  useEffect(() => {
+    if (editorValue.trim() && history.length === 0) {
+      setHistory([{
+        content: editorValue,
+        timestamp: Date.now(),
+        action: 'initial',
+      }]);
+      setHistoryIndex(0);
+    }
+  }, [editorValue, history.length]);
   // AI Suggest Name Handler
   const handleSuggestName = useCallback(async () => {
     if (!editorValue.trim()) {
@@ -478,26 +526,29 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     [applySuggestion]
   );
 
-  // Add to history when schema changes
+  // Add to history when operations complete
   const addToHistory = useCallback(
-    (schema: any, action: string) => {
-      const newEntry: HistoryEntry = {
-        schema: JSON.parse(JSON.stringify(schema)),
-        timestamp: Date.now(),
-        action,
-      };
+    (content: string, action: string) => {
+      if (!content.trim()) return;
 
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(newEntry);
+      setHistory((prevHistory) => {
+        const newEntry: HistoryEntry = {
+          content,
+          timestamp: Date.now(),
+          action,
+        };
 
-      if (newHistory.length > 50) {
-        newHistory.shift();
-      }
+        // Don't add if content is same as last entry
+        if (prevHistory.length > 0 && prevHistory[prevHistory.length - 1].content === content) {
+          return prevHistory;
+        }
 
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
+        const newHistory = [...prevHistory.slice(-49), newEntry]; // Keep last 50 entries
+        setHistoryIndex(newHistory.length - 1);
+        return newHistory;
+      });
     },
-    [history, historyIndex]
+    []
   );
 
   // Undo function
@@ -505,26 +556,34 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     if (historyIndex > 0) {
       const previousIndex = historyIndex - 1;
       const previousEntry = history[previousIndex];
-      setCurrentSchema(previousEntry.schema);
+      
+      isUndoRedoAction.current = true;
+      setEditorValue(previousEntry.content);
       setHistoryIndex(previousIndex);
+      isUndoRedoAction.current = false;
+      
       toast.success('Undone');
     } else {
       toast.info('Nothing to undo');
     }
-  }, [history, historyIndex, setCurrentSchema]);
+  }, [history, historyIndex]);
 
   // Redo function
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const nextIndex = historyIndex + 1;
       const nextEntry = history[nextIndex];
-      setCurrentSchema(nextEntry.schema);
+      
+      isUndoRedoAction.current = true;
+      setEditorValue(nextEntry.content);
       setHistoryIndex(nextIndex);
+      isUndoRedoAction.current = false;
+      
       toast.success('Redone');
     } else {
       toast.info('Nothing to redo');
     }
-  }, [history, historyIndex, setCurrentSchema]);
+  }, [history, historyIndex]);
 
   const handleFileUpload = useCallback(() => {
     const input = document.createElement('input');
