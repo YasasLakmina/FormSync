@@ -66,33 +66,32 @@ export class JsonParserPlugin implements FormatParserPlugin {
   }
 
   private normalizeToJsonSchema(schema: any): any {
-    // Build properly ordered schema
-    const normalized: any = {
-      $schema: schema.$schema || 'http://json-schema.org/draft-07/schema#',
-    };
-
-    // Add title and description if present
+    // Build properly ordered schema with explicit key assignment
+    const normalized: any = {};
+    
+    // 1. Always add $schema first
+    normalized['$schema'] = schema.$schema || 'http://json-schema.org/draft-07/schema#';
+    
+    // 2. Add title and description if present
     if (schema.title) {
-      normalized.title = schema.title;
-      // Ensure description matches title
-      normalized.description = schema.description || `Schema for ${schema.title.replace(' Schema', '')}`;
+      normalized['title'] = schema.title;
+      normalized['description'] = schema.description || `Schema for ${schema.title.replace(' Schema', '')}`;
     }
+    
+    // 3. Add core schema properties in order
+    if (schema.type) normalized['type'] = schema.type;
+    if (schema.properties) normalized['properties'] = schema.properties;
+    if (schema.required) normalized['required'] = schema.required;
+    if (schema.items) normalized['items'] = schema.items;
+    if (schema.additionalProperties !== undefined) normalized['additionalProperties'] = schema.additionalProperties;
 
-    // Add remaining properties in order
-    if (schema.type) normalized.type = schema.type;
-    if (schema.properties) normalized.properties = schema.properties;
-    if (schema.required) normalized.required = schema.required;
-    if (schema.items) normalized.items = schema.items;
-    if (schema.additionalProperties !== undefined) normalized.additionalProperties = schema.additionalProperties;
-
-    // Add any other properties not explicitly handled
+    // 4. Add any other properties not explicitly handled
     for (const key in schema) {
       if (!['$schema', 'title', 'description', 'type', 'properties', 'required', 'items', 'additionalProperties'].includes(key)) {
         normalized[key] = schema[key];
       }
     }
     
-    console.log('[JSON Parser] Normalized schema keys order:', Object.keys(normalized));
     return normalized;
   }
 
@@ -111,21 +110,23 @@ export class JsonParserPlugin implements FormatParserPlugin {
         required.push(key);
       }
 
-      // Build schema with proper ordering from the start
+      // Build schema with explicit property ordering (top-level only)
       if (isRoot) {
         const title = this.generateTitleFromFields(Object.keys(properties));
         const description = `Schema for ${title.replace(' Schema', '')}`;
         
-        console.log('[JSON Parser] Generated schema from data, keys will be:', ['$schema', 'title', 'description', 'type', 'properties', 'required']);
+        // Build with explicit key order to ensure $schema, title, description come first
+        const schema: any = {};
+        schema['$schema'] = 'http://json-schema.org/draft-07/schema#';
+        schema['title'] = title;
+        schema['description'] = description;
+        schema['type'] = 'object';
+        schema['properties'] = properties;
+        if (required.length > 0) {
+          schema['required'] = required;
+        }
         
-        return {
-          $schema: 'http://json-schema.org/draft-07/schema#',
-          title,
-          description,
-          type: 'object',
-          properties,
-          ...(required.length > 0 && { required }),
-        };
+        return schema;
       }
 
       return {
