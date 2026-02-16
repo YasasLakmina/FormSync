@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 
 // History entry for undo/redo
 interface HistoryEntry {
-  schema: any;
+  content: string; // Editor text content
   timestamp: number;
   action: string;
 }
@@ -67,6 +67,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+
+  // Refs for undo/redo management
+  const isUndoRedoAction = useRef(false);
+  const historyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Schema name state
   const [schemaName, setSchemaName] = useState('');
@@ -116,9 +120,60 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       if (newValue.trim()) {
         onStageUpdateRef.current?.('Enter Schema', 'complete');
       }
+
+      // Track changes in history with debouncing (only if not undo/redo action)
+      if (!isUndoRedoAction.current && newValue.trim()) {
+        // Clear existing timer
+        if (historyTimerRef.current) {
+          clearTimeout(historyTimerRef.current);
+        }
+
+        // Set new timer
+        historyTimerRef.current = setTimeout(() => {
+          setHistory((prevHistory) => {
+            const newEntry: HistoryEntry = {
+              content: newValue,
+              timestamp: Date.now(),
+              action: 'edit',
+            };
+
+            // Skip if content hasn't changed
+            const lastEntry = prevHistory[prevHistory.length - 1];
+            if (lastEntry && lastEntry.content === newValue) {
+              return prevHistory;
+            }
+
+            // Keep last 50 entries
+            const newHistory = [...prevHistory.slice(-49), newEntry];
+            setHistoryIndex(newHistory.length - 1);
+            return newHistory;
+          });
+        }, 500); // 500ms debounce
+      }
     },
     [] // Empty deps - handler is stable
   );
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (historyTimerRef.current) {
+        clearTimeout(historyTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Initialize history with first entry when editor has content
+  useEffect(() => {
+    if (editorValue.trim() && history.length === 0) {
+      setHistory([{
+        content: editorValue,
+        timestamp: Date.now(),
+        action: 'init',
+      }]);
+      setHistoryIndex(0);
+    }
+  }, [editorValue, history.length]);
 
   // Populate editor when schema is transferred from Template Builder
   useEffect(() => {
@@ -478,11 +533,11 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     [applySuggestion]
   );
 
-  // Add to history when schema changes
+  // Add to history when schema changes (for operations like validate, convert, enhance)
   const addToHistory = useCallback(
-    (schema: any, action: string) => {
+    (content: string, action: string) => {
       const newEntry: HistoryEntry = {
-        schema: JSON.parse(JSON.stringify(schema)),
+        content: content,
         timestamp: Date.now(),
         action,
       };
@@ -505,26 +560,30 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     if (historyIndex > 0) {
       const previousIndex = historyIndex - 1;
       const previousEntry = history[previousIndex];
-      setCurrentSchema(previousEntry.schema);
+      isUndoRedoAction.current = true;
+      setEditorValue(previousEntry.content);
       setHistoryIndex(previousIndex);
+      isUndoRedoAction.current = false;
       toast.success('Undone');
     } else {
       toast.info('Nothing to undo');
     }
-  }, [history, historyIndex, setCurrentSchema]);
+  }, [history, historyIndex]);
 
   // Redo function
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const nextIndex = historyIndex + 1;
       const nextEntry = history[nextIndex];
-      setCurrentSchema(nextEntry.schema);
+      isUndoRedoAction.current = true;
+      setEditorValue(nextEntry.content);
       setHistoryIndex(nextIndex);
+      isUndoRedoAction.current = false;
       toast.success('Redone');
     } else {
       toast.info('Nothing to redo');
     }
-  }, [history, historyIndex, setCurrentSchema]);
+  }, [history, historyIndex]);
 
   const handleFileUpload = useCallback(() => {
     const input = document.createElement('input');
