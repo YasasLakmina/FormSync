@@ -385,6 +385,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       return;
     }
 
+    // ✅ Check enhancement limit (max 2 times)
+    const metadata = displaySchema['x-formsync-metadata'];
+    const enhancementCount = metadata?.enhancementCount || 0;
+    
+    if (enhancementCount >= 2) {
+      toast.error('Enhancement limit reached', {
+        description: 'Schema has already been enhanced 2 times. This is the maximum allowed to prevent over-optimization.',
+      });
+      return;
+    }
+
     // ✅ FIX: If schema already has suggestions, use baseSchema to avoid losing them
     // This prevents suggestions from disappearing when clicking enhance again
     const schemaToEnhance = (suggestions && suggestions.length > 0 && baseSchema) 
@@ -401,11 +412,24 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     onStageUpdate?.('AI Enhancement', 'loading');
     try {
       await enhanceSchema(schemaToEnhance);
-      toast.success('Schema enhanced with AI suggestions!');
+      
+      // Show enhancement count in success message
+      const newCount = enhancementCount + 1;
+      const remainingEnhancements = 2 - newCount;
+      
+      toast.success('Schema enhanced with AI suggestions!', {
+        description: remainingEnhancements > 0 
+          ? `You can enhance ${remainingEnhancements} more time${remainingEnhancements > 1 ? 's' : ''}.`
+          : 'This was your final enhancement (2/2).',
+      });
+      
       setShowSuggestions(true); // Auto-show suggestions panel
       onStageUpdate?.('AI Enhancement', 'complete');
-    } catch (error) {
-      toast.error('Failed to enhance schema');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to enhance schema';
+      toast.error('Enhancement failed', {
+        description: errorMessage,
+      });
       onStageUpdate?.('AI Enhancement', 'error');
     } finally {
       setEnhanceLoading(false);
