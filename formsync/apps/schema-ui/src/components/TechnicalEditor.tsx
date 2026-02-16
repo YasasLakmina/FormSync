@@ -197,6 +197,26 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schemaFromBuilder]); // Only run when schemaFromBuilder changes
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (historyTimerRef.current) {
+        clearTimeout(historyTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Initialize history with first non-empty content
+  useEffect(() => {
+    if (editorValue.trim() && history.length === 0) {
+      setHistory([{
+        content: editorValue,
+        timestamp: Date.now(),
+        action: 'initial',
+      }]);
+      setHistoryIndex(0);
+    }
+  }, [editorValue, history.length]);
   // AI Suggest Name Handler
   const handleSuggestName = useCallback(async () => {
     if (!editorValue.trim()) {
@@ -533,26 +553,29 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     [applySuggestion]
   );
 
-  // Add to history when schema changes (for operations like validate, convert, enhance)
+  // Add to history when operations complete (validate, convert, enhance)
   const addToHistory = useCallback(
     (content: string, action: string) => {
-      const newEntry: HistoryEntry = {
-        content: content,
-        timestamp: Date.now(),
-        action,
-      };
+      if (!content.trim()) return;
 
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(newEntry);
+      setHistory((prevHistory) => {
+        const newEntry: HistoryEntry = {
+          content,
+          timestamp: Date.now(),
+          action,
+        };
 
-      if (newHistory.length > 50) {
-        newHistory.shift();
-      }
+        // Don't add if content is same as last entry
+        if (prevHistory.length > 0 && prevHistory[prevHistory.length - 1].content === content) {
+          return prevHistory;
+        }
 
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
+        const newHistory = [...prevHistory.slice(-49), newEntry]; // Keep last 50 entries
+        setHistoryIndex(newHistory.length - 1);
+        return newHistory;
+      });
     },
-    [history, historyIndex]
+    []
   );
 
   // Undo function
@@ -560,10 +583,12 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     if (historyIndex > 0) {
       const previousIndex = historyIndex - 1;
       const previousEntry = history[previousIndex];
+      
       isUndoRedoAction.current = true;
       setEditorValue(previousEntry.content);
       setHistoryIndex(previousIndex);
       isUndoRedoAction.current = false;
+      
       toast.success('Undone');
     } else {
       toast.info('Nothing to undo');
@@ -575,10 +600,12 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     if (historyIndex < history.length - 1) {
       const nextIndex = historyIndex + 1;
       const nextEntry = history[nextIndex];
+      
       isUndoRedoAction.current = true;
       setEditorValue(nextEntry.content);
       setHistoryIndex(nextIndex);
       isUndoRedoAction.current = false;
+      
       toast.success('Redone');
     } else {
       toast.info('Nothing to redo');
