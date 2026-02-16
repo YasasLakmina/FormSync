@@ -54,9 +54,24 @@ export class SchemaSuggestionEngine {
       throw new Error(`Invalid path: ${suggestion.path}. Target not found in schema.`);
     }
 
-    // Deep merge the rule into the target
-    // This preserves existing properties while adding new ones
-    Object.assign(target, suggestion.rule);
+    // ✅ SMART MERGE: Preserve user constraints, only add missing properties
+    // Never overwrite existing user-defined values
+    for (const [key, value] of Object.entries(suggestion.rule)) {
+      if (target[key] === undefined || target[key] === null) {
+        // ✅ Property doesn't exist → safe to add
+        target[key] = value;
+      } else {
+        // ⚠️ Property exists → preserve user value
+        // Exception: Arrays like 'examples' can be merged
+        if (key === 'examples' && Array.isArray(target[key]) && Array.isArray(value)) {
+          // Merge arrays without duplicates
+          const merged = [...new Set([...target[key], ...value])];
+          target[key] = merged;
+        }
+        // For all other keys: preserve existing user value
+        console.log(`[Suggestion] Preserving user value for ${key} in ${suggestion.path}`);
+      }
+    }
 
     return updatedSchema;
   }
