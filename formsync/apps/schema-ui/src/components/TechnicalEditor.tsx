@@ -4,7 +4,7 @@
  * Integrated schema editor with generation controls
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { useSchemaStore } from '../stores/schemaStore';
 import { schemaApi } from '../api/schemaApi';
@@ -85,6 +85,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   const {
     currentSchema,
     convertedSchema,
+    baseSchema,
     suggestions,
     qualityMetrics,
     validationResults,
@@ -98,7 +99,14 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   // Computed - prioritize currentSchema so applied suggestions show immediately
   const displaySchema = currentSchema || convertedSchema;
 
+  // Stable ref for onStageUpdate to prevent editor re-renders
+  const onStageUpdateRef = useRef(onStageUpdate);
+  useEffect(() => {
+    onStageUpdateRef.current = onStageUpdate;
+  }, [onStageUpdate]);
+
   // Handle editor value change - Update "Enter Schema" stage
+  // Using empty deps array to prevent Monaco onChange from being recreated
   const handleEditorChange = useCallback(
     (value: string | undefined) => {
       const newValue = value || '';
@@ -106,11 +114,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Update "Enter Schema" stage based on content
       if (newValue.trim()) {
-        onStageUpdate?.('Enter Schema', 'complete');
+        onStageUpdateRef.current?.('Enter Schema', 'complete');
       }
-      // Note: We don't set it back to pending when empty since that's not a valid status type
     },
-    [onStageUpdate]
+    [] // Empty deps - handler is stable
   );
 
   // Populate editor when schema is transferred from Template Builder
@@ -378,11 +385,22 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       return;
     }
 
+    // ✅ FIX: If schema already has suggestions, use baseSchema to avoid losing them
+    // This prevents suggestions from disappearing when clicking enhance again
+    const schemaToEnhance = (suggestions && suggestions.length > 0 && baseSchema) 
+      ? baseSchema 
+      : displaySchema;
+
+    // Log for debugging
+    if (suggestions && suggestions.length > 0) {
+      console.log('[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions');
+    }
+
     clearError();
     setEnhanceLoading(true);
     onStageUpdate?.('AI Enhancement', 'loading');
     try {
-      await enhanceSchema(displaySchema);
+      await enhanceSchema(schemaToEnhance);
       toast.success('Schema enhanced with AI suggestions!');
       setShowSuggestions(true); // Auto-show suggestions panel
       onStageUpdate?.('AI Enhancement', 'complete');
@@ -392,7 +410,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     } finally {
       setEnhanceLoading(false);
     }
-  }, [displaySchema, enhanceSchema, clearError, onStageUpdate]);
+  }, [displaySchema, baseSchema, suggestions, enhanceSchema, clearError, onStageUpdate]);
 
   // Handle suggestion apply/undo
   const handleSuggestionAction = useCallback(
@@ -742,18 +760,59 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             </CardHeader>
             <CardContent className="flex-1 p-0">
               <Editor
-                key={editorValue ? `editor-loaded-${editorValue.length}` : 'editor-empty'}
                 height="100%"
                 language={format === 'xml' ? 'xml' : format === 'yaml' ? 'yaml' : 'json'}
                 value={editorValue}
                 onChange={handleEditorChange}
                 theme="vs-dark"
+                onMount={(editor, monaco) => {
+                  // Show keyboard shortcuts hint
+                  setTimeout(() => {
+                    toast.info('Keyboard Shortcuts', {
+                      description: 'Ctrl+S: Enhance | Ctrl+K: Format | Ctrl+Shift+V: Validate',
+                      duration: 5000,
+                    });
+                  }, 1000);
+
+                  // Add keyboard shortcuts
+                  editor.addAction({
+                    id: 'enhance-schema',
+                    label: 'Enhance Schema with AI',
+                    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+                    run: () => {
+                      if (!enhanceLoading && displaySchema) {
+                        handleEnhance();
+                      }
+                    },
+                  });
+
+                  editor.addAction({
+                    id: 'format-document',
+                    label: 'Format Document',
+                    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
+                    run: () => {
+                      editor.getAction('editor.action.formatDocument')?.run();
+                    },
+                  });
+
+                  editor.addAction({
+                    id: 'validate-input',
+                    label: 'Validate Input',
+                    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV],
+                    run: () => {
+                      if (!validateLoading) {
+                        handleValidate();
+                      }
+                    },
+                  });
+                }}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
                   lineNumbers: 'on',
                   scrollBeyondLastLine: false,
                   wordWrap: 'on',
+                  automaticLayout: true,
                 }}
               />
             </CardContent>
