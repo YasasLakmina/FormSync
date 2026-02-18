@@ -7,6 +7,11 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+{{#if includeSwagger}}
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+{{/if}}
 
 import java.util.List;
 
@@ -14,6 +19,9 @@ import java.util.List;
  * REST Controller for {{name}} CRUD operations.
  * All request bodies are validated using Jakarta Bean Validation.
  */
+{{#if includeSwagger}}
+@Tag(name = "{{name}}", description = "{{#if description}}{{description}}{{else}}{{name}} CRUD operations{{/if}}")
+{{/if}}
 @RestController
 @RequestMapping("/api/{{toKebabCase name}}s")
 @CrossOrigin(origins = "*")
@@ -29,6 +37,10 @@ public class {{name}}Controller {
      * GET /api/{{toKebabCase name}}s
      * Retrieve all {{nameLower}}s.
      */
+    {{#if includeSwagger}}
+    @Operation(summary = "List all {{nameLower}}s", description = "Retrieve all {{nameLower}} entities.")
+    @ApiResponse(responseCode = "200", description = "List of entities")
+    {{/if}}
     @GetMapping
     public ResponseEntity<List<{{name}}Response>> getAll() {
         return ResponseEntity.ok(service.findAll());
@@ -38,6 +50,11 @@ public class {{name}}Controller {
      * GET /api/{{toKebabCase name}}s/{id}
      * Retrieve a {{nameLower}} by ID.
      */
+    {{#if includeSwagger}}
+    @Operation(summary = "Get {{nameLower}} by ID", description = "Retrieve a {{nameLower}} by ID.")
+    @ApiResponse(responseCode = "200", description = "Entity found")
+    @ApiResponse(responseCode = "404", description = "Entity not found")
+    {{/if}}
     @GetMapping("/{id}")
     public ResponseEntity<{{name}}Response> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
@@ -47,6 +64,11 @@ public class {{name}}Controller {
      * POST /api/{{toKebabCase name}}s
      * Create a new {{nameLower}}. Request body is validated.
      */
+    {{#if includeSwagger}}
+    @Operation(summary = "Create {{nameLower}}", description = "Create a new {{nameLower}}. Request body is validated.")
+    @ApiResponse(responseCode = "201", description = "Entity created")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    {{/if}}
     @PostMapping
     public ResponseEntity<{{name}}Response> create(@Valid @RequestBody {{name}}Request request) {
         {{name}}Response created = service.create(request);
@@ -57,6 +79,12 @@ public class {{name}}Controller {
      * PUT /api/{{toKebabCase name}}s/{id}
      * Update an existing {{nameLower}}. Request body is validated.
      */
+    {{#if includeSwagger}}
+    @Operation(summary = "Update {{nameLower}}", description = "Update an existing {{nameLower}}. Request body is validated.")
+    @ApiResponse(responseCode = "200", description = "Entity updated")
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "404", description = "Entity not found")
+    {{/if}}
     @PutMapping("/{id}")
     public ResponseEntity<{{name}}Response> update(@PathVariable Long id, @Valid @RequestBody {{name}}Request request) {
         return ResponseEntity.ok(service.update(id, request));
@@ -66,6 +94,11 @@ public class {{name}}Controller {
      * DELETE /api/{{toKebabCase name}}s/{id}
      * Delete a {{nameLower}} by ID.
      */
+    {{#if includeSwagger}}
+    @Operation(summary = "Delete {{nameLower}}", description = "Delete a {{nameLower}} by ID.")
+    @ApiResponse(responseCode = "204", description = "Entity deleted")
+    @ApiResponse(responseCode = "404", description = "Entity not found")
+    {{/if}}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.deleteById(id);
