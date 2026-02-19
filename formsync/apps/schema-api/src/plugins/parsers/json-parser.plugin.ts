@@ -1,6 +1,6 @@
 /**
  * JSON Parser Plugin
- * 
+ *
  * Parses JSON input and converts to JSON Schema Draft-7
  * Handles both raw JSON data and existing JSON Schema
  * Now supports Form/Field/Group definitions → normalized user payload schema
@@ -24,7 +24,7 @@ export class JsonParserPlugin implements FormatParserPlugin {
   async parse(input: string): Promise<ParseResult> {
     try {
       const parsed = JSON.parse(input);
-      
+
       // Check if it's a form definition first
       if (isFormDefinition(parsed)) {
         return {
@@ -33,7 +33,7 @@ export class JsonParserPlugin implements FormatParserPlugin {
           detectedFormat: 'json',
         };
       }
-      
+
       // If already a JSON Schema, validate and return
       if (parsed.$schema || parsed.type || parsed.properties) {
         return {
@@ -45,7 +45,7 @@ export class JsonParserPlugin implements FormatParserPlugin {
 
       // Convert plain JSON object to JSON Schema
       const schema = this.inferSchemaFromData(parsed);
-      
+
       return {
         success: true,
         schema,
@@ -68,30 +68,43 @@ export class JsonParserPlugin implements FormatParserPlugin {
   private normalizeToJsonSchema(schema: any): any {
     // Build properly ordered schema with explicit key assignment
     const normalized: any = {};
-    
+
     // 1. Always add $schema first
     normalized['$schema'] = schema.$schema || 'http://json-schema.org/draft-07/schema#';
-    
+
     // 2. Add title and description if present
     if (schema.title) {
       normalized['title'] = schema.title;
-      normalized['description'] = schema.description || `Schema for ${schema.title.replace(' Schema', '')}`;
+      normalized['description'] =
+        schema.description || `Schema for ${schema.title.replace(' Schema', '')}`;
     }
-    
+
     // 3. Add core schema properties in order
     if (schema.type) normalized['type'] = schema.type;
     if (schema.properties) normalized['properties'] = schema.properties;
     if (schema.required) normalized['required'] = schema.required;
     if (schema.items) normalized['items'] = schema.items;
-    if (schema.additionalProperties !== undefined) normalized['additionalProperties'] = schema.additionalProperties;
+    if (schema.additionalProperties !== undefined)
+      normalized['additionalProperties'] = schema.additionalProperties;
 
     // 4. Add any other properties not explicitly handled
     for (const key in schema) {
-      if (!['$schema', 'title', 'description', 'type', 'properties', 'required', 'items', 'additionalProperties'].includes(key)) {
+      if (
+        ![
+          '$schema',
+          'title',
+          'description',
+          'type',
+          'properties',
+          'required',
+          'items',
+          'additionalProperties',
+        ].includes(key)
+      ) {
         normalized[key] = schema[key];
       }
     }
-    
+
     return normalized;
   }
 
@@ -114,7 +127,7 @@ export class JsonParserPlugin implements FormatParserPlugin {
       if (isRoot) {
         const title = this.generateTitleFromFields(Object.keys(properties));
         const description = `Schema for ${title.replace(' Schema', '')}`;
-        
+
         // Build with explicit key order to ensure $schema, title, description come first
         const schema: any = {};
         schema['$schema'] = 'http://json-schema.org/draft-07/schema#';
@@ -125,7 +138,7 @@ export class JsonParserPlugin implements FormatParserPlugin {
         if (required.length > 0) {
           schema['required'] = required;
         }
-        
+
         return schema;
       }
 
@@ -215,13 +228,13 @@ export class JsonParserPlugin implements FormatParserPlugin {
       { keywords: ['employee', 'salary', 'department'], name: 'Employee' },
     ];
 
-    const lowerFields = fields.map(f => f.toLowerCase());
-    
+    const lowerFields = fields.map((f) => f.toLowerCase());
+
     for (const pattern of patterns) {
-      const matchCount = pattern.keywords.filter(kw =>
-        lowerFields.some(f => f.includes(kw))
+      const matchCount = pattern.keywords.filter((kw) =>
+        lowerFields.some((f) => f.includes(kw))
       ).length;
-      
+
       if (matchCount >= 1) {
         return `${pattern.name} Schema`;
       }
@@ -232,12 +245,12 @@ export class JsonParserPlugin implements FormatParserPlugin {
       let fieldName = fields[0];
       // Strip common suffixes: Id, Name, Code, Number, Date, etc.
       fieldName = fieldName.replace(/(Id|Name|Code|Number|Date|Time|Status|Type)$/i, '');
-      
+
       const formatted = fieldName
         .replace(/([A-Z])/g, ' $1')
         .trim()
         .split(' ')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
       return `${formatted} Schema`;
     }
