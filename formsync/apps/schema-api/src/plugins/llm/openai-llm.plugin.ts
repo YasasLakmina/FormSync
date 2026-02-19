@@ -428,18 +428,24 @@ Before returning:
 
       // Filter out invalid suggestions (defensive validation)
       const validSuggestions = suggestionsFromModel.filter((s: any) => {
-        const isValid = 
-          s.id && typeof s.id === 'string' &&
-          s.path && typeof s.path === 'string' && s.path.trim() !== '' &&
-          s.category && typeof s.category === 'string' &&
-          s.rule && typeof s.rule === 'object' &&
-          s.description && typeof s.description === 'string' &&
+        const isValid =
+          s.id &&
+          typeof s.id === 'string' &&
+          s.path &&
+          typeof s.path === 'string' &&
+          s.path.trim() !== '' &&
+          s.category &&
+          typeof s.category === 'string' &&
+          s.rule &&
+          typeof s.rule === 'object' &&
+          s.description &&
+          typeof s.description === 'string' &&
           typeof s.applied === 'boolean';
-        
+
         if (!isValid) {
           console.warn('Filtered out invalid suggestion from AI:', s);
         }
-        
+
         return isValid;
       });
 
@@ -605,15 +611,15 @@ function autoFillMissingMeta(schema: any) {
   const props = schema.properties ?? {};
   for (const [k, v] of Object.entries(props)) {
     if (!v) continue;
-    
+
     // Only auto-fill description if missing
     if ((v as any).description == null) {
       (v as any).description = `No description provided for ${k}.`;
     }
-    
+
     // DO NOT auto-fill examples - let AI generate them as suggestions
     // This ensures examples appear in the suggestions panel for user review
-    
+
     if ((v as any).type === 'object' && (v as any).properties) {
       autoFillMissingMeta(v);
     }
