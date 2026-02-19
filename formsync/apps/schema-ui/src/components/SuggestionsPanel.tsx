@@ -48,15 +48,15 @@ interface SuggestionsPanelProps {
 
 /* -------------------- Helpers -------------------- */
 
-const CATEGORY_CONFIG: Record<string, { bg: string; text: string; border: string; bar: string; iconBg: string }> = {
-  validation:    { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    bar: 'bg-blue-500',    iconBg: 'bg-blue-100' },
-  accessibility: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', bar: 'bg-emerald-500', iconBg: 'bg-emerald-100' },
-  structure:     { bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200',  bar: 'bg-indigo-500',  iconBg: 'bg-indigo-100' },
-  metadata:      { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200',  bar: 'bg-orange-500',  iconBg: 'bg-orange-100' },
+const CATEGORY_CONFIG: Record<string, { bg: string; text: string; border: string; bar: string; iconBg: string; appliedBg: string; appliedBorder: string }> = {
+  validation:    { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    bar: 'bg-blue-500',    iconBg: 'bg-blue-100',    appliedBg: 'bg-blue-50/70',    appliedBorder: 'border-blue-200' },
+  accessibility: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', bar: 'bg-emerald-500', iconBg: 'bg-emerald-100', appliedBg: 'bg-emerald-50/70', appliedBorder: 'border-emerald-200' },
+  structure:     { bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200',  bar: 'bg-indigo-500',  iconBg: 'bg-indigo-100',  appliedBg: 'bg-indigo-50/70',  appliedBorder: 'border-indigo-200' },
+  metadata:      { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200',  bar: 'bg-orange-500',  iconBg: 'bg-orange-100',  appliedBg: 'bg-orange-50/70',  appliedBorder: 'border-orange-200' },
 };
 
 const getCategoryConfig = (category: string) =>
-  CATEGORY_CONFIG[category] ?? { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-200', bar: 'bg-neutral-400', iconBg: 'bg-neutral-200' };
+  CATEGORY_CONFIG[category] ?? { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-200', bar: 'bg-neutral-400', iconBg: 'bg-neutral-200', appliedBg: 'bg-neutral-50', appliedBorder: 'border-neutral-200' };
 
 const getCategoryIcon = (category: string) => {
   const cls = 'h-3.5 w-3.5';
@@ -254,13 +254,13 @@ export const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                       exit={{ opacity: 0, height: 0 }}
                       className={`mb-2.5 rounded-xl border overflow-hidden transition-colors ${
                         s.applied
-                          ? 'border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/60 dark:bg-emerald-950/10'
+                          ? `${scfg.appliedBorder} ${scfg.appliedBg}`
                           : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850'
                       }`}
                     >
                       {/* Left accent bar */}
                       <div className="flex">
-                        <div className={`w-1 flex-shrink-0 ${s.applied ? 'bg-emerald-400' : scfg.bar} rounded-l-xl`} />
+                        <div className={`w-1 flex-shrink-0 ${scfg.bar} rounded-l-xl`} />
 
                         <div className="flex-1 p-4">
                           <div className="flex items-start justify-between gap-3">
@@ -272,7 +272,7 @@ export const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                                   {s.category}
                                 </span>
                                 {s.applied && (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${scfg.iconBg} ${scfg.text} ${scfg.border}`}>
                                     <Check className="h-3 w-3" /> Applied
                                   </span>
                                 )}
