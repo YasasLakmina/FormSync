@@ -19,12 +19,9 @@ function App() {
             <Route 
               path="/" 
               element={
-                <>
-                  <PageTransition>
-                    <LandingPage />
-                  </PageTransition>
-                  <Footer />
-                </>
+                <PageTransition>
+                  <LandingPage />
+                </PageTransition>
               } 
             />
             <Route path="/editor" element={<><EditorPage /><Footer /></>} />
