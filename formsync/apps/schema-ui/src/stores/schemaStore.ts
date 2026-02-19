@@ -155,19 +155,20 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       // Keep only applied suggestions from before
       const appliedSuggestions = existingSuggestions.filter((s) => s.applied);
 
-      // Merge: Applied suggestions + new suggestions (no duplicates)
+      // Merge: Applied suggestions + new suggestions (no duplicates against already-merged list)
+      // NOTE: Only check against mergedSuggestions (applied ones), NOT all existingSuggestions.
+      // Checking against existingSuggestions would suppress unapplied suggestions on re-enhance,
+      // causing the panel to show 0 suggestions every time after the first enhancement.
       const mergedSuggestions = [...appliedSuggestions];
 
       for (const newSugg of newSuggestions) {
-        // Check if this suggestion already exists (in applied OR pending)
-        const alreadyExists = existingSuggestions.some(
+        // Only skip if the suggestion is already in the merged list (i.e. already applied)
+        const alreadyExists = mergedSuggestions.some(
           (s) => s.path === newSugg.path && JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
         );
 
         if (!alreadyExists) {
           mergedSuggestions.push(newSugg);
-        } else {
-          console.log('[SchemaStore] Skipping duplicate suggestion:', newSugg.path, newSugg.rule);
         }
       }
 
@@ -243,6 +244,8 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
         error: error.response?.data?.message || 'AI enhancement failed',
         loading: false,
       });
+      // Re-throw so caller (handleEnhance) can show a toast and update stages
+      throw error;
     }
   },
 

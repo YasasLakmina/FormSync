@@ -1,17 +1,18 @@
 /**
  * Unified Editor Page
- * 
+ *
  * Schema editing with integrated generation controls
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { PageTransition } from '../components/layout/PageTransition';
 import { TechnicalEditor } from '../components/TechnicalEditor';
 import { TemplateBuilder } from '../components/TemplateBuilder';
 import { FlowDiagram } from '../components/shared/FlowDiagram';
 import { useSchemaStore } from '../stores/schemaStore';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Tabs, TabsContent } from '../components/ui/tabs';
 import { Code2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generationService } from '../services/generationService';
@@ -40,9 +41,12 @@ export const EditorPage: React.FC = () => {
   ]);
 
   // Handler to update stages from TechnicalEditor
-  const handleStageUpdate = (stageName: string, status: 'loading' | 'complete' | 'error' | 'pending') => {
-    setStages(prev =>
-      prev.map(s =>
+  const handleStageUpdate = (
+    stageName: string,
+    status: 'loading' | 'complete' | 'error' | 'pending'
+  ) => {
+    setStages((prev) =>
+      prev.map((s) =>
         s.name === stageName
           ? { ...s, status, progress: status === 'complete' ? 100 : status === 'loading' ? 50 : 0 }
           : s
@@ -89,21 +93,21 @@ export const EditorPage: React.FC = () => {
 
       for (let i = 0; i < generationStages.length; i++) {
         const stageIndex = i + 4; // Offset for actual index
-        setStages(prev =>
+        setStages((prev) =>
           prev.map((s, idx) => (idx === stageIndex ? { ...s, status: 'loading', progress: 0 } : s))
         );
 
         // Simulate progress
         for (let progress = 0; progress <= 100; progress += 25) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-          setStages(prev =>
-            prev.map((s, idx) => (idx === stageIndex ? { ...s, progress } : s))
-          );
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          setStages((prev) => prev.map((s, idx) => (idx === stageIndex ? { ...s, progress } : s)));
         }
 
         // Mark complete
-        setStages(prev =>
-          prev.map((s, idx) => (idx === stageIndex ? { ...s, status: 'complete', progress: 100 } : s))
+        setStages((prev) =>
+          prev.map((s, idx) =>
+            idx === stageIndex ? { ...s, status: 'complete', progress: 100 } : s
+          )
         );
       }
 
@@ -118,25 +122,27 @@ export const EditorPage: React.FC = () => {
         navigate('/generated', {
           state: {
             generatedCode: result.data,
-            schema: currentSchema
+            schema: currentSchema,
           },
         });
       } else {
         throw new Error(result.error || 'Generation failed');
       }
-
     } catch (error) {
       toast.error('Generation failed. Please try again.');
-      setStages(prev => prev.map((s, idx) => idx >= 4 ? { ...s, status: 'error' } : s));
+      setStages((prev) => prev.map((s, idx) => (idx >= 4 ? { ...s, status: 'error' } : s)));
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleNextToFormBuilder = async () => {
-    console.log('[handleNextToFormBuilder] Called', { currentSchema: currentSchema, validationResults });
+    console.log('[handleNextToFormBuilder] Called', {
+      currentSchema: currentSchema,
+      validationResults,
+    });
 
-    // Ensure we have a converted schema  
+    // Ensure we have a converted schema
     if (!currentSchema) {
       toast.error('Please complete validation and conversion first');
       console.log('[handleNextToFormBuilder] No currentSchema');
@@ -191,39 +197,85 @@ export const EditorPage: React.FC = () => {
     }
   };
 
+  const TAB_ITEMS = [
+    { value: 'technical', label: 'Technical Editor', icon: Code2 },
+    { value: 'builder', label: 'Template Builder', icon: Wand2 },
+  ] as const;
 
   return (
     <PageTransition>
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-              Schema Editor
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/20 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950">
+        <main className="flex-1 container mx-auto px-4 sm:px-6 py-8">
+
+          {/* Page Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="mb-7"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                Schema Editor
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-white mb-1.5">
+              Build your schema
             </h1>
-            <p className="text-neutral-600 dark:text-neutral-400">
-              Create and validate your schema, then generate complete application code
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-xl">
+              Define your data structure, validate and enhance it with AI, then generate complete application code in one click.
             </p>
-          </div>
+          </motion.div>
 
-          {/* Pipeline Flow - Always Visible Between Description and Tabs */}
-          <div className="mb-6">
+          {/* Pipeline Progress */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.08, ease: 'easeOut' }}
+            className="mb-7"
+          >
             <FlowDiagram stages={stages} />
-          </div>
+          </motion.div>
 
-          <div className="max-w-7xl mx-auto">
-            {/* Tabs for Technical Editor and Template Builder */}
+          {/* Editor Area */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.14, ease: 'easeOut' }}
+            className="max-w-7xl mx-auto"
+          >
+            {/* Custom animated segmented control */}
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-0.5 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700">
+                {TAB_ITEMS.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setActiveTab(value)}
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${
+                      activeTab === value
+                        ? 'text-neutral-900 dark:text-white'
+                        : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                    }`}
+                  >
+                    {activeTab === value && (
+                      <motion.span
+                        layoutId="tab-pill"
+                        className="absolute inset-0 rounded-lg bg-white dark:bg-neutral-700 shadow-sm"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tab content — using Tabs component for accessibility/logic but hiding its native elements */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-                <TabsTrigger value="technical" className="flex items-center gap-2">
-                  <Code2 className="h-4 w-4" />
-                  Technical Editor
-                </TabsTrigger>
-                <TabsTrigger value="builder" className="flex items-center gap-2">
-                  <Wand2 className="h-4 w-4" />
-                  Template Builder
-                </TabsTrigger>
-              </TabsList>
-
               <TabsContent value="technical" className="mt-0">
                 <TechnicalEditor
                   onGenerate={handleGenerate}
@@ -239,8 +291,9 @@ export const EditorPage: React.FC = () => {
                 <TemplateBuilder onUseSchema={handleUseSchemaFromBuilder} />
               </TabsContent>
             </Tabs>
-          </div>
+          </motion.div>
         </main>
+
       </div>
     </PageTransition>
   );

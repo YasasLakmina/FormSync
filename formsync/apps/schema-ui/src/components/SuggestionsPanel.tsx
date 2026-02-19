@@ -6,9 +6,6 @@
  */
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import {
   Check,
   X,
@@ -20,6 +17,8 @@ import {
   Shield,
   Accessibility,
   Target,
+  Layers,
+  Loader2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -49,39 +48,30 @@ interface SuggestionsPanelProps {
 
 /* -------------------- Helpers -------------------- */
 
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case 'validation':
-      return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'accessibility':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'structure':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-    case 'metadata':
-      return 'bg-orange-50 text-orange-700 border-orange-200';
-    default:
-      return 'bg-neutral-100 text-neutral-700 border-neutral-200';
-  }
+const CATEGORY_CONFIG: Record<string, { bg: string; text: string; border: string; bar: string; iconBg: string; appliedBg: string; appliedBorder: string }> = {
+  validation:    { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    bar: 'bg-blue-500',    iconBg: 'bg-blue-100',    appliedBg: 'bg-blue-50/70',    appliedBorder: 'border-blue-200' },
+  accessibility: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', bar: 'bg-emerald-500', iconBg: 'bg-emerald-100', appliedBg: 'bg-emerald-50/70', appliedBorder: 'border-emerald-200' },
+  structure:     { bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-200',  bar: 'bg-indigo-500',  iconBg: 'bg-indigo-100',  appliedBg: 'bg-indigo-50/70',  appliedBorder: 'border-indigo-200' },
+  metadata:      { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200',  bar: 'bg-orange-500',  iconBg: 'bg-orange-100',  appliedBg: 'bg-orange-50/70',  appliedBorder: 'border-orange-200' },
 };
 
+const getCategoryConfig = (category: string) =>
+  CATEGORY_CONFIG[category] ?? { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-200', bar: 'bg-neutral-400', iconBg: 'bg-neutral-200', appliedBg: 'bg-neutral-50', appliedBorder: 'border-neutral-200' };
+
 const getCategoryIcon = (category: string) => {
-  const cls = 'h-4 w-4';
+  const cls = 'h-3.5 w-3.5';
   switch (category) {
-    case 'validation':
-      return <Shield className={cls} />;
-    case 'accessibility':
-      return <Accessibility className={cls} />;
-    case 'structure':
-      return <Target className={cls} />;
-    default:
-      return <Sparkles className={cls} />;
+    case 'validation':    return <Shield className={cls} />;
+    case 'accessibility': return <Accessibility className={cls} />;
+    case 'structure':     return <Target className={cls} />;
+    default:              return <Layers className={cls} />;
   }
 };
 
 const formatRule = (rule: Record<string, any>) =>
   Object.entries(rule)
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-    .join(', ');
+    .join('\n');
 
 /* -------------------- Component -------------------- */
 
@@ -167,134 +157,202 @@ export const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     setBulkProcessing(false);
   };
 
+  const appliedPct = suggestions.length > 0 ? Math.round((applied.length / suggestions.length) * 100) : 0;
+
   return (
-    <Card className="border-2 shadow-xl">
-      <CardHeader className="flex flex-row items-center justify-between">
+    <div className="rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 flex flex-col" style={{ maxHeight: '88vh' }}>
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="px-6 py-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Sparkles className="h-6 w-6 text-indigo-600" />
-          <CardTitle>AI Suggestions</CardTitle>
-          <span className="text-sm text-neutral-500">
-            {applied.length}/{suggestions.length} applied
+          <span className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow">
+            <Sparkles className="h-5 w-5 text-white" />
           </span>
+          <div>
+            <h2 className="text-base font-bold text-neutral-900 dark:text-neutral-100">AI Suggestions</h2>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              {applied.length} of {suggestions.length} applied
+            </p>
+          </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* Progress + Actions */}
+        <div className="flex items-center gap-3">
+          {/* Mini progress bar */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="w-24 h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-indigo-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${appliedPct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-neutral-500">{appliedPct}%</span>
+          </div>
+
           {pending.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
+            <button
               onClick={applyAll}
               disabled={bulkProcessing || loading}
-              className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 dark:hover:bg-green-950/20 dark:hover:text-green-400 dark:hover:border-green-700"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm font-semibold transition-colors shadow-sm"
             >
-              <Check className="h-4 w-4 mr-1" />
+              {bulkProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               Apply All
-            </Button>
+            </button>
           )}
           {applied.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
+            <button
               onClick={undoAll}
               disabled={bulkProcessing || loading}
-              className="border-neutral-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-neutral-300 dark:hover:bg-neutral-950/20 dark:hover:text-neutral-400 dark:hover:border-neutral-700"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 text-sm font-medium transition-colors"
             >
-              <Undo className="h-4 w-4 mr-1" />
+              <Undo className="h-3.5 w-3.5" />
               Undo All
-            </Button>
+            </button>
           )}
           {onClose && (
-            <Button size="icon" variant="ghost" onClick={onClose}>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
               <X className="h-4 w-4" />
-            </Button>
+            </button>
           )}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-6 max-h-[600px] overflow-y-auto">
-        {Object.entries(grouped).map(([category, list]) => (
-          <div key={category}>
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`p-1.5 rounded ${getCategoryColor(category)}`}>
-                {getCategoryIcon(category)}
+      {/* ── Category Sections ──────────────────────────────────── */}
+      <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        {Object.entries(grouped).map(([category, list]) => {
+          const cfg = getCategoryConfig(category);
+          const catApplied = list.filter((s) => s.applied).length;
+
+          return (
+            <div key={category}>
+              {/* Category header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`w-6 h-6 rounded-md ${cfg.iconBg} ${cfg.text} flex items-center justify-center`}>
+                    {getCategoryIcon(category)}
+                  </span>
+                  <h3 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 capitalize">{category}</h3>
+                </div>
+                <span className="text-xs text-neutral-400">{catApplied}/{list.length} applied</span>
               </div>
-              <h3 className="font-semibold capitalize">{category}</h3>
-            </div>
 
-            <AnimatePresence>
-              {list.map((s) => {
-                const open = expanded.has(s.id);
-                const busy = processingId === s.id;
+              <AnimatePresence initial={false}>
+                {list.map((s) => {
+                  const open = expanded.has(s.id);
+                  const busy = processingId === s.id;
+                  const scfg = getCategoryConfig(s.category);
 
-                return (
-                  <motion.div
-                    key={s.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className={`border rounded-lg mb-3 ${s.applied ? 'bg-emerald-50' : 'bg-white'}`}
-                  >
-                    <div className="p-4 flex justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className={getCategoryColor(s.category)}>{s.category}</Badge>
-                          {s.applied && <Badge variant="outline">Applied</Badge>}
-                          {s.estimatedImpact && (
-                            <span className="text-xs text-green-600 flex items-center gap-1">
-                              <TrendingUp className="h-3 w-3" />+{s.estimatedImpact}
-                            </span>
-                          )}
+                  return (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className={`mb-2.5 rounded-xl border overflow-hidden transition-colors ${
+                        s.applied
+                          ? `${scfg.appliedBorder} ${scfg.appliedBg}`
+                          : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-850'
+                      }`}
+                    >
+                      {/* Left accent bar */}
+                      <div className="flex">
+                        <div className={`w-1 flex-shrink-0 ${scfg.bar} rounded-l-xl`} />
+
+                        <div className="flex-1 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            {/* Left: info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${scfg.bg} ${scfg.text} ${scfg.border}`}>
+                                  {getCategoryIcon(s.category)}
+                                  {s.category}
+                                </span>
+                                {s.applied && (
+                                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${scfg.iconBg} ${scfg.text} ${scfg.border}`}>
+                                    <Check className="h-3 w-3" /> Applied
+                                  </span>
+                                )}
+                                {s.estimatedImpact !== undefined && s.estimatedImpact > 0 && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                                    <TrendingUp className="h-3 w-3" />+{s.estimatedImpact} pts
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100 leading-snug">{s.description}</p>
+                              <p className="text-[11px] font-mono text-neutral-400 mt-1 truncate">{s.path}</p>
+                            </div>
+
+                            {/* Right: actions */}
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                onClick={() => handleApplyUndo(s)}
+                                disabled={busy || loading}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${
+                                  s.applied
+                                    ? 'bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-600 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50'
+                                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm'
+                                }`}
+                              >
+                                {busy ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : s.applied ? (
+                                  <Undo className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                                {s.applied ? 'Undo' : 'Apply'}
+                              </button>
+
+                              <button
+                                onClick={() => toggleExpand(s.id)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                              >
+                                {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expand: rule detail */}
+                          <AnimatePresence initial={false}>
+                            {open && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-700">
+                                  <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-1.5">Rule Details</p>
+                                  <pre className="text-[11px] font-mono bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg p-3 text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap break-words">
+                                    {formatRule(s.rule)}
+                                  </pre>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                        <p className="font-medium">{s.description}</p>
-                        <p className="text-xs text-neutral-500 font-mono">{s.path}</p>
                       </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
 
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleApplyUndo(s)}
-                          disabled={busy || loading}
-                          variant="outline"
-                          className={
-                            s.applied
-                              ? 'border-neutral-200 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-700 hover:border-neutral-300 dark:hover:bg-neutral-950/20 dark:hover:text-neutral-400 dark:hover:border-neutral-700'
-                              : 'border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 dark:hover:bg-green-950/20 dark:hover:text-green-400 dark:hover:border-green-700'
-                          }
-                        >
-                          {busy ? (
-                            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          ) : s.applied ? (
-                            <Undo className="h-4 w-4 " />
-                          ) : (
-                            <Check className="h-4 w-4" />
-                          )}
-                          <span className="ml-1">{s.applied ? 'Undo' : 'Apply'}</span>
-                        </Button>
-
-                        <Button size="icon" variant="ghost" onClick={() => toggleExpand(s.id)}>
-                          {open ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {open && (
-                      <div className="border-t p-4 bg-neutral-50">
-                        <pre className="text-xs bg-white p-3 rounded border">
-                          {formatRule(s.rule)}
-                        </pre>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <div className="px-6 py-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between flex-shrink-0 bg-neutral-50 dark:bg-neutral-900/50">
+        <p className="text-xs text-neutral-400">
+          {pending.length > 0 ? `${pending.length} suggestion${pending.length > 1 ? 's' : ''} pending` : 'All suggestions applied'}
+        </p>
+        <p className="text-xs text-neutral-400">JSON Schema Draft-07</p>
+      </div>
+    </div>
   );
 };

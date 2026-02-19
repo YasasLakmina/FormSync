@@ -30,6 +30,8 @@ import {
   ChevronRight,
   Wand2,
   Play,
+  FileText,
+  FileJson,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -389,7 +391,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
       // Show validation dialog with error
       setShowValidationDialog(true);
-      
+
       // Re-throw so automated workflow can catch it
       throw error;
     } finally {
@@ -446,7 +448,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         toast.error(error.response?.data?.message || error.message || 'Failed to convert schema');
       }
       onStageUpdate?.('Schema Conversion', 'error');
-      
+
       // Re-throw so automated workflow can catch it
       throw error;
     } finally {
@@ -515,86 +517,94 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   }, [editorValue, format]);
 
   // 3. AI Enhance
-  const handleEnhance = useCallback(async (providedSchema?: any) => {
-    // Use provided schema (from automated workflow) or fall back to displaySchema (manual mode)
-    const targetSchema = providedSchema || displaySchema;
-    
-    if (!targetSchema) {
-      const error = new Error('No schema to enhance');
-      toast.error('No schema to enhance');
-      throw error;
-    }
+  const handleEnhance = useCallback(
+    async (providedSchema?: any) => {
+      // Use provided schema (from automated workflow) or fall back to displaySchema (manual mode)
+      const targetSchema = providedSchema || displaySchema;
 
-    // ✅ Check enhancement limit (max 2 times)
-    // IMPORTANT: Check the schema that will actually be sent to backend
-    const schemaToCheck =
-      suggestions && suggestions.length > 0 && baseSchema ? baseSchema : targetSchema;
-    
-    console.log('[DEBUG] Checking enhancement count:', {
-      schemaToCheck: schemaToCheck?.['x-formsync-metadata'],
-      targetSchema: targetSchema?.['x-formsync-metadata'],
-      baseSchema: baseSchema?.['x-formsync-metadata'],
-      hasSuggestions: suggestions && suggestions.length > 0,
-    });
+      if (!targetSchema) {
+        const error = new Error('No schema to enhance');
+        toast.error('No schema to enhance');
+        throw error;
+      }
 
-    const metadata = schemaToCheck['x-formsync-metadata'];
-    const enhancementCount = metadata?.enhancementCount || 0;
+      // ✅ Check enhancement limit (max 2 times)
+      // IMPORTANT: Check the schema that will actually be sent to backend
+      const schemaToCheck =
+        suggestions && suggestions.length > 0 && baseSchema ? baseSchema : targetSchema;
 
-    console.log('[DEBUG] Enhancement count check:', { enhancementCount, metadata });
-
-    if (enhancementCount >= 2) {
-      const error = new Error('The schema is already enhanced two times and can\'t enhance to stop over-optimization');
-      toast.error('Cannot enhance schema', {
-        description:
-          'The schema is already enhanced two times and can\'t be enhanced further to stop over-optimization.',
-        duration: 5000,
-      });
-      throw error;
-    }
-
-    // ✅ FIX: If schema already has suggestions, use baseSchema to avoid losing them
-    // This prevents suggestions from disappearing when clicking enhance again
-    const schemaToEnhance =
-      suggestions && suggestions.length > 0 && baseSchema ? baseSchema : targetSchema;
-
-    // Log for debugging
-    if (suggestions && suggestions.length > 0) {
-      console.log(
-        '[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions'
-      );
-    }
-
-    clearError();
-    setEnhanceLoading(true);
-    onStageUpdate?.('AI Enhancement', 'loading');
-    try {
-      await enhanceSchema(schemaToEnhance);
-
-      // Show enhancement count in success message
-      const newCount = enhancementCount + 1;
-      const remainingEnhancements = 2 - newCount;
-
-      toast.success('Schema enhanced with AI suggestions!', {
-        description:
-          remainingEnhancements > 0
-            ? `You can enhance ${remainingEnhancements} more time${remainingEnhancements > 1 ? 's' : ''}.`
-            : 'This was your final enhancement (2/2).',
+      console.log('[DEBUG] Checking enhancement count:', {
+        schemaToCheck: schemaToCheck?.['x-formsync-metadata'],
+        targetSchema: targetSchema?.['x-formsync-metadata'],
+        baseSchema: baseSchema?.['x-formsync-metadata'],
+        hasSuggestions: suggestions && suggestions.length > 0,
       });
 
-      setShowSuggestions(true); // Auto-show suggestions panel
-      onStageUpdate?.('AI Enhancement', 'complete');
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message || error.message || 'Failed to enhance schema';
-      toast.error('Enhancement failed', {
-        description: errorMessage,
-      });
-      onStageUpdate?.('AI Enhancement', 'error');
-      throw error; // Re-throw so automated workflow can catch it
-    } finally {
-      setEnhanceLoading(false);
-    }
-  }, [displaySchema, baseSchema, suggestions, enhanceSchema, clearError, onStageUpdate]);
+      const metadata = schemaToCheck['x-formsync-metadata'];
+      const enhancementCount = metadata?.enhancementCount || 0;
+
+      console.log('[DEBUG] Enhancement count check:', { enhancementCount, metadata });
+
+      if (enhancementCount >= 2) {
+        const error = new Error(
+          "The schema is already enhanced two times and can't enhance to stop over-optimization"
+        );
+        toast.error('Cannot enhance schema', {
+          description:
+            "The schema is already enhanced two times and can't be enhanced further to stop over-optimization.",
+          duration: 5000,
+        });
+        throw error;
+      }
+
+      // ✅ FIX: If schema already has suggestions, use baseSchema to avoid losing them
+      // This prevents suggestions from disappearing when clicking enhance again
+      const schemaToEnhance =
+        suggestions && suggestions.length > 0 && baseSchema ? baseSchema : targetSchema;
+
+      // Log for debugging
+      if (suggestions && suggestions.length > 0) {
+        console.log(
+          '[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions'
+        );
+      }
+
+      clearError();
+      setEnhanceLoading(true);
+      onStageUpdate?.('AI Enhancement', 'loading');
+      try {
+        await enhanceSchema(schemaToEnhance);
+
+        // Read fresh suggestions count directly from store after update
+        const freshSuggestions = useSchemaStore.getState().suggestions || [];
+        const pendingCount = freshSuggestions.filter((s) => !s.applied).length;
+
+        if (pendingCount > 0) {
+          toast.success(`${pendingCount} AI suggestion${pendingCount > 1 ? 's' : ''} ready!`, {
+            description: 'Review and apply them in the suggestions panel.',
+          });
+          setShowSuggestions(true);
+        } else {
+          toast.info('Enhancement complete', {
+            description: 'No new suggestions — your schema already looks great!',
+          });
+        }
+
+        onStageUpdate?.('AI Enhancement', 'complete');
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.message || error.message || 'Failed to enhance schema';
+        toast.error('Enhancement failed', {
+          description: errorMessage,
+        });
+        onStageUpdate?.('AI Enhancement', 'error');
+        throw error; // Re-throw so automated workflow can catch it
+      } finally {
+        setEnhanceLoading(false);
+      }
+    },
+    [displaySchema, baseSchema, suggestions, enhanceSchema, clearError, onStageUpdate]
+  );
 
   // One-click automated workflow - Validate → Convert → Enhance → Apply All Suggestions
   const handleAutomatedWorkflow = useCallback(async () => {
@@ -632,7 +642,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         await handleConvert();
         // Wait longer for state to update
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         // Wait for displaySchema to be available in the store (max 3 seconds)
         let waitCount = 0;
         let currentSchema = useSchemaStore.getState().currentSchema;
@@ -641,7 +651,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           currentSchema = useSchemaStore.getState().currentSchema;
           waitCount++;
         }
-        
+
         if (!currentSchema) {
           throw new Error('Schema not available after conversion. Please try again.');
         }
@@ -665,7 +675,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         enhancementSucceeded = true;
         // Wait longer for suggestions to be generated
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        
+
         // Wait for suggestions to be available in the store (max 3 seconds)
         let waitCount = 0;
         let currentSuggestions = useSchemaStore.getState().suggestions || [];
@@ -854,29 +864,35 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      {/* Schema Name Input Section */}
+      {/* Schema Name — Hero Field */}
       <div className="w-full">
-        <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
+        <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
           Schema Name
-        </h3>
-        <div className="flex gap-2 items-center">
+        </label>
+        <div className="relative">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500">
+            <FileText className="h-4 w-4" />
+          </div>
           <input
             type="text"
             placeholder="e.g., User Registration Form, Contact Schema"
             value={schemaName}
             onChange={(e) => setSchemaName(e.target.value)}
-            className="flex-1 px-4 py-3 border-2 border-neutral-300 dark:border-neutral-600 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-3 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
           />
         </div>
+        <p className="mt-1.5 text-xs text-neutral-400 dark:text-neutral-500">
+          Give your schema a descriptive name — used across all generated code files.
+        </p>
       </div>
 
       {/* Header Row: Format Selector (Left) + Next: Form Builder Button (Right) */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         {/* Left: Format Selector */}
         <div>
-          <h3 className="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300">
+          <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
             Input Format
-          </h3>
+          </label>
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
@@ -898,47 +914,53 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       </div>
 
       {/* Processing Mode Selector */}
-      <Card className="border border-neutral-200 dark:border-neutral-700 shadow-sm">
+      <Card className="border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900">
         <CardContent className="p-5">
-          <div className="flex items-center justify-between gap-8">
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-2 tracking-tight">
+          <div className="flex items-center justify-between gap-6 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-00 mb-1 tracking-tight">
                 Processing Mode
               </h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
                 {workflowMode === 'manual'
-                  ? 'Execute validation, conversion, and enhancement steps individually with full control over each stage.'
-                  : 'Automatically process schema through all stages: validation, conversion, AI enhancement, and suggestion application.'}
+                  ? 'Run each step individually — validate, convert, and enhance at your own pace.'
+                  : 'Let the system handle all stages automatically: validate, convert, enhance, and apply.'}
               </p>
             </div>
-            <div className="flex gap-2 bg-neutral-50 dark:bg-neutral-900 rounded-md p-1 border border-neutral-200 dark:border-neutral-700">
+            {/* Animated toggle pill */}
+            <div
+              className="relative flex items-center p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 cursor-pointer select-none"
+              style={{ minWidth: '168px' }}
+            >
+              <motion.span
+                layout
+                layoutId="mode-pill"
+                className="absolute top-1 bottom-1 rounded-full bg-white dark:bg-neutral-700 shadow"
+                style={{
+                  width: '50%',
+                  left: workflowMode === 'manual' ? '4px' : 'calc(50% - 4px)',
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
               <button
                 onClick={() => setWorkflowMode('manual')}
-                className={`px-7 py-2 rounded text-sm font-medium transition-all ${
+                className={`relative z-10 flex-1 text-center text-xs font-medium py-1.5 rounded-full transition-colors ${
                   workflowMode === 'manual'
-                    ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm border border-neutral-300 dark:border-neutral-600'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'text-neutral-900 dark:text-white'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
                 }`}
               >
                 Manual
               </button>
               <button
                 onClick={() => setWorkflowMode('automated')}
-                className={`px-7 py-2 rounded text-sm font-medium transition-all ${
+                className={`relative z-10 flex-1 text-center text-xs font-medium py-1.5 rounded-full transition-colors ${
                   workflowMode === 'automated'
-                    ? 'bg-white dark:bg-neutral-800 shadow-sm border border-neutral-300 dark:border-neutral-600'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
                 }`}
               >
-                <span
-                  className={
-                    workflowMode === 'automated'
-                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold'
-                      : ''
-                  }
-                >
-                  Automated
-                </span>
+                Automated
               </button>
             </div>
           </div>
@@ -946,17 +968,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       </Card>
 
       {/* Action Buttons Section */}
-      <Card className="border border-neutral-200 dark:border-neutral-700 shadow-sm">
+      <Card className="border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900">
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
-              {workflowMode === 'manual' ? 'Manual Actions' : 'Automated Processing'}
+              {workflowMode === 'manual' ? 'Actions' : 'Automated Workflow'}
             </h3>
             <Badge
               variant="outline"
-              className="text-xs font-medium px-2.5 py-1 border-neutral-300 dark:border-neutral-600"
+              className="text-xs font-medium px-2.5 py-1 border-neutral-200 dark:border-neutral-700 text-neutral-500"
             >
-              {workflowMode === 'manual' ? 'Manual Mode' : 'Automated Mode'}
+              {workflowMode === 'manual' ? 'Manual' : 'Automated'}
             </Badge>
           </div>
           {workflowMode === 'manual' ? (
@@ -1013,7 +1035,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
               {/* 3. AI Enhance */}
               <Button
-                onClick={handleEnhance}
+                onClick={() => handleEnhance()}
                 size="lg"
                 disabled={enhanceLoading || !displaySchema}
                 variant="outline"
@@ -1115,49 +1137,26 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                   onClick={handleAutomatedWorkflow}
                   size="lg"
                   disabled={autoWorkflowRunning || !editorValue.trim()}
-                  variant="outline"
-                  className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-400 dark:hover:border-blue-500 transition-all"
+                  className="gap-2.5 bg-white dark:bg-neutral-900 border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20 font-semibold px-8 py-2.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-none"
                 >
                   {autoWorkflowRunning ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">
-                        Processing Workflow...
-                      </span>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing Workflow...
                     </>
                   ) : (
                     <>
-                      <Play className="h-4 w-4 text-blue-600" />
-                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">
-                        Execute Automated Workflow
-                      </span>
+                      <Play className="h-4 w-4" />
+                      Execute Automated Workflow
                     </>
                   )}
                 </Button>
               </div>
 
               {/* Info Notice */}
-              <div className="flex items-start gap-2.5 p-2.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <p className="text-[11px] text-neutral-700 dark:text-neutral-300 leading-relaxed">
-                  This workflow automatically processes your schema through all stages. Monitor
-                  progress through status notifications.
-                </p>
-              </div>
+              <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">
+                This workflow automatically processes your schema through all stages. Monitor progress through status notifications.
+              </p>
             </div>
           )}
         </CardContent>
@@ -1167,24 +1166,22 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       <div className="flex-1 flex gap-4 min-h-[800px] relative">
         {/* Left Sidebar - Quick Actions (positioned to not affect layout) */}
         <Card
-          className={`flex flex-col gap-2 border-2 border-neutral-200 dark:border-neutral-700 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-16'}`}
+          className={`flex flex-col gap-2 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3 transition-all duration-300 flex-shrink-0 ${sidebarExpanded ? 'w-48' : 'w-14'}`}
         >
           {/* Expand/Collapse Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => setSidebarExpanded(!sidebarExpanded)}
-            className="w-full justify-start gap-2 mb-2 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+            className="w-full flex items-center justify-center gap-2 mb-2 h-12 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
             {sidebarExpanded ? (
               <>
-                <ChevronLeft className="h-4 w-4" />
-                <span className="text-xs font-semibold">Collapse</span>
+                <ChevronLeft className="h-4 w-4 text-neutral-600 dark:text-neutral-300 flex-shrink-0" />
+                <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">Collapse</span>
               </>
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 text-neutral-700 dark:text-neutral-200 flex-shrink-0" />
             )}
-          </Button>
+          </button>
 
           <div className="border-t border-neutral-300 dark:border-neutral-700 mb-2" />
 
@@ -1278,9 +1275,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         {/* Editors Grid */}
         <div className="flex-1 grid grid-cols-2 gap-4">
           {/* Left Panel - Input */}
-          <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
-            <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
-              <CardTitle className="text-base">Input ({format.toUpperCase()})</CardTitle>
+          <Card className="flex flex-col border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900">
+            <CardHeader className="border-b border-neutral-200 dark:border-neutral-800 py-3 px-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                  Input{' '}
+                  <span className="text-neutral-400 dark:text-neutral-500 font-normal">
+                    ({format.toUpperCase()})
+                  </span>
+                </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="flex-1 p-0">
               <Editor
@@ -1337,10 +1342,20 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           </Card>
 
           {/* Right Panel - Output */}
-          <Card className="flex flex-col glass border-2 border-neutral-200 dark:border-neutral-700">
-            <CardHeader className="border-b border-neutral-200 dark:border-neutral-700 py-3">
+          <Card className="flex flex-col border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900">
+            <CardHeader className="border-b border-neutral-200 dark:border-neutral-800 py-3 px-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">JSON Schema (Output)</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full transition-colors ${displaySchema ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                  />
+                  <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    JSON Schema{' '}
+                    <span className="text-neutral-400 dark:text-neutral-500 font-normal">
+                      (Output)
+                    </span>
+                  </CardTitle>
+                </div>
                 {displaySchema && (
                   <Badge variant="success" className="text-xs">
                     <CheckCircle className="h-3 w-3 mr-1" />
@@ -1365,11 +1380,17 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                   }}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-neutral-500">
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">📄</div>
-                    <p className="font-semibold">No schema yet</p>
-                    <p className="text-sm mt-1">Converted schema will appear here</p>
+                <div className="flex items-center justify-center h-full text-neutral-400">
+                  <div className="text-center space-y-2">
+                    <div className="mx-auto w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                      <FileJson className="h-5 w-5 text-neutral-400 dark:text-neutral-500" />
+                    </div>
+                    <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                      No output yet
+                    </p>
+                    <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                      Converted schema will appear here
+                    </p>
                   </div>
                 </div>
               )}
