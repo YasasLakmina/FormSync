@@ -109,8 +109,13 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
     });
 
     // Add accessibility as critical if below 30%
-    if (accessibilityPercent < 30 && !critical.some(i => i.toLowerCase().includes('accessibility'))) {
-      critical.unshift(`Low accessibility coverage (${accessibilityPercent}%): Add descriptions to improve usability and compliance`);
+    if (
+      accessibilityPercent < 30 &&
+      !critical.some((i) => i.toLowerCase().includes('accessibility'))
+    ) {
+      critical.unshift(
+        `Low accessibility coverage (${accessibilityPercent}%): Add descriptions to improve usability and compliance`
+      );
     }
 
     return { critical, warnings };
@@ -357,7 +362,8 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                       },
                       low: {
                         icon: Info,
-                        color: 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800',
+                        color:
+                          'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800',
                         iconColor: 'text-blue-600',
                         badge: 'bg-blue-600 text-white',
                         label: 'LOW',
@@ -401,7 +407,7 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                   const percentage = (dim.score / dim.max) * 100;
                   const passed = dim.score >= dim.threshold;
                   const Icon = dim.icon;
-                  
+
                   return (
                     <div
                       key={idx}
@@ -440,7 +446,9 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
                             {dim.description}
                           </span>
                           <span className="text-xs text-neutral-500">
-                            {passed ? 'Passed' : `${Math.round((dim.threshold / dim.max) * 100)}% required`}
+                            {passed
+                              ? 'Passed'
+                              : `${Math.round((dim.threshold / dim.max) * 100)}% required`}
                           </span>
                         </div>
                       </div>
