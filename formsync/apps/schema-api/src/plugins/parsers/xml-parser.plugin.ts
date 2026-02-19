@@ -1,6 +1,6 @@
 /**
  * XML Parser Plugin - Enhanced Version
- * 
+ *
  * Parses XML input and converts to JSON Schema Draft-7
  * Features:
  * - Form-aware parsing (detects <Form>, <Field> patterns)
@@ -44,7 +44,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
   async parse(input: string): Promise<ParseResult> {
     try {
       const parsed = this.parser.parse(input);
-      
+
       if (!parsed || typeof parsed !== 'object') {
         return {
           success: false,
@@ -54,35 +54,39 @@ export class XmlParserPlugin implements FormatParserPlugin {
       }
 
       // Debug logging
-      console.log('[XML Parser] Parsed structure:', JSON.stringify(parsed, null, 2).substring(0, 1000));
-      
+      console.log(
+        '[XML Parser] Parsed structure:',
+        JSON.stringify(parsed, null, 2).substring(0, 1000)
+      );
+
       // Check if this is a JSON Schema definition in XML format
       const isSchemaXML = this.isSchemaXML(parsed);
       console.log('[XML Parser] Is schema XML?', isSchemaXML);
       console.log('[XML Parser] Has schema root?', !!parsed.schema);
       console.log('[XML Parser] Has type?', !!parsed.schema?.type);
       console.log('[XML Parser] Has properties?', !!parsed.schema?.properties);
-      
+
       if (isSchemaXML) {
         const schema = this.parseSchemaXML(parsed);
-        console.log('[XML Parser] Parsed as schema definition:', JSON.stringify(schema, null, 2).substring(0, 500));
+        console.log(
+          '[XML Parser] Parsed as schema definition:',
+          JSON.stringify(schema, null, 2).substring(0, 500)
+        );
         return {
           success: true,
           schema,
           detectedFormat: 'xml',
         };
       }
-      
+
       // Check if this is a form definition
       const isForm = this.isFormXML(parsed);
       console.log('[XML Parser] Is form XML?', isForm);
-      
-      const schema = isForm 
-        ? this.parseFormXML(parsed)
-        : this.inferSchemaFromData(parsed);
-      
+
+      const schema = isForm ? this.parseFormXML(parsed) : this.inferSchemaFromData(parsed);
+
       console.log('[XML Parser] Generated schema type:', schema.title || 'generic');
-      
+
       return {
         success: true,
         schema,
@@ -121,14 +125,15 @@ export class XmlParserPlugin implements FormatParserPlugin {
    */
   private parseSchemaXML(data: any): any {
     const schemaRoot = data.schema;
-    
+
     const result: any = {
       $schema: 'http://json-schema.org/draft-07/schema#',
     };
 
     // Get type
     if (schemaRoot.type) {
-      const typeValue = typeof schemaRoot.type === 'object' ? schemaRoot.type._text : schemaRoot.type;
+      const typeValue =
+        typeof schemaRoot.type === 'object' ? schemaRoot.type._text : schemaRoot.type;
       result.type = typeValue || 'object';
     }
 
@@ -173,7 +178,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
       // Get type from attribute or nested element
       const typeAttr = prop['@_type'];
       const typeElement = prop.type;
-      
+
       if (typeAttr) {
         propSchema.type = typeAttr;
       } else if (typeElement) {
@@ -184,7 +189,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
       if (prop.enum) {
         const enumValues: string[] = [];
         const valueElements = prop.enum.value;
-        
+
         if (valueElements) {
           const valueArray = Array.isArray(valueElements) ? valueElements : [valueElements];
           for (const val of valueArray) {
@@ -194,7 +199,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
             }
           }
         }
-        
+
         if (enumValues.length > 0) {
           propSchema.enum = enumValues;
         }
@@ -243,19 +248,19 @@ export class XmlParserPlugin implements FormatParserPlugin {
     if (data.Form || data.form) {
       return true;
     }
-    
+
     // Check for Field array at root
     if (data.Field && Array.isArray(data.Field)) {
       return true;
     }
-    
+
     // Check if any child has Field array
     for (const key in data) {
       if (typeof data[key] === 'object' && data[key].Field) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -266,14 +271,18 @@ export class XmlParserPlugin implements FormatParserPlugin {
   private parseFormXML(data: any): any {
     // Extract the form object
     const formData = data.Form || data.form || data;
-    
+
     // Get title
-    const titleValue = formData.Title || formData.title || formData['@_title'] || formData['@_name'];
-    const title = typeof titleValue === 'object' ? titleValue._text || 'Untitled Form' : titleValue || 'Untitled Form';
-    
+    const titleValue =
+      formData.Title || formData.title || formData['@_title'] || formData['@_name'];
+    const title =
+      typeof titleValue === 'object'
+        ? titleValue._text || 'Untitled Form'
+        : titleValue || 'Untitled Form';
+
     // Get fields
     const fields = formData.Field || formData.field || [];
-    const fieldArray = Array.isArray(fields) ? fields : (fields ? [fields] : []);
+    const fieldArray = Array.isArray(fields) ? fields : fields ? [fields] : [];
 
     const properties: Record<string, any> = {};
     const required: string[] = [];
@@ -288,7 +297,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
       const fieldSchema = this.buildFieldSchema(field);
       properties[fieldName] = fieldSchema;
-      
+
       if (field['@_required'] === 'true') {
         required.push(fieldName);
       }
@@ -296,7 +305,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
     // Process groups
     const groups = formData.Group || formData.group || [];
-    const groupArray = Array.isArray(groups) ? groups : (groups ? [groups] : []);
+    const groupArray = Array.isArray(groups) ? groups : groups ? [groups] : [];
 
     groupArray.forEach((group: any) => {
       const groupName = group['@_name'];
@@ -307,7 +316,11 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
       const isRepeatable = group['@_repeatable'] === 'true';
       const groupFields = group.Field || group.field || [];
-      const groupFieldArray = Array.isArray(groupFields) ? groupFields : (groupFields ? [groupFields] : []);
+      const groupFieldArray = Array.isArray(groupFields)
+        ? groupFields
+        : groupFields
+          ? [groupFields]
+          : [];
 
       const groupProperties: Record<string, any> = {};
       const groupRequired: string[] = [];
@@ -318,7 +331,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
         const fieldSchema = this.buildFieldSchema(field);
         groupProperties[fieldName] = fieldSchema;
-        
+
         if (field['@_required'] === 'true') {
           groupRequired.push(fieldName);
         }
@@ -372,10 +385,13 @@ export class XmlParserPlugin implements FormatParserPlugin {
    */
   private buildFieldSchema(field: any): any {
     const fieldType = field['@_type'] || 'text';
-    
+
     // Get label
     const labelValue = field.Label || field.label || field['_text'];
-    const label = typeof labelValue === 'object' ? labelValue._text || field['@_name'] : labelValue || field['@_name'];
+    const label =
+      typeof labelValue === 'object'
+        ? labelValue._text || field['@_name']
+        : labelValue || field['@_name'];
 
     // Build base schema
     const fieldSchema: any = {
@@ -439,8 +455,12 @@ export class XmlParserPlugin implements FormatParserPlugin {
     const options = field.Options || field.options;
     if (options) {
       const optionItems = options.Option || options.option || [];
-      const optionArray = Array.isArray(optionItems) ? optionItems : (optionItems ? [optionItems] : []);
-      
+      const optionArray = Array.isArray(optionItems)
+        ? optionItems
+        : optionItems
+          ? [optionItems]
+          : [];
+
       const enumValues = optionArray.map((opt: any) => {
         if (typeof opt === 'string') return opt;
         if (opt['@_value']) return opt['@_value'];
@@ -461,22 +481,22 @@ export class XmlParserPlugin implements FormatParserPlugin {
    */
   private mapXMLTypeToJSONSchemaType(xmlType: string): string {
     const typeMap: Record<string, string> = {
-      'text': 'string',
-      'email': 'string',
-      'password': 'string',
-      'url': 'string',
-      'tel': 'string',
-      'number': 'number',
-      'integer': 'integer',
-      'float': 'number',
-      'boolean': 'boolean',
-      'checkbox': 'boolean',
-      'date': 'string',
-      'datetime': 'string',
-      'time': 'string',
-      'textarea': 'string',
-      'select': 'string',
-      'radio': 'string',
+      text: 'string',
+      email: 'string',
+      password: 'string',
+      url: 'string',
+      tel: 'string',
+      number: 'number',
+      integer: 'integer',
+      float: 'number',
+      boolean: 'boolean',
+      checkbox: 'boolean',
+      date: 'string',
+      datetime: 'string',
+      time: 'string',
+      textarea: 'string',
+      select: 'string',
+      radio: 'string',
     };
 
     return typeMap[xmlType.toLowerCase()] || 'string';
@@ -484,24 +504,29 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
   /**
    * Generic data structure inference (fallback for non-form XML)
-   * 
+   *
    * ENHANCED for Better Quality:
    * - Smart type detection (string vs integer vs number vs boolean)
    * - Meaningful titles from root element
    * - Validation rules (pattern, format, min/max)
    * - Does NOT add examples or x-accessibility (those come from AI Enhancement)
    */
-  private inferSchemaFromData(data: any, isRoot: boolean = true, rootElementName?: string, fieldName?: string): any {
+  private inferSchemaFromData(
+    data: any,
+    isRoot: boolean = true,
+    rootElementName?: string,
+    fieldName?: string
+  ): any {
     const type = Array.isArray(data) ? 'array' : typeof data;
 
     if (type === 'object' && data !== null) {
       const properties: Record<string, any> = {};
       const required: string[] = [];
-      
+
       // Extract root element name for title generation
       let extractedRootName = rootElementName;
       if (isRoot && !extractedRootName) {
-        const keys = Object.keys(data).filter(k => !k.startsWith('@_') && k !== '_text');
+        const keys = Object.keys(data).filter((k) => !k.startsWith('@_') && k !== '_text');
         if (keys.length > 0) {
           extractedRootName = keys[0];
         }
@@ -512,7 +537,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
         if (key.startsWith('@_') || key === '_text') {
           continue;
         }
-        
+
         // Recursively infer schema for nested elements
         properties[key] = this.inferSchemaFromData(value, false, extractedRootName, key);
         required.push(key);
@@ -541,7 +566,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
         console.log('[XML Parser] Generated title:', title);
         // Generate description from title (remove " Schema" suffix)
         const description = `Schema for ${title.replace(' Schema', '')}`;
-        
+
         // FLATTEN ROOT: If there's only one top-level property, flatten it
         const topLevelKeys = Object.keys(properties);
         console.log('[XML Parser] Top-level keys:', topLevelKeys);
@@ -560,7 +585,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
             };
           }
         }
-        
+
         return {
           $schema: 'http://json-schema.org/draft-07/schema#',
           title,
@@ -576,7 +601,10 @@ export class XmlParserPlugin implements FormatParserPlugin {
 
     if (type === 'array') {
       // Infer items schema from first element
-      const items = data.length > 0 ? this.inferSchemaFromData(data[0], false, rootElementName, fieldName) : { type: 'string' };
+      const items =
+        data.length > 0
+          ? this.inferSchemaFromData(data[0], false, rootElementName, fieldName)
+          : { type: 'string' };
       return {
         type: 'array',
         items,
@@ -594,7 +622,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
   private inferPrimitiveType(value: any, fieldName: string): any {
     const strValue = String(value).trim();
     const lowerFieldName = fieldName.toLowerCase();
-    
+
     // Priority 1: Field name patterns for integers
     if (/^(age|count|quantity|numberof|years|level|rank)$/i.test(fieldName)) {
       const numValue = Number(strValue);
@@ -602,7 +630,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
         const schema: any = {
           type: 'integer',
         };
-        
+
         // Add age-specific constraints
         if (lowerFieldName === 'age') {
           schema.minimum = 0;
@@ -610,18 +638,18 @@ export class XmlParserPlugin implements FormatParserPlugin {
         } else {
           schema.minimum = 0;
         }
-        
+
         return schema;
       }
     }
-    
+
     // Priority 2: Boolean detection
     if (strValue === 'true' || strValue === 'false') {
       return {
         type: 'boolean',
       };
     }
-    
+
     // Priority 3: ISO Date detection (YYYY-MM-DD pattern)
     if (/^\d{4}-\d{2}-\d{2}/.test(strValue)) {
       return {
@@ -629,7 +657,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
         format: 'date',
       };
     }
-    
+
     // Priority 4: Email detection
     if (/@.*\./.test(strValue)) {
       return {
@@ -637,7 +665,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
         format: 'email',
       };
     }
-    
+
     // Priority 5: Numeric detection
     const numValue = Number(strValue);
     if (!isNaN(numValue) && strValue !== '') {
@@ -651,7 +679,7 @@ export class XmlParserPlugin implements FormatParserPlugin {
             pattern: '^[A-Za-z0-9]+$',
           };
         }
-        
+
         // Check field name for money/salary patterns
         if (/^(salary|price|amount|cost|fee|payment)$/i.test(fieldName)) {
           return {
@@ -659,42 +687,42 @@ export class XmlParserPlugin implements FormatParserPlugin {
             minimum: 0,
           };
         }
-        
+
         // Pure integer
         return {
           type: 'integer',
         };
       }
-      
+
       // Has decimal point - it's a number
       if (/^-?\d+\.\d+$/.test(strValue)) {
         const schema: any = {
           type: 'number',
         };
-        
+
         // Add minimum for money fields
         if (/^(salary|price|amount|cost|fee|payment)$/i.test(fieldName)) {
           schema.minimum = 0;
         }
-        
+
         return schema;
       }
     }
-    
+
     // Priority 6: Mixed alphanumeric (e.g., "E1024", "ABC123") - definitely string
     if (/[a-zA-Z]/.test(strValue) && /\d/.test(strValue)) {
       const schema: any = {
         type: 'string',
       };
-      
+
       // Add pattern for ID fields
       if (/id$/i.test(fieldName)) {
         schema.pattern = '^[A-Za-z0-9]+$';
       }
-      
+
       return schema;
     }
-    
+
     // Default: string
     return {
       type: 'string',
@@ -709,16 +737,16 @@ export class XmlParserPlugin implements FormatParserPlugin {
     if (!rootElementName) {
       return 'Generated Schema';
     }
-    
+
     // Convert camelCase/PascalCase to Title Case with spaces
     const titleCase = rootElementName
       .replace(/([A-Z])/g, ' $1')
       .trim()
       .replace(/\s+/g, ' ')
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
-    
+
     return `${titleCase} Schema`;
   }
 }
