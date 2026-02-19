@@ -151,20 +151,19 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       const state = get();
       const existingSuggestions = state.suggestions || [];
       const newSuggestions = data.suggestions || [];
-      
+
       // Keep only applied suggestions from before
-      const appliedSuggestions = existingSuggestions.filter(s => s.applied);
-      
+      const appliedSuggestions = existingSuggestions.filter((s) => s.applied);
+
       // Merge: Applied suggestions + new suggestions (no duplicates)
       const mergedSuggestions = [...appliedSuggestions];
-      
+
       for (const newSugg of newSuggestions) {
         // Check if this suggestion already exists (in applied OR pending)
         const alreadyExists = existingSuggestions.some(
-          s => s.path === newSugg.path && 
-               JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
+          (s) => s.path === newSugg.path && JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
         );
-        
+
         if (!alreadyExists) {
           mergedSuggestions.push(newSugg);
         } else {
@@ -174,8 +173,8 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
 
       // ✅ FIX: If we have applied suggestions, recalculate quality to get correct score
       // Backend doesn't know about previously applied suggestions, so we need to update
-      const hasAppliedSuggestions = mergedSuggestions.some(s => s.applied);
-      
+      const hasAppliedSuggestions = mergedSuggestions.some((s) => s.applied);
+
       if (hasAppliedSuggestions && state.currentSchema) {
         // Recalculate quality with correct applied count
         try {
@@ -184,9 +183,9 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             allSuggestions: mergedSuggestions,
             aiChanges: data.changes || [],
           });
-          
+
           const recalcData = recalcResponse.data;
-          
+
           set({
             enhancedSchema: data.enhancedSchema,
             baseSchema: data.enhancedSchema,
@@ -200,7 +199,9 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
               issues: recalcData.quality?.issues || recalcData.issues || [],
               explanations: data.explanations || [],
               metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
-              appliedSuggestionsCount: recalcData.appliedSuggestionsCount || mergedSuggestions.filter(s => s.applied).length,
+              appliedSuggestionsCount:
+                recalcData.appliedSuggestionsCount ||
+                mergedSuggestions.filter((s) => s.applied).length,
               totalSuggestionsCount: recalcData.totalSuggestionsCount || mergedSuggestions.length,
             },
             loading: false,
@@ -223,16 +224,16 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
           qualityScore: data.quality?.score || data.qualityScore || 0,
           qualityBreakdown: data.quality?.breakdown ||
             data.qualityBreakdown || {
-            structure: 0,
-            validation: 0,
-            accessibility: 0,
-            consistency: 0,
-            improvement: 0,
-          },
+              structure: 0,
+              validation: 0,
+              accessibility: 0,
+              consistency: 0,
+              improvement: 0,
+            },
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
           metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
-          appliedSuggestionsCount: mergedSuggestions.filter(s => s.applied).length,
+          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied).length,
           totalSuggestionsCount: mergedSuggestions.length,
         },
         loading: false,
