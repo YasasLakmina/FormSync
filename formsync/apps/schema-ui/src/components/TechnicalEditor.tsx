@@ -575,18 +575,21 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       try {
         await enhanceSchema(schemaToEnhance);
 
-        // Show enhancement count in success message
-        const newCount = enhancementCount + 1;
-        const remainingEnhancements = 2 - newCount;
+        // Read fresh suggestions count directly from store after update
+        const freshSuggestions = useSchemaStore.getState().suggestions || [];
+        const pendingCount = freshSuggestions.filter((s) => !s.applied).length;
 
-        toast.success('Schema enhanced with AI suggestions!', {
-          description:
-            remainingEnhancements > 0
-              ? `You can enhance ${remainingEnhancements} more time${remainingEnhancements > 1 ? 's' : ''}.`
-              : 'This was your final enhancement (2/2).',
-        });
+        if (pendingCount > 0) {
+          toast.success(`${pendingCount} AI suggestion${pendingCount > 1 ? 's' : ''} ready!`, {
+            description: 'Review and apply them in the suggestions panel.',
+          });
+          setShowSuggestions(true);
+        } else {
+          toast.info('Enhancement complete', {
+            description: 'No new suggestions — your schema already looks great!',
+          });
+        }
 
-        setShowSuggestions(true); // Auto-show suggestions panel
         onStageUpdate?.('AI Enhancement', 'complete');
       } catch (error: any) {
         const errorMessage =
@@ -1032,7 +1035,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
               {/* 3. AI Enhance */}
               <Button
-                onClick={handleEnhance}
+                onClick={() => handleEnhance()}
                 size="lg"
                 disabled={enhanceLoading || !displaySchema}
                 variant="outline"
