@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronRight, ChevronDown, Copy, Check, Info, AlertTriangle, BookOpen } from 'lucide-react';
+import { Footer } from './layout/Footer';
 
 interface TocItem {
   id: string;
@@ -142,13 +143,14 @@ export const Documentation: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-purple-950/10">
-      {/* Left Sidebar Navigation */}
-      <motion.aside 
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="w-72 border-r border-neutral-200 dark:border-neutral-800 sticky top-0 h-screen overflow-y-auto bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl"
-      >
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-purple-950/10">
+      <div className="flex flex-1">
+        {/* Left Sidebar Navigation */}
+        <motion.aside 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="w-72 border-r border-neutral-200 dark:border-neutral-800 sticky top-0 h-screen overflow-y-auto bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl"
+        >
         <div className="p-6">
           {/* Logo/Header */}
           <div className="mb-6">
@@ -620,6 +622,8 @@ export const Documentation: React.FC = () => {
           </nav>
         </div>
       </aside>
+      </div>
+      <Footer />
     </div>
   );
 };
