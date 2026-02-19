@@ -1134,49 +1134,26 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                   onClick={handleAutomatedWorkflow}
                   size="lg"
                   disabled={autoWorkflowRunning || !editorValue.trim()}
-                  variant="outline"
-                  className="gap-2 border-2 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-400 dark:hover:border-blue-500 transition-all"
+                  className="gap-2.5 bg-white dark:bg-neutral-900 border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20 font-semibold px-8 py-2.5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-none"
                 >
                   {autoWorkflowRunning ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">
-                        Processing Workflow...
-                      </span>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing Workflow...
                     </>
                   ) : (
                     <>
-                      <Play className="h-4 w-4 text-blue-600" />
-                      <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-semibold">
-                        Execute Automated Workflow
-                      </span>
+                      <Play className="h-4 w-4" />
+                      Execute Automated Workflow
                     </>
                   )}
                 </Button>
               </div>
 
               {/* Info Notice */}
-              <div className="flex items-start gap-2.5 p-2.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg
-                    className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <p className="text-[11px] text-neutral-700 dark:text-neutral-300 leading-relaxed">
-                  This workflow automatically processes your schema through all stages. Monitor
-                  progress through status notifications.
-                </p>
-              </div>
+              <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">
+                This workflow automatically processes your schema through all stages. Monitor progress through status notifications.
+              </p>
             </div>
           )}
         </CardContent>
