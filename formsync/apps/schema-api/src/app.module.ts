@@ -15,7 +15,6 @@ import { PrismaService } from './prisma/prisma.service';
 import { RedisService } from './redis/redis.service';
 import { SchemaModule } from './schema/schema.module';
 import { PluginsModule } from './plugins/plugins.module';
-import { RuntimeBindingValidatorModule } from './runtime-binding-validator/runtime-binding-validator.module';
 
 @Module({
   imports: [
@@ -27,7 +26,6 @@ import { RuntimeBindingValidatorModule } from './runtime-binding-validator/runti
     // Feature modules
     SchemaModule,
     PluginsModule,
-    RuntimeBindingValidatorModule,
   ],
   providers: [PrismaService, RedisService],
   exports: [PrismaService, RedisService],

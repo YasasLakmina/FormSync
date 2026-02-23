@@ -13,10 +13,7 @@ import { XmlParserPlugin } from './parsers/xml-parser.plugin';
 import { AjvValidatorPlugin } from './validators/ajv-validator.plugin';
 import { WcagValidatorPlugin } from './validators/wcag-validator.plugin';
 import { OpenAILLMPlugin } from './llm/openai-llm.plugin';
-import { SpringBootGeneratorPlugin } from './generators/springboot-generator.plugin';
-import { SpringBootScaffoldService } from '../runtime-binding-validator/services/springboot-scaffold.service';
-import { DtoGeneratorService } from '../runtime-binding-validator/services/dto-generator.service';
-import { ControllerGeneratorService } from '../runtime-binding-validator/services/controller-generator.service';
+
 
 @Global()
 @Module({
@@ -33,12 +30,7 @@ import { ControllerGeneratorService } from '../runtime-binding-validator/service
     AjvValidatorPlugin,
     WcagValidatorPlugin,
     OpenAILLMPlugin,
-    // Generator services (needed by SpringBootGeneratorPlugin)
-    SpringBootScaffoldService,
-    DtoGeneratorService,
-    ControllerGeneratorService,
-    // Runtime generator plugins
-    SpringBootGeneratorPlugin,
+   
   ],
   exports: ['PLUGIN_REGISTRY', OpenAILLMPlugin], // Export plugin for use in other modules
 })
@@ -61,13 +53,6 @@ export class PluginsModule implements OnModuleInit {
     // Register LLM provider plugins
     registry.registerLLMProvider(new OpenAILLMPlugin());
 
-    // Register runtime generator plugins
-    const springBootGenerator = new SpringBootGeneratorPlugin(
-      new SpringBootScaffoldService(),
-      new DtoGeneratorService(),
-      new ControllerGeneratorService()
-    );
-    registry.registerRuntimeGenerator(springBootGenerator);
 
     const stats = registry.getStats();
     console.log(
