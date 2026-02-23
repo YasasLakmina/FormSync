@@ -1,0 +1,31 @@
+package {{basePackage}}.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.*;
+import java.time.*;
+import java.math.*;
+
+/**
+ * Response DTO for {{name}}.
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class {{name}}Response {
+
+    private Long id;
+
+{{#each fields}}
+{{#if description}}
+    /**
+     * {{description}}
+     */
+{{/if}}
+    private {{toJavaType type referenceType}} {{name}};
+
+{{/each}}
+}

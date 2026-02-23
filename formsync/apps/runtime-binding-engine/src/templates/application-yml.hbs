@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: {{toKebabCase name}}
+{{#eq database 'postgres'}}
+  datasource:
+    url: jdbc:postgresql://localhost:5432/{{toSnakeCase name}}
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+{{else}}
+  datasource:
+    url: jdbc:h2:mem:{{toSnakeCase name}}db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+{{/eq}}
+
+server:
+  port: {{serverPort}}
+
+logging:
+  level:
+    root: INFO
+    {{basePackage}}: DEBUG
