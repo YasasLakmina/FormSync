@@ -71,7 +71,7 @@ public class {{name}} {
 {{/if}}
 {{/if}}
 {{#if constraints.pattern}}
-    @Pattern(regexp = "{{constraints.pattern}}", message = "{{name}} must match pattern {{constraints.pattern}}")
+    @Pattern(regexp = "{{escapeJava constraints.pattern}}", message = "{{name}} must match the required pattern")
 {{/if}}
     @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
 {{#eq type 'List'}}

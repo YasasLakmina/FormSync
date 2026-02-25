@@ -1,5 +1,6 @@
 package {{basePackage}}.dto;
 
+import {{basePackage}}.model.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -61,7 +62,7 @@ public class {{name}}Request {
 {{/if}}
 {{/if}}
 {{#if constraints.pattern}}
-    @Pattern(regexp = "{{constraints.pattern}}", message = "{{name}} must match pattern {{constraints.pattern}}")
+    @Pattern(regexp = "{{escapeJava constraints.pattern}}", message = "{{name}} must match the required pattern")
 {{/if}}
     private {{toJavaType type referenceType}} {{name}};
 

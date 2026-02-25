@@ -31,6 +31,11 @@ export class TemplateService {
             return str.charAt(0).toUpperCase() + str.slice(1);
         });
 
+        handlebars.registerHelper('escapeJava', (str: string) => {
+            if (!str) return '';
+            return str.replace(/\\/g, '\\\\');
+        });
+
         handlebars.registerHelper('eq', function (this: any, arg1, arg2, options) {
             return (arg1 === arg2) ? options.fn(this) : options.inverse(this);
         });
@@ -74,23 +79,37 @@ export class TemplateService {
             return parts.length > 0 ? parts.join(', ') : '—';
         });
 
+        handlebars.registerHelper('toEnumConstant', (str: string) => {
+            if (!str) return 'UNKNOWN';
+            return str
+                .replace(/[^a-zA-Z0-9]/g, '_')  // replace spaces, hyphens, etc. with _
+                .replace(/_{2,}/g, '_')           // collapse multiple underscores
+                .replace(/^_|_$/g, '')            // trim leading/trailing underscores
+                .toUpperCase()                    // Java enum constants are UPPER_CASE
+                .replace(/^(\d)/, '_$1');          // prefix with _ if starts with digit
+        });
+
         handlebars.registerHelper('toJavaType', (type: DataType, referenceType?: string) => {
+            let result: string;
             switch (type) {
-                case DataType.STRING: return 'String';
-                case DataType.INTEGER: return 'Integer';
-                case DataType.LONG: return 'Long';
-                case DataType.DOUBLE: return 'Double';
-                case DataType.BOOLEAN: return 'Boolean';
-                case DataType.BIG_DECIMAL: return 'BigDecimal';
-                case DataType.LOCAL_DATE: return 'LocalDate';
-                case DataType.LOCAL_DATE_TIME: return 'LocalDateTime';
-                case DataType.OBJECT: return referenceType || 'Object';
-                case DataType.ENUM: return referenceType || 'String';
-                case DataType.LIST: return `List<${referenceType || 'String'}>`;
-                case DataType.SET: return `Set<${referenceType || 'String'}>`;
-                case DataType.MAP: return `Map<String, ${referenceType || 'Object'}>`;
-                default: return 'String';
+                case DataType.STRING: result = 'String'; break;
+                case DataType.INTEGER: result = 'Integer'; break;
+                case DataType.LONG: result = 'Long'; break;
+                case DataType.DOUBLE: result = 'Double'; break;
+                case DataType.BOOLEAN: result = 'Boolean'; break;
+                case DataType.BIG_DECIMAL: result = 'BigDecimal'; break;
+                case DataType.LOCAL_DATE: result = 'LocalDate'; break;
+                case DataType.LOCAL_DATE_TIME: result = 'LocalDateTime'; break;
+                case DataType.OBJECT: result = referenceType || 'Object'; break;
+                case DataType.ENUM: result = referenceType || 'String'; break;
+                case DataType.LIST: result = `List<${referenceType || 'String'}>`; break;
+                case DataType.SET: result = `Set<${referenceType || 'String'}>`; break;
+                case DataType.MAP: result = `Map<String, ${referenceType || 'Object'}>`; break;
+                default: result = 'String';
             }
+            // Return SafeString to prevent Handlebars from HTML-escaping angle brackets
+            // e.g. List<String> must NOT become List&lt;String&gt;
+            return new handlebars.SafeString(result);
         });
     }
 
