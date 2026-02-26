@@ -3,6 +3,57 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { DataType } from '../model/InternalModel';
 
+function getCollectionItemDefault(referenceType?: string): string {
+    if (!referenceType || referenceType === 'String') return '"test"';
+    if (referenceType === 'Integer') return '1';
+    if (referenceType === 'Long') return '1L';
+    if (referenceType === 'Double') return '1.0';
+    if (referenceType === 'Boolean') return 'true';
+    return `new ${referenceType}()`;
+}
+
+/**
+ * Generates a plausible example string that matches common regex patterns.
+ * Used as a fallback when the JSON Schema doesn't provide an explicit example.
+ */
+function generatePatternExample(pattern: string): string {
+    // UUID pattern  e.g. ^[0-9a-fA-F]{8}-...
+    if (/[0-9a-fA-F].*\{8\}/.test(pattern) || pattern.toLowerCase().includes('uuid')) {
+        return '550e8400-e29b-41d4-a716-446655440000';
+    }
+    // Phone  e.g.  ^\+?\d{10,15}$
+    if (/\\\+.*\\d/.test(pattern) || /\[\+\]/.test(pattern)) {
+        return '+1234567890';
+    }
+    // Prefix-number IDs  e.g.  ^EVT-\d{3}$  or  ^[A-Z]{2,4}-\d+$
+    const prefixNum = pattern.match(/^\^?([A-Z]{1,6})-/);
+    if (prefixNum) {
+        return `${prefixNum[1]}-001`;
+    }
+    // Prefix pattern with backslash-d  e.g. ^[A-Z]+-\d+$
+    if (/\[A-Z\].*\\d/.test(pattern)) {
+        return 'ABC-001';
+    }
+    // Digits-only  e.g.  ^\d{5,10}$  or  ^[0-9]+$
+    if (/^\^?\(?\\d|^\^?\[0-9\]/.test(pattern)) {
+        return '1234567890';
+    }
+    // Alphanumeric  e.g.  ^[a-zA-Z0-9]+$
+    if (/\[a-zA-Z0-9\]|\[A-Za-z0-9\]|\[a-z\]|\[A-Z\]/.test(pattern)) {
+        return 'Abc123';
+    }
+    // IP address  e.g.  ^\d{1,3}\.\d{1,3}...
+    if (/\\d.*\\\..*\\d/.test(pattern)) {
+        return '192.168.1.1';
+    }
+    // Hex color  e.g.  ^#[0-9a-fA-F]{6}$
+    if (pattern.includes('#') && /[0-9a-fA-F]/.test(pattern)) {
+        return '#FF5733';
+    }
+    // General fallback – alphanumeric with hyphen, matches many ID patterns
+    return 'Test-123';
+}
+
 export class TemplateService {
     private templates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
@@ -89,6 +140,141 @@ export class TemplateService {
                 .replace(/^(\d)/, '_$1');          // prefix with _ if starts with digit
         });
 
+        // ── Test-data helpers ─────────────────────────────────
+
+        handlebars.registerHelper('testValue', function (type: DataType, referenceType: string, constraints: any) {
+            if (!constraints || typeof constraints.fn === 'function') constraints = {};
+            let result: string;
+
+            switch (type) {
+                case DataType.STRING:
+                    if (constraints.email) {
+                        result = '"test@example.com"';
+                    } else if (constraints.url) {
+                        result = '"https://example.com"';
+                    } else if (constraints.pattern) {
+                        // Pattern-constrained field — use explicit example or heuristic
+                        const ex = constraints.example || generatePatternExample(constraints.pattern);
+                        result = '"' + ex.replace(/"/g, '\\"') + '"';
+                    } else if (constraints.example) {
+                        result = '"' + constraints.example.replace(/"/g, '\\"') + '"';
+                    } else {
+                        const len = constraints.minLength ? Math.max(constraints.minLength, 4) : 4;
+                        result = '"' + 'a'.repeat(len) + '"';
+                    }
+                    break;
+                case DataType.INTEGER: {
+                    const mn = constraints.min ?? 0;
+                    const mx = constraints.max;
+                    result = mx !== undefined ? String(Math.floor((mn + mx) / 2)) : String(mn + 1);
+                    break;
+                }
+                case DataType.LONG: {
+                    const mn = constraints.min ?? 0;
+                    const mx = constraints.max;
+                    const v = mx !== undefined ? Math.floor((mn + mx) / 2) : mn + 1;
+                    result = `${v}L`;
+                    break;
+                }
+                case DataType.DOUBLE: {
+                    const mn = constraints.min ?? 0;
+                    const mx = constraints.max;
+                    result = mx !== undefined ? ((mn + mx) / 2).toFixed(1) : (mn + 1.0).toFixed(1);
+                    break;
+                }
+                case DataType.BIG_DECIMAL: {
+                    const mn = constraints.min ?? 0;
+                    const mx = constraints.max;
+                    const v = mx !== undefined ? ((mn + mx) / 2).toFixed(2) : (mn + 100).toFixed(2);
+                    result = `new java.math.BigDecimal("${v}")`;
+                    break;
+                }
+                case DataType.BOOLEAN:
+                    result = 'true';
+                    break;
+                case DataType.LOCAL_DATE:
+                    result = 'java.time.LocalDate.of(2026, 1, 15)';
+                    break;
+                case DataType.LOCAL_DATE_TIME:
+                    result = 'java.time.LocalDateTime.of(2026, 1, 15, 10, 30)';
+                    break;
+                case DataType.LIST: {
+                    if (!constraints.required) {
+                        result = 'null';
+                    } else {
+                        const item = getCollectionItemDefault(referenceType);
+                        result = `java.util.List.of(${item})`;
+                    }
+                    break;
+                }
+                case DataType.SET: {
+                    if (!constraints.required) {
+                        result = 'null';
+                    } else {
+                        const item = getCollectionItemDefault(referenceType);
+                        result = `java.util.Set.of(${item})`;
+                    }
+                    break;
+                }
+                case DataType.MAP:
+                    if (!constraints.required) {
+                        result = 'null';
+                    } else {
+                        result = 'new java.util.HashMap<>()';
+                    }
+                    break;
+                case DataType.ENUM:
+                    result = referenceType ? `${referenceType}.values()[0]` : '"VALUE"';
+                    break;
+                case DataType.OBJECT:
+                    if (!constraints.required) {
+                        result = 'null';
+                    } else {
+                        result = referenceType ? `new ${referenceType}()` : 'null';
+                    }
+                    break;
+                default:
+                    result = '"test"';
+            }
+            return new handlebars.SafeString(result);
+        });
+
+        handlebars.registerHelper('belowMin', (min: number, type: DataType) => {
+            const val = min - 1;
+            switch (type) {
+                case DataType.DOUBLE: return new handlebars.SafeString((min - 0.1).toFixed(1));
+                case DataType.BIG_DECIMAL: return new handlebars.SafeString(`new java.math.BigDecimal("${val}")`);
+                case DataType.LONG: return new handlebars.SafeString(`${val}L`);
+                default: return new handlebars.SafeString(String(val));
+            }
+        });
+
+        handlebars.registerHelper('aboveMax', (max: number, type: DataType) => {
+            const val = max + 1;
+            switch (type) {
+                case DataType.DOUBLE: return new handlebars.SafeString((max + 0.1).toFixed(1));
+                case DataType.BIG_DECIMAL: return new handlebars.SafeString(`new java.math.BigDecimal("${val}")`);
+                case DataType.LONG: return new handlebars.SafeString(`${val}L`);
+                default: return new handlebars.SafeString(String(val));
+            }
+        });
+
+        handlebars.registerHelper('tooShortValue', (minLength: number) => {
+            if (minLength <= 0) return new handlebars.SafeString('""');
+            const len = Math.max(0, minLength - 1);
+            return new handlebars.SafeString('"' + 'a'.repeat(len) + '"');
+        });
+
+        handlebars.registerHelper('tooLongValue', (maxLength: number) => {
+            const needed = maxLength + 1;
+            if (needed > 500) {
+                return new handlebars.SafeString(`"a".repeat(${needed})`);
+            }
+            return new handlebars.SafeString('"' + 'a'.repeat(needed) + '"');
+        });
+
+        // ── Type mapping helper ─────────────────────────────────
+
         handlebars.registerHelper('toJavaType', (type: DataType, referenceType?: string) => {
             let result: string;
             switch (type) {
@@ -137,6 +323,13 @@ export class TemplateService {
 
         // README
         this.loadTemplate('readme', path.join(templatesDir, 'readme.hbs'));
+
+        // Test templates
+        this.loadTemplate('controller-test', path.join(templatesDir, 'java/controller-test.hbs'));
+        this.loadTemplate('service-test', path.join(templatesDir, 'java/service-test.hbs'));
+        this.loadTemplate('repository-test', path.join(templatesDir, 'java/repository-test.hbs'));
+        this.loadTemplate('application-test', path.join(templatesDir, 'java/application-test.hbs'));
+        this.loadTemplate('application-test-yml', path.join(templatesDir, 'application-test-yml.hbs'));
     }
 
     private loadTemplate(name: string, filePath: string) {

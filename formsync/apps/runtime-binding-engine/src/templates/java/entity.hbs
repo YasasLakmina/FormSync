@@ -21,13 +21,20 @@ import java.math.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+{{#if isRoot}}
 @Entity
 @Table(name = "{{toSnakeCase name}}")
+{{else}}
+@Embeddable
+{{/if}}
 public class {{name}} {
 
+{{#if isRoot}}
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+{{/if}}
 
 {{#each fields}}
 {{#if description}}
@@ -73,9 +80,24 @@ public class {{name}} {
 {{#if constraints.pattern}}
     @Pattern(regexp = "{{escapeJava constraints.pattern}}", message = "{{name}} must match the required pattern")
 {{/if}}
-    @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
+{{#eq type 'Object'}}
+    @Embedded
+{{else}}
 {{#eq type 'List'}}
     @ElementCollection
+    @CollectionTable(name = "{{toSnakeCase ../name}}_{{toSnakeCase name}}")
+{{else}}
+{{#eq type 'Enum'}}
+    @Enumerated(EnumType.STRING)
+{{#if ../isRoot}}
+    @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
+{{/if}}
+{{else}}
+{{#if ../isRoot}}
+    @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
+{{/if}}
+{{/eq}}
+{{/eq}}
 {{/eq}}
     private {{toJavaType type referenceType}} {{name}};
 

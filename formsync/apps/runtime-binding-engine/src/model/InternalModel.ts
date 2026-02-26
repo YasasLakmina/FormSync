@@ -33,6 +33,8 @@ export interface ValidationConstraints {
     url?: boolean;
     notBlank?: boolean;
     custom?: string;
+    /** Example value from JSON Schema – used by test generators to satisfy @Pattern */
+    example?: string;
 }
 
 export interface SchemaField {
