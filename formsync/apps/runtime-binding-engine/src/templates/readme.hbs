@@ -109,17 +109,123 @@ When a request fails validation, the server returns a structured `400` response:
 
 ```
 ├── pom.xml
-└── src/main/
-    ├── java/{{toPackagePath basePackage}}/
-    │   ├── {{appName}}Application.java
-    │   ├── controller/
-    │   ├── dto/
-    │   ├── exception/
-    │   ├── model/
-    │   ├── repository/
-    │   └── service/
-    └── resources/
-        └── application.yml
+└── src/
+    ├── main/
+    │   ├── java/{{toPackagePath basePackage}}/
+    │   │   ├── {{appName}}Application.java
+    │   │   ├── controller/
+    │   │   ├── dto/
+    │   │   ├── exception/
+    │   │   ├── model/
+    │   │   ├── repository/
+    │   │   └── service/
+    │   └── resources/
+    │       └── application.yml
+    └── test/
+        ├── java/{{toPackagePath basePackage}}/
+        │   ├── {{appName}}ApplicationTest.java
+        │   ├── controller/        ← MockMvc integration tests
+        │   ├── service/            ← Mockito unit tests
+        │   └── repository/         ← @DataJpaTest tests
+        └── resources/
+            └── application.yml     ← H2 in-memory config for tests
+```
+
+---
+
+## Testing
+
+The generated server includes a comprehensive test suite covering **three layers**:
+
+### Run All Tests
+
+```bash
+mvn test
+```
+
+### Test Layers
+
+| Layer | Annotation | Description |
+| ----- | ---------- | ----------- |
+| **Controller** | `@SpringBootTest` + `@AutoConfigureMockMvc` | Full integration tests using MockMvc. Tests all CRUD endpoints and validation rules. |
+| **Service** | `@ExtendWith(MockitoExtension.class)` | Unit tests with mocked repository. Verifies business logic and exception handling. |
+| **Repository** | `@DataJpaTest` | JPA tests with embedded H2 database. Verifies persistence operations. |
+| **Application** | `@SpringBootTest` | Smoke test — verifies the Spring context loads without errors. |
+
+### What Gets Tested
+
+{{#each entities}}
+{{#if isRoot}}
+#### {{name}}
+
+**Controller Tests** (`{{name}}ControllerTest.java`):
+- ✅ `GET /api/{{toKebabCase name}}s` → returns empty list / all entities
+- ✅ `GET /api/{{toKebabCase name}}s/{id}` → returns entity / 404 not found
+- ✅ `POST /api/{{toKebabCase name}}s` → creates entity / rejects empty body
+{{#each fields}}
+{{#if constraints.required}}
+- ✅ Rejects `null` for **{{name}}**
+{{/if}}
+{{#if constraints.notBlank}}
+- ✅ Rejects blank value for **{{name}}**
+{{/if}}
+{{#if constraints.email}}
+- ✅ Rejects invalid email for **{{name}}**
+{{/if}}
+{{#if constraints.min}}
+- ✅ Rejects value below min (`{{constraints.min}}`) for **{{name}}**
+{{/if}}
+{{#if constraints.max}}
+- ✅ Rejects value above max (`{{constraints.max}}`) for **{{name}}**
+{{/if}}
+{{#if constraints.minLength}}
+- ✅ Rejects value shorter than `{{constraints.minLength}}` chars for **{{name}}**
+{{/if}}
+{{#if constraints.maxLength}}
+- ✅ Rejects value longer than `{{constraints.maxLength}}` chars for **{{name}}**
+{{/if}}
+{{/each}}
+- ✅ `PUT /api/{{toKebabCase name}}s/{id}` → updates entity / 404 not found
+- ✅ `DELETE /api/{{toKebabCase name}}s/{id}` → deletes entity / 404 not found
+
+**Service Tests** (`{{name}}ServiceTest.java`):
+- ✅ `findAll()` → returns list / empty list
+- ✅ `findById()` → returns response / throws `ResourceNotFoundException`
+- ✅ `create()` → saves and returns response
+- ✅ `update()` → updates and returns / throws `ResourceNotFoundException`
+- ✅ `deleteById()` → deletes / throws `ResourceNotFoundException`
+
+**Repository Tests** (`{{name}}RepositoryTest.java`):
+- ✅ `save()` → persists entity with auto-generated ID
+- ✅ `findById()` → retrieves by ID / returns empty for non-existent
+- ✅ `findAll()` → returns all persisted entities
+- ✅ `deleteById()` → removes entity
+- ✅ `existsById()` → checks existence
+- ✅ `count()` → returns correct count
+
+{{/if}}
+{{/each}}
+
+### Test Configuration
+
+Tests always use an **embedded H2 database** (even if production uses PostgreSQL),
+configured in `src/test/resources/application.yml`. No external services are required.
+
+```bash
+# Run tests with verbose output
+mvn test -Dtest.verbose=true
+
+# Run only controller tests
+mvn test -Dtest="*ControllerTest"
+
+# Run only service tests
+mvn test -Dtest="*ServiceTest"
+
+# Run only repository tests
+mvn test -Dtest="*RepositoryTest"
+
+# Generate test report
+mvn surefire-report:report
 ```
 
 ---

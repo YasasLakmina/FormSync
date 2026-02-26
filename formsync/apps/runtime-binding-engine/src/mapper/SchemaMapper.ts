@@ -84,6 +84,15 @@ export class SchemaMapper {
             pattern: schema.pattern,
         };
 
+        // Capture example value from JSON Schema – critical for fields with @Pattern
+        if (schema.examples && schema.examples.length > 0) {
+            constraints.example = String(schema.examples[0]);
+        } else if (schema.example !== undefined) {
+            constraints.example = String(schema.example);
+        } else if (schema.default !== undefined) {
+            constraints.example = String(schema.default);
+        }
+
         let type = DataType.STRING;
         let referenceType: string | undefined;
         let itemType: DataType | undefined;
@@ -105,6 +114,8 @@ export class SchemaMapper {
                     const mappedItem = this.mapField(name + 'Item', schema.items, entities, enums);
                     itemType = mappedItem.type;
                     itemReferenceType = mappedItem.referenceType;
+                    // Propagate inner type to List<T> generic parameter
+                    referenceType = mappedItem.referenceType || this.getJavaTypeName(mappedItem.type);
                 }
                 break;
             case 'object':
@@ -144,6 +155,20 @@ export class SchemaMapper {
             description: schema.description,
             constraints
         };
+    }
+
+    private getJavaTypeName(type: DataType): string {
+        const map: Record<string, string> = {
+            [DataType.STRING]: 'String',
+            [DataType.INTEGER]: 'Integer',
+            [DataType.LONG]: 'Long',
+            [DataType.DOUBLE]: 'Double',
+            [DataType.BOOLEAN]: 'Boolean',
+            [DataType.BIG_DECIMAL]: 'BigDecimal',
+            [DataType.LOCAL_DATE]: 'LocalDate',
+            [DataType.LOCAL_DATE_TIME]: 'LocalDateTime',
+        };
+        return map[type] || 'String';
     }
 
     private capitalize(s: string): string {

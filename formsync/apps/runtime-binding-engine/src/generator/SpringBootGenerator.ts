@@ -187,6 +187,54 @@ export class SpringBootGenerator {
             });
             this.fileWriter.write(path.join(outputDir, 'README.md'), readmeContent);
 
+            // ── 8. Test resources – application.yml ──
+            const testYmlContent = this.templateService.render('application-test-yml', {
+                appName
+            });
+            this.fileWriter.write(
+                path.join(outputDir, 'src/test/resources/application.yml'),
+                testYmlContent
+            );
+
+            // ── 9. Application context test ──
+            const appTestContent = this.templateService.render('application-test', {
+                appName,
+                basePackage
+            });
+            this.fileWriter.write(
+                path.join(outputDir, 'src/test/java', packagePath, `${appName}ApplicationTest.java`),
+                appTestContent
+            );
+
+            // ── 10. Per-entity test generation ──
+            for (const entity of internalModel.entities) {
+                if (entity.isRoot) {
+                    const nameLower = entity.name.charAt(0).toLowerCase() + entity.name.slice(1);
+                    const testContext = { ...entity, basePackage, nameLower };
+
+                    // Controller integration test
+                    const controllerTestContent = this.templateService.render('controller-test', testContext);
+                    this.fileWriter.write(
+                        path.join(outputDir, 'src/test/java', packagePath, 'controller', `${entity.name}ControllerTest.java`),
+                        controllerTestContent
+                    );
+
+                    // Service unit test
+                    const serviceTestContent = this.templateService.render('service-test', testContext);
+                    this.fileWriter.write(
+                        path.join(outputDir, 'src/test/java', packagePath, 'service', `${entity.name}ServiceTest.java`),
+                        serviceTestContent
+                    );
+
+                    // Repository test
+                    const repoTestContent = this.templateService.render('repository-test', testContext);
+                    this.fileWriter.write(
+                        path.join(outputDir, 'src/test/java', packagePath, 'repository', `${entity.name}RepositoryTest.java`),
+                        repoTestContent
+                    );
+                }
+            }
+
             console.log(`SpringBootGenerator: Complete server generated at ${outputDir}`);
 
         } catch (error: any) {
