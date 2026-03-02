@@ -5,7 +5,7 @@ import { FormModel } from '@formsync/formgen-core';
 interface BuilderState {
     form: FormModel;
     selectedFieldId: string | null;
-    schemaId: string | null; // Schema ID from API, needed for backend export
+    schemaId: string | null;
 }
 
 // --- Action Definitions ---
@@ -17,7 +17,6 @@ type BuilderAction =
     | { type: 'SET_SCHEMA_ID'; payload: string | null };
 
 // --- Initial State ---
-// Minimal default state to avoid crashes before data is loaded
 const initialState: BuilderState = {
     form: {
         id: 'default',
@@ -77,10 +76,7 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
                 },
             };
         case 'SET_SCHEMA_ID':
-            return {
-                ...state,
-                schemaId: action.payload,
-            };
+            return { ...state, schemaId: action.payload };
         default:
             return state;
     }
@@ -94,7 +90,6 @@ const BuilderContext = createContext<{
 
 export const BuilderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(builderReducer, initialState);
-
     return (
         <BuilderContext.Provider value={{ state, dispatch }}>
             {children}

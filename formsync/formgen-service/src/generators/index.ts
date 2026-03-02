@@ -1,7 +1,7 @@
 /**
  * Code Generator Public API
- * 
- * Exports all generator functionality for React code export
+ *
+ * Exports all generator functionality for React code export.
  */
 
 export * from './templates';
