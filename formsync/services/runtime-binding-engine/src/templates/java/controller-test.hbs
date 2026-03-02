@@ -1,0 +1,321 @@
+package {{basePackage}}.controller;
+
+import {{basePackage}}.dto.{{name}}Request;
+import {{basePackage}}.model.*;
+import {{basePackage}}.repository.{{name}}Repository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.*;
+import java.time.*;
+import java.math.*;
+
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+/**
+ * Integration tests for {{name}}Controller.
+ * Uses MockMvc to test all CRUD endpoints and validation rules.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+class {{name}}ControllerTest {
+
+    private static final String BASE_URL = "/api/{{toKebabCase name}}s";
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private {{name}}Repository repository;
+
+    @BeforeEach
+    void setUp() {
+        repository.deleteAll();
+    }
+
+    /**
+     * Builds a valid {{name}}Request with all constraints satisfied.
+     */
+    private {{name}}Request buildValidRequest() {
+        return {{name}}Request.builder()
+{{#each fields}}
+                .{{name}}({{{testValue type referenceType constraints}}})
+{{/each}}
+                .build();
+    }
+
+    /**
+     * Helper – creates an entity via POST and returns its ID.
+     */
+    private Long createEntityAndGetId() throws Exception {
+        String response = mockMvc.perform(post(BASE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(buildValidRequest())))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("id").asLong();
+    }
+
+    // ═══════════════════════════════════════════
+    //  GET  /api/{{toKebabCase name}}s
+    // ═══════════════════════════════════════════
+
+    @Nested
+    @DisplayName("GET " + BASE_URL)
+    class GetAll {
+
+        @Test
+        @DisplayName("should return empty list when no entities exist")
+        void shouldReturnEmptyList() throws Exception {
+            mockMvc.perform(get(BASE_URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(0)));
+        }
+
+        @Test
+        @DisplayName("should return all entities")
+        void shouldReturnAll() throws Exception {
+            createEntityAndGetId();
+            createEntityAndGetId();
+
+            mockMvc.perform(get(BASE_URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(2)));
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  GET  /api/{{toKebabCase name}}s/{id}
+    // ═══════════════════════════════════════════
+
+    @Nested
+    @DisplayName("GET " + BASE_URL + "/{id}")
+    class GetById {
+
+        @Test
+        @DisplayName("should return entity by ID")
+        void shouldReturnById() throws Exception {
+            Long id = createEntityAndGetId();
+
+            mockMvc.perform(get(BASE_URL + "/{id}", id))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(id));
+        }
+
+        @Test
+        @DisplayName("should return 404 when entity not found")
+        void shouldReturn404() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/{id}", 999L))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  POST  /api/{{toKebabCase name}}s
+    // ═══════════════════════════════════════════
+
+    @Nested
+    @DisplayName("POST " + BASE_URL)
+    class Create {
+
+        @Test
+        @DisplayName("should create entity with valid request")
+        void shouldCreate() throws Exception {
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(buildValidRequest())))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").exists());
+        }
+
+        @Test
+        @DisplayName("should reject empty body")
+        void shouldRejectEmptyBody() throws Exception {
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  Validation tests for POST / PUT
+    // ═══════════════════════════════════════════
+
+    @Nested
+    @DisplayName("Validation")
+    class Validation {
+{{#each fields}}
+{{#if constraints.required}}
+
+        @Test
+        @DisplayName("should reject when {{name}} is null")
+        void shouldRejectWhen{{capitalizeFirst name}}IsNull() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}(null);
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{#if constraints.notBlank}}
+
+        @Test
+        @DisplayName("should reject when {{name}} is blank")
+        void shouldRejectWhen{{capitalizeFirst name}}IsBlank() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}("");
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{#if constraints.email}}
+
+        @Test
+        @DisplayName("should reject when {{name}} is not a valid email")
+        void shouldRejectWhen{{capitalizeFirst name}}IsInvalidEmail() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}("not-an-email");
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{#if constraints.min}}
+
+        @Test
+        @DisplayName("should reject when {{name}} is below minimum ({{constraints.min}})")
+        void shouldRejectWhen{{capitalizeFirst name}}IsBelowMin() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}({{{belowMin constraints.min type}}});
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{#if constraints.max}}
+
+        @Test
+        @DisplayName("should reject when {{name}} exceeds maximum ({{constraints.max}})")
+        void shouldRejectWhen{{capitalizeFirst name}}ExceedsMax() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}({{{aboveMax constraints.max type}}});
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{#if constraints.minLength}}
+
+        @Test
+        @DisplayName("should reject when {{name}} is shorter than {{constraints.minLength}} characters")
+        void shouldRejectWhen{{capitalizeFirst name}}IsTooShort() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}({{{tooShortValue constraints.minLength}}});
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{#if constraints.maxLength}}
+
+        @Test
+        @DisplayName("should reject when {{name}} exceeds {{constraints.maxLength}} characters")
+        void shouldRejectWhen{{capitalizeFirst name}}IsTooLong() throws Exception {
+            {{../name}}Request request = buildValidRequest();
+            request.set{{capitalizeFirst name}}({{{tooLongValue constraints.maxLength}}});
+
+            mockMvc.perform(post(BASE_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+{{/if}}
+{{/each}}
+    }
+
+    // ═══════════════════════════════════════════
+    //  PUT  /api/{{toKebabCase name}}s/{id}
+    // ═══════════════════════════════════════════
+
+    @Nested
+    @DisplayName("PUT " + BASE_URL + "/{id}")
+    class Update {
+
+        @Test
+        @DisplayName("should update existing entity")
+        void shouldUpdate() throws Exception {
+            Long id = createEntityAndGetId();
+
+            mockMvc.perform(put(BASE_URL + "/{id}", id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(buildValidRequest())))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(id));
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating non-existent entity")
+        void shouldReturn404() throws Exception {
+            mockMvc.perform(put(BASE_URL + "/{id}", 999L)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(buildValidRequest())))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  DELETE  /api/{{toKebabCase name}}s/{id}
+    // ═══════════════════════════════════════════
+
+    @Nested
+    @DisplayName("DELETE " + BASE_URL + "/{id}")
+    class Delete {
+
+        @Test
+        @DisplayName("should delete existing entity")
+        void shouldDelete() throws Exception {
+            Long id = createEntityAndGetId();
+
+            mockMvc.perform(delete(BASE_URL + "/{id}", id))
+                    .andExpect(status().isNoContent());
+
+            // Confirm it's gone
+            mockMvc.perform(get(BASE_URL + "/{id}", id))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 404 when deleting non-existent entity")
+        void shouldReturn404() throws Exception {
+            mockMvc.perform(delete(BASE_URL + "/{id}", 999L))
+                    .andExpect(status().isNotFound());
+        }
+    }
+}

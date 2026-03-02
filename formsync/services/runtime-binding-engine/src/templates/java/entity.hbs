@@ -1,0 +1,105 @@
+package {{basePackage}}.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.util.*;
+import java.time.*;
+import java.math.*;
+
+/**
+{{#if description}}
+ * {{description}}
+{{else}}
+ * Entity class for {{name}}.
+{{/if}}
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+{{#if isRoot}}
+@Entity
+@Table(name = "{{toSnakeCase name}}")
+{{else}}
+@Embeddable
+{{/if}}
+public class {{name}} {
+
+{{#if isRoot}}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+{{/if}}
+
+{{#each fields}}
+{{#if description}}
+    /**
+     * {{description}}
+     */
+{{/if}}
+{{#if constraints.required}}
+{{#eq type 'String'}}
+{{#if constraints.notBlank}}
+    @NotBlank(message = "{{name}} is required")
+{{else}}
+    @NotNull(message = "{{name}} is required")
+{{/if}}
+{{else}}
+    @NotNull(message = "{{name}} is required")
+{{/eq}}
+{{/if}}
+{{#if constraints.email}}
+    @Email(message = "{{name}} must be a valid email address")
+{{/if}}
+{{#if constraints.min}}
+{{#eq type 'Double'}}
+    @DecimalMin(value = "{{constraints.min}}", message = "{{name}} must be at least {{constraints.min}}")
+{{else}}
+    @Min(value = {{constraints.min}}, message = "{{name}} must be at least {{constraints.min}}")
+{{/eq}}
+{{/if}}
+{{#if constraints.max}}
+{{#eq type 'Double'}}
+    @DecimalMax(value = "{{constraints.max}}", message = "{{name}} must be at most {{constraints.max}}")
+{{else}}
+    @Max(value = {{constraints.max}}, message = "{{name}} must be at most {{constraints.max}}")
+{{/eq}}
+{{/if}}
+{{#if constraints.minLength}}
+    @Size(min = {{constraints.minLength}}{{#if constraints.maxLength}}, max = {{constraints.maxLength}}{{/if}}, message = "{{name}} must be between {{constraints.minLength}} and {{#if constraints.maxLength}}{{constraints.maxLength}}{{else}}unlimited{{/if}} characters")
+{{else}}
+{{#if constraints.maxLength}}
+    @Size(max = {{constraints.maxLength}}, message = "{{name}} must be at most {{constraints.maxLength}} characters")
+{{/if}}
+{{/if}}
+{{#if constraints.pattern}}
+    @Pattern(regexp = "{{escapeJava constraints.pattern}}", message = "{{name}} must match the required pattern")
+{{/if}}
+{{#eq type 'Object'}}
+    @Embedded
+{{else}}
+{{#eq type 'List'}}
+    @ElementCollection
+    @CollectionTable(name = "{{toSnakeCase ../name}}_{{toSnakeCase name}}")
+{{else}}
+{{#eq type 'Enum'}}
+    @Enumerated(EnumType.STRING)
+{{#if ../isRoot}}
+    @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
+{{/if}}
+{{else}}
+{{#if ../isRoot}}
+    @Column(nullable = {{#if constraints.required}}false{{else}}true{{/if}})
+{{/if}}
+{{/eq}}
+{{/eq}}
+{{/eq}}
+    private {{toJavaType type referenceType}} {{name}};
+
+{{/each}}
+}

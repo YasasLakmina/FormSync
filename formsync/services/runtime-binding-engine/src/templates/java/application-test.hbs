@@ -1,0 +1,18 @@
+package {{basePackage}};
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+/**
+ * Smoke test — verifies the Spring application context loads successfully.
+ */
+@SpringBootTest
+class {{appName}}ApplicationTest {
+
+    @Test
+    @DisplayName("Application context should load without errors")
+    void contextLoads() {
+        // If the context fails to start, this test will fail automatically.
+    }
+}
