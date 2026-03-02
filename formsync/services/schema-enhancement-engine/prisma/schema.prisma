@@ -1,0 +1,84 @@
+// This is your Prisma schema file for FormSync Component 1
+// Defines the database schema for PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - for future authentication/authorization
+model User {
+  id        String         @id @default(uuid())
+  email     String         @unique
+  name      String?
+  password  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  schemas   Schema[]
+  templates FormTemplate[]
+}
+
+// FormTemplate model - stores saved form builder states
+model FormTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  // The JSON representation of the form builder state (FormModel)
+  content     Json
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Schema model - stores JSON Schema definitions
+model Schema {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  // The standardized JSON Schema Draft-7 content
+  content     Json
+  // Original format before conversion (json, yaml, xml)
+  sourceFormat String         @default("json")
+  // Tags for categorization
+  tags        String[]
+  // Status: draft, validated, enhanced, published
+  status      String          @default("draft")
+  // Ownership
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Versioning
+  version     Int             @default(1)
+  versions    SchemaVersion[]
+  // Timestamps
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// SchemaVersion model - tracks all versions of a schema
+model SchemaVersion {
+  id          String   @id @default(uuid())
+  schemaId    String
+  schema      Schema   @relation(fields: [schemaId], references: [id], onDelete: Cascade)
+  version     Int
+  content     Json
+  // Track what changed in this version
+  changeLog   String?
+  // Who made the change
+  changedBy   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([schemaId, version])
+  @@index([schemaId])
+}
