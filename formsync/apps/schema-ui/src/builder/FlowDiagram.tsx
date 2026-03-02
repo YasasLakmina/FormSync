@@ -54,9 +54,7 @@ const StageNode: React.FC<{ stage: GenerationStage; index: number }> = ({ stage,
             <div className={`stage-icon ${getStatusClass()}`}>
                 {getIcon()}
             </div>
-            <span className="stage-label">
-                {stage.name}
-            </span>
+            <span className="stage-label">{stage.name}</span>
         </motion.div>
     );
 };

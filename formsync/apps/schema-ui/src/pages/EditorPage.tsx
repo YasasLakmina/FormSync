@@ -167,8 +167,8 @@ export const EditorPage: React.FC = () => {
           content: currentSchema,
           sourceFormat: 'json',
           status: 'validated',
-          userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // Demo user ID
-          // userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // hansi user ID
+          // userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // Demo user ID
+          userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // hansi user ID
           // userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // yasas user ID
           // userId: '303459c0-1f1c-44c1-a2c6-1f492d2c2965', // thamindu user ID
         }),
@@ -187,8 +187,7 @@ export const EditorPage: React.FC = () => {
       toast.success('Schema saved, navigating to Form Builder...');
 
       // Navigate to Form Builder with schema ID
-      const formBuilderUrl = import.meta.env.VITE_FORMGEN_UI_URL || 'http://localhost:5175';
-      const urlWithSchemaId = `${formBuilderUrl}?schemaId=${savedSchema.id}`;
+      const urlWithSchemaId = `/builder?schemaId=${savedSchema.id}`;
       console.log('[handleNextToFormBuilder] Navigating to Form Builder with schema ID');
       window.location.href = urlWithSchemaId;
     } catch (error) {
@@ -252,11 +251,10 @@ export const EditorPage: React.FC = () => {
                   <button
                     key={value}
                     onClick={() => setActiveTab(value)}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${
-                      activeTab === value
-                        ? 'text-neutral-900 dark:text-white'
-                        : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                    }`}
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${activeTab === value
+                      ? 'text-neutral-900 dark:text-white'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                      }`}
                   >
                     {activeTab === value && (
                       <motion.span
