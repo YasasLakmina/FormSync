@@ -4,8 +4,8 @@
  * Schema editing with integrated generation controls
  */
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PageTransition } from '../components/layout/PageTransition';
 import { TechnicalEditor } from '../components/TechnicalEditor';
@@ -16,6 +16,7 @@ import { Tabs, TabsContent } from '../components/ui/tabs';
 import { Code2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generationService } from '../services/generationService';
+import { useAuth } from '../context/AuthContext';
 
 export interface GenerationStage {
   name: string;
@@ -25,7 +26,9 @@ export interface GenerationStage {
 
 export const EditorPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentSchema, validationResults } = useSchemaStore();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const { currentSchema, validationResults, loadSchema } = useSchemaStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [schemaFromBuilder, setSchemaFromBuilder] = useState<string>(''); // Schema transferred from Template Builder
   const [activeTab, setActiveTab] = useState('technical'); // Control which tab is active
@@ -39,6 +42,31 @@ export const EditorPage: React.FC = () => {
     { name: 'DTO Generation', status: 'pending', progress: 0 },
     { name: 'Test Generation', status: 'pending', progress: 0 },
   ]);
+
+  // Load schema if a schemaId is provided in URL
+  useEffect(() => {
+    const schemaId = searchParams.get('schemaId');
+    if (schemaId) {
+      toast.loading('Loading schema...');
+      loadSchema(schemaId)
+        .then(() => {
+          toast.dismiss();
+
+          // Need to stringify the schema before passing it into TechnicalEditor
+          // because it expects a raw JSON string to put into the Monaco editor
+          const currentSchemaData = useSchemaStore.getState().currentSchema;
+          if (currentSchemaData) {
+            setSchemaFromBuilder(JSON.stringify(currentSchemaData, null, 2));
+            toast.success('Schema loaded successfully');
+            setActiveTab('technical');
+          }
+        })
+        .catch(() => {
+          toast.dismiss();
+          toast.error('Failed to load schema');
+        });
+    }
+  }, [searchParams, loadSchema]);
 
   // Handler to update stages from TechnicalEditor
   const handleStageUpdate = (
@@ -167,10 +195,7 @@ export const EditorPage: React.FC = () => {
           content: currentSchema,
           sourceFormat: 'json',
           status: 'validated',
-          userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // Demo user ID
-          // userId: '979e33ad-8b60-44fd-b196-0cece840d63e', // hansi user ID
-          // userId: 'd3bf867a-44fb-48fb-808c-b1cf220517a2', // yasas user ID
-          // userId: '303459c0-1f1c-44c1-a2c6-1f492d2c2965', // thamindu user ID
+          userId: user?.id || '303459c0-1f1c-44c1-a2c6-1f492d2c2965', // Use authenticated user ID, fallback if needed
         }),
       });
 
@@ -252,11 +277,10 @@ export const EditorPage: React.FC = () => {
                   <button
                     key={value}
                     onClick={() => setActiveTab(value)}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${
-                      activeTab === value
-                        ? 'text-neutral-900 dark:text-white'
-                        : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
-                    }`}
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${activeTab === value
+                      ? 'text-neutral-900 dark:text-white'
+                      : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+                      }`}
                   >
                     {activeTab === value && (
                       <motion.span
