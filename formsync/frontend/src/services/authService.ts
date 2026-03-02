@@ -20,7 +20,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(err.message || 'Request failed');
+        const msg = Array.isArray(err.message) ? err.message[0] : (err.message || 'Request failed');
+        throw new Error(msg);
     }
 
     return res.json();
@@ -65,6 +66,22 @@ export const authService = {
         return request<any>(`/template/${id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
+        });
+    },
+
+    async updateProfile(token: string, data: { name?: string; email?: string }): Promise<AuthUser> {
+        return request<AuthUser>('/auth/me', {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data),
+        });
+    },
+
+    async changePassword(token: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+        return request<{ message: string }>('/auth/me/password', {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ currentPassword, newPassword }),
         });
     },
 };
