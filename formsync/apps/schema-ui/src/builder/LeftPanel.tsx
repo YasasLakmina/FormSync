@@ -5,12 +5,10 @@ import { FieldModel } from '@formsync/formgen-core';
 export const LeftPanel: React.FC = () => {
     const { state, dispatch } = useBuilder();
 
-    // Sort fields based on layout order (if present)
     const orderedFields = state.form.layout.order
         .map((id) => state.form.fields.find((f) => f.id === id))
         .filter((f): f is FieldModel => !!f);
 
-    // Also include any fields not in layout order (fallback)
     const unlistedFields = state.form.fields.filter(
         f => !state.form.layout.order.includes(f.id)
     );
@@ -24,7 +22,6 @@ export const LeftPanel: React.FC = () => {
                 <div className="text-muted" style={{ marginBottom: '1rem' }}>
                     {displayFields.length} Fields Defined
                 </div>
-
                 {displayFields.map((field) => (
                     <div
                         key={field.id}
@@ -37,7 +34,6 @@ export const LeftPanel: React.FC = () => {
                         </div>
                     </div>
                 ))}
-
                 {displayFields.length === 0 && (
                     <div className="text-muted" style={{ textAlign: 'center', marginTop: '2rem' }}>
                         No fields found in model.
