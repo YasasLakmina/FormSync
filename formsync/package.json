@@ -10,6 +10,7 @@
   "scripts": {
     "dev:schema:api": "npm run dev --workspace=schema-api",
     "dev:schema:ui": "npm run dev --workspace=schema-ui",
+    "dev:user:api": "npm run dev --workspace=user-api",
     "dev:schema": "concurrently \"npm run dev:schema:api\" \"npm run dev:schema:ui\"",
     "dev:backend-gen": "npm run dev --workspace=backend-dto-generator",
     "dev:formgen:service": "npm run dev --prefix formgen-service",

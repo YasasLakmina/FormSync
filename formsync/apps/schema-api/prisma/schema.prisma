@@ -12,12 +12,29 @@ datasource db {
 
 // User model - for future authentication/authorization
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String         @id @default(uuid())
+  email     String         @unique
   name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  password  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   schemas   Schema[]
+  templates FormTemplate[]
+}
+
+// FormTemplate model - stores saved form builder states
+model FormTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  // The JSON representation of the form builder state (FormModel)
+  content     Json
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // Schema model - stores JSON Schema definitions
