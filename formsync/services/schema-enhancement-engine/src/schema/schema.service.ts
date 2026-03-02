@@ -9,7 +9,7 @@
  * - Caching with Redis
  */
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ParserService } from './parser.service';
 import { ValidatorService } from './validator.service';
@@ -535,6 +535,16 @@ export class SchemaService {
    * Create new schema
    */
   async createSchema(dto: CreateSchemaDto) {
+    // Check for duplicate schema name for the same user
+    const existing = await this.prisma.schema.findFirst({
+      where: { name: dto.name, userId: dto.userId },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `A JSON template named "${dto.name}" already exists in your library.`
+      );
+    }
+
     const schema = await this.prisma.schema.create({
       data: {
         name: dto.name,
