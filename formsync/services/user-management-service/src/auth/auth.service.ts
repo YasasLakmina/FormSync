@@ -2,11 +2,12 @@ import {
     Injectable,
     UnauthorizedException,
     ConflictException,
+    BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UserService } from '../user/user.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -64,5 +65,29 @@ export class AuthService {
         }
         const { password: _, ...safeUser } = user;
         return safeUser;
+    }
+
+    async updateProfile(userId: string, dto: UpdateProfileDto) {
+        if (dto.email) {
+            const existing = await this.userService.findByEmail(dto.email);
+            if (existing && existing.id !== userId) {
+                throw new ConflictException('Email already in use');
+            }
+        }
+        const updated = await this.userService.update(userId, dto);
+        const { password: _, ...safeUser } = updated;
+        return safeUser;
+    }
+
+    async changePassword(userId: string, dto: ChangePasswordDto) {
+        const user = await this.userService.findById(userId);
+        if (!user) throw new UnauthorizedException('User not found');
+
+        const match = await bcrypt.compare(dto.currentPassword, user.password);
+        if (!match) throw new BadRequestException('Current password is incorrect');
+
+        const hash = await bcrypt.hash(dto.newPassword, 10);
+        await this.userService.update(userId, { password: hash });
+        return { message: 'Password updated successfully' };
     }
 }
