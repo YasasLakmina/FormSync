@@ -28,3 +28,26 @@ export class LoginDto {
     @IsNotEmpty()
     password: string;
 }
+
+export class UpdateProfileDto {
+    @ApiProperty({ example: 'Jane Doe', required: false })
+    @IsOptional()
+    @IsString()
+    name?: string;
+
+    @ApiProperty({ example: 'jane@example.com', required: false })
+    @IsOptional()
+    @IsEmail()
+    email?: string;
+}
+
+export class ChangePasswordDto {
+    @ApiProperty({ example: 'oldPassword123' })
+    @IsString()
+    currentPassword: string;
+
+    @ApiProperty({ example: 'newPassword456', minLength: 6 })
+    @IsString()
+    @MinLength(6)
+    newPassword: string;
+}
