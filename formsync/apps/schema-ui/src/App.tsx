@@ -35,17 +35,19 @@ function App() {
           <Route path="/*" element={
             <div className="flex flex-col min-h-screen">
               <Navbar />
-                <Routes>
-                  <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
-                  <Route path="/editor" element={<><EditorPage /><Footer /></>} />
-                  <Route path="/documentation" element={<Documentation />} />
-                  <Route path="/generated" element={<><GeneratedCodePage /><Footer /></>} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-               </Routes>
+              <Routes>
+                <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+                <Route path="/editor" element={<><EditorPage /><Footer /></>} />
+                <Route path="/documentation" element={<Documentation />} />
+                <Route path="/generated" element={<><GeneratedCodePage /><Footer /></>} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
             </div>
+          } />
+        </Routes>
 
         {/* Toast Notifications */}
         <Toaster
