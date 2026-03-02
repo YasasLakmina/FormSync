@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@formsync/plugins': path.resolve(__dirname, '../../packages/plugins/src'),
+      '@formsync/formgen-core': path.resolve(__dirname, '../../packages/formgen-core/src'),
     },
   },
   server: {
@@ -17,6 +18,11 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/generate-react': {
+        target: 'http://localhost:3003',
         changeOrigin: true,
       },
     },
@@ -27,3 +33,4 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
   },
 });
+
