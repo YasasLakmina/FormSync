@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { BuilderProvider, useBuilder } from '../context/BuilderContext';
 import { BuilderLayout } from '../builder/BuilderLayout';
 import { parseJsonSchemaToFormModel } from '../types';
+import { useAuth } from '../context/AuthContext';
 import '../builder/builder.css';
 
 /**
@@ -11,6 +12,7 @@ import '../builder/builder.css';
  */
 const SchemaLoader: React.FC = () => {
     const { dispatch } = useBuilder();
+    const { user } = useAuth();
     const initialised = useRef(false);
 
     useEffect(() => {
@@ -56,25 +58,55 @@ const SchemaLoader: React.FC = () => {
             // No saved schemaId — check for a schema passed via sessionStorage (skip-save path)
             const pending = sessionStorage.getItem('formsync_pending_schema');
             if (pending) {
-                sessionStorage.removeItem('formsync_pending_schema');
-                try {
-                    const schema = JSON.parse(pending);
-                    const formModel = parseJsonSchemaToFormModel(schema);
-                    dispatch({ type: 'UPDATE_FORM', payload: formModel });
+                const loadAndSave = async () => {
+                    try {
+                        const schema = JSON.parse(pending);
+                        // Convert to FormModel and load into builder
+                        const formModel = parseJsonSchemaToFormModel(schema);
+                        dispatch({ type: 'UPDATE_FORM', payload: formModel });
 
-                    const n = document.createElement('div');
-                    n.textContent = '✅ Schema loaded';
-                    n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);';
-                    document.body.appendChild(n);
-                    setTimeout(() => n.remove(), 3000);
-                } catch {
-                    loadDemoForm(dispatch);
-                }
+                        // Auto-save to get a real schemaId so "Generate Code" works
+                        if (user?.id) {
+                            try {
+                                const saveResponse = await fetch('/api/schema', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        name: (schema.title as string) || 'Untitled Schema',
+                                        description: (schema.description as string) || 'Auto-saved from Schema Editor',
+                                        content: schema,
+                                        sourceFormat: 'json',
+                                        status: 'validated',
+                                        userId: user.id,
+                                    }),
+                                });
+                                if (saveResponse.ok) {
+                                    const saved = await saveResponse.json();
+                                    dispatch({ type: 'SET_SCHEMA_ID', payload: saved.id });
+                                }
+                            } catch {
+                                // Auto-save failed — proceed without schemaId; Generate Code will still work via fallback
+                            }
+                        }
+
+                        sessionStorage.removeItem('formsync_pending_schema');
+
+                        const n = document.createElement('div');
+                        n.textContent = '✅ Schema loaded';
+                        n.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);';
+                        document.body.appendChild(n);
+                        setTimeout(() => n.remove(), 3000);
+                    } catch {
+                        sessionStorage.removeItem('formsync_pending_schema');
+                        loadDemoForm(dispatch);
+                    }
+                };
+                loadAndSave();
             } else {
                 loadDemoForm(dispatch);
             }
         }
-    }, [dispatch]);
+    }, [dispatch, user]);
 
     return null;
 };

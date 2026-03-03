@@ -40,11 +40,6 @@ export const BuilderLayout: React.FC = () => {
     };
 
     const handleGenerate = async () => {
-        if (!state.schemaId) {
-            alert('Generation requires a schema ID. Please load a schema from the Schema Editor first.');
-            return;
-        }
-
         setIsGenerating(true);
         try {
             const generationStages = stages.slice(5, 7);
@@ -58,7 +53,8 @@ export const BuilderLayout: React.FC = () => {
                 setStages(prev => prev.map((s, idx) => idx === stageIndex ? { ...s, status: 'complete', progress: 100 } : s));
             }
             // Navigate within the same app (same port)
-            window.location.href = `/generated?schemaId=${state.schemaId}`;
+            const dest = state.schemaId ? `/generated?schemaId=${state.schemaId}` : '/generated';
+            window.location.href = dest;
         } catch (error) {
             console.error('Generation failed:', error);
             alert('Generation failed. Please try again.');
@@ -111,14 +107,13 @@ export const BuilderLayout: React.FC = () => {
                     ) : (
                         <button
                             onClick={handleGenerate}
-                            disabled={isGenerating || !state.schemaId}
-                            title={!state.schemaId ? 'Load a schema from the Schema Editor first' : 'Generate full backend'}
+                            disabled={isGenerating}
                             style={{
                                 background: 'linear-gradient(to right, #4f46e5, #9333ea)', color: 'white',
                                 padding: '0.75rem 2rem', borderRadius: '0.75rem', border: 'none',
                                 fontWeight: 600, fontSize: '1rem',
-                                cursor: (isGenerating || !state.schemaId) ? 'not-allowed' : 'pointer',
-                                opacity: (isGenerating || !state.schemaId) ? 0.7 : 1,
+                                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                                opacity: isGenerating ? 0.7 : 1,
                                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                                 boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', transition: 'all 0.2s ease-in-out',
                                 whiteSpace: 'nowrap',
