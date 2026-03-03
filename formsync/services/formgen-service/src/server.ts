@@ -16,7 +16,6 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 import express from 'express';
 import cors from 'cors';
-import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import * as fs from 'fs-extra';
