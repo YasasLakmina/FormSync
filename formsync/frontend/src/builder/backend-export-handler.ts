@@ -1,7 +1,9 @@
 /**
  * Backend Export Handler
- * Handles downloading backend code (NestJS controller, service, DTOs) as ZIP.
+ * Handles downloading backend code (NestJS controller, service, DTOs) as individual files.
  */
+
+import { generationService } from '../services/generationService';
 
 export async function exportBackendCode(schemaId: string): Promise<void> {
     try {
@@ -12,25 +14,8 @@ export async function exportBackendCode(schemaId: string): Promise<void> {
         const schemaData = await schemaResponse.json();
         const validatedSchema = schemaData.content;
 
-        const response = await fetch('http://localhost:3001/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ schema: validatedSchema, preview: false }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Backend generation failed: ${response.status} ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${schemaData.name.toLowerCase().replace(/\s+/g, '-')}-backend.zip`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // Generate and download client-side — no external service required
+        await generationService.downloadZip(validatedSchema, schemaData.name?.toLowerCase().replace(/\s+/g, '-') || 'backend');
     } catch (error) {
         console.error('[Backend Export] Export failed:', error);
         throw new Error(`Failed to export backend code: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -184,19 +184,27 @@ export const GeneratedCodePage: React.FC = () => {
   const state = localState;
 
 
-  const handleDownloadAll = async () => {
-    if (!state.schema) {
-      toast.error('Cannot download: Schema missing from state');
-      return;
-    }
+  const handleDownloadAll = () => {
+    const files: { name: string; content: string }[] = [
+      { name: 'UserForm.tsx',           content: state.generatedCode.frontend },
+      { name: 'UserController.ts',      content: state.generatedCode.backend },
+      { name: 'user.dto.ts',            content: state.generatedCode.dtos },
+      { name: 'UserForm.test.tsx',      content: state.generatedCode.tests },
+    ];
 
-    try {
-      toast.info('Preparing download...');
-      await generationService.downloadZip(state.schema, 'formsync-project');
-      toast.success('Download started');
-    } catch (error) {
-      toast.error('Download failed');
-    }
+    files.forEach(({ name, content }) => {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    });
+
+    toast.success('All files downloaded');
   };
 
   return (
