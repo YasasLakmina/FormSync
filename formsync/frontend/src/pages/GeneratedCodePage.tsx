@@ -97,6 +97,7 @@ export const GeneratedCodePage: React.FC = () => {
 
   const [localState, setLocalState] = React.useState<LocationState | null>(location.state as LocationState);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
 
   // Define stages for the progress bar
   const completionStages: any[] = [
@@ -107,7 +108,7 @@ export const GeneratedCodePage: React.FC = () => {
     { name: 'Frontend Generation', status: 'complete', progress: 100 },
     { name: 'Backend Generation', status: 'complete', progress: 100 },
     { name: 'DTO Generation', status: 'complete', progress: 100 },
-    { name: 'Test Generation', status: 'pending', progress: 0 },
+    { name: 'Test Generation', status: 'complete', progress: 100 },
   ];
 
   React.useEffect(() => {
@@ -184,27 +185,22 @@ export const GeneratedCodePage: React.FC = () => {
   const state = localState;
 
 
-  const handleDownloadAll = () => {
-    const files: { name: string; content: string }[] = [
-      { name: 'UserForm.tsx',           content: state.generatedCode.frontend },
-      { name: 'UserController.ts',      content: state.generatedCode.backend },
-      { name: 'user.dto.ts',            content: state.generatedCode.dtos },
-      { name: 'UserForm.test.tsx',      content: state.generatedCode.tests },
-    ];
-
-    files.forEach(({ name, content }) => {
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    });
-
-    toast.success('All files downloaded');
+  /** Download the complete Spring Boot backend (with tests) as a ZIP via the runtime-binding-engine */
+  const handleDownloadAll = async () => {
+    if (!state?.schema) {
+      toast.error('No schema available for backend generation');
+      return;
+    }
+    setIsDownloadingBackend(true);
+    try {
+      await generationService.downloadBackendZip(state.schema, 'springboot-server.zip');
+      toast.success('Backend project downloaded successfully!');
+    } catch (error: any) {
+      console.error('Backend download failed:', error);
+      toast.error(error.message || 'Failed to download backend project');
+    } finally {
+      setIsDownloadingBackend(false);
+    }
   };
 
   return (
@@ -267,6 +263,7 @@ export const GeneratedCodePage: React.FC = () => {
               generatedCode={state.generatedCode}
               stages={completionStages}
               onDownloadAll={handleDownloadAll}
+              isDownloading={isDownloadingBackend}
             />
           </div>
         </main>
