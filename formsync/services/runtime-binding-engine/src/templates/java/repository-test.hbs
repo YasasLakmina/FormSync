@@ -1,0 +1,104 @@
+package {{basePackage}}.repository;
+
+import {{basePackage}}.model.{{name}};
+import {{basePackage}}.model.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+
+import java.util.*;
+import java.time.*;
+import java.math.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Repository tests for {{name}}.
+ * Uses @DataJpaTest with an embedded H2 database.
+ */
+@DataJpaTest
+class {{name}}RepositoryTest {
+
+    @Autowired
+    private {{name}}Repository repository;
+
+    /**
+     * Builds a valid {{name}} entity for testing (without ID — let JPA auto-generate).
+     */
+    private {{name}} buildEntity() {
+        return {{name}}.builder()
+{{#each fields}}
+                .{{name}}({{{testValue type referenceType constraints}}})
+{{/each}}
+                .build();
+    }
+
+    @Test
+    @DisplayName("should save entity and assign ID")
+    void shouldSave() {
+        {{name}} saved = repository.save(buildEntity());
+
+        assertNotNull(saved.getId());
+    }
+
+    @Test
+    @DisplayName("should find entity by ID")
+    void shouldFindById() {
+        {{name}} saved = repository.save(buildEntity());
+
+        Optional<{{name}}> found = repository.findById(saved.getId());
+
+        assertTrue(found.isPresent());
+        assertEquals(saved.getId(), found.get().getId());
+    }
+
+    @Test
+    @DisplayName("should return empty Optional for non-existent ID")
+    void shouldReturnEmptyForNonExistentId() {
+        Optional<{{name}}> found = repository.findById(999L);
+
+        assertFalse(found.isPresent());
+    }
+
+    @Test
+    @DisplayName("should find all entities")
+    void shouldFindAll() {
+        repository.save(buildEntity());
+        repository.save(buildEntity());
+
+        List<{{name}}> result = repository.findAll();
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    @DisplayName("should delete entity by ID")
+    void shouldDeleteById() {
+        {{name}} saved = repository.save(buildEntity());
+        Long id = saved.getId();
+
+        repository.deleteById(id);
+
+        assertFalse(repository.findById(id).isPresent());
+    }
+
+    @Test
+    @DisplayName("should check existence by ID")
+    void shouldCheckExistsById() {
+        {{name}} saved = repository.save(buildEntity());
+
+        assertTrue(repository.existsById(saved.getId()));
+        assertFalse(repository.existsById(999L));
+    }
+
+    @Test
+    @DisplayName("should return correct count")
+    void shouldReturnCount() {
+        repository.save(buildEntity());
+        repository.save(buildEntity());
+        repository.save(buildEntity());
+
+        assertEquals(3, repository.count());
+    }
+}

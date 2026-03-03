@@ -1,0 +1,23 @@
+# ═══════════════════════════════════════════════════════
+#  Test configuration — always uses embedded H2 database
+# ═══════════════════════════════════════════════════════
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:{{toSnakeCase appName}}_testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+server:
+  port: 0
+
+logging:
+  level:
+    org.springframework: WARN
+    org.hibernate: WARN

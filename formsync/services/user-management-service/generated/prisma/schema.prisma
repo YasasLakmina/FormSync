@@ -1,0 +1,52 @@
+// This is the Prisma schema for the user-api service
+// It points to the SAME PostgreSQL database as schema-api
+// but is used only for prisma generate (user-api owns User + FormTemplate)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String         @id @default(uuid())
+  email     String         @unique
+  name      String?
+  password  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  schemas   Schema[]
+  templates FormTemplate[]
+}
+
+model Schema {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  content      Json
+  sourceFormat String   @default("json")
+  tags         String[]
+  status       String   @default("draft")
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model FormTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  content     Json
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
