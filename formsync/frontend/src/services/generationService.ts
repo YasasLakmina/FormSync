@@ -20,6 +20,8 @@ export interface GenerateResponse {
   error?: string;
 }
 
+const API_GATEWAY_URL = 'http://localhost:3000';
+
 export const generationService = {
   /**
    * Generate all code from validated schema
@@ -27,6 +29,34 @@ export const generationService = {
   async generateAll(validatedSchema: any): Promise<GenerateResponse> {
     // Generate code client-side from the schema (no external service required)
     return this.generateFromSchema(validatedSchema);
+  },
+
+  /**
+   * Download a complete Spring Boot backend (with test cases) as a ZIP file
+   * from the runtime-binding-engine via the API gateway.
+   */
+  async downloadBackendZip(schema: any, filename: string = 'springboot-server.zip'): Promise<void> {
+    const response = await fetch(`${API_GATEWAY_URL}/runtime/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schema }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody?.error || `Backend generation failed (${response.status})`);
+    }
+
+    // Response is a ZIP binary — trigger browser download
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   },
 
   generateFromSchema(schema: any): GenerateResponse {

@@ -26,6 +26,7 @@ interface PipelineViewerProps {
   generatedCode: GeneratedCode | null;
   stages: GenerationStage[];
   onDownloadAll?: () => void;
+  isDownloading?: boolean;
 }
 
 export const PipelineViewer: React.FC<PipelineViewerProps> = ({
@@ -33,6 +34,7 @@ export const PipelineViewer: React.FC<PipelineViewerProps> = ({
   generatedCode,
   stages,
   onDownloadAll,
+  isDownloading = false,
 }) => {
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
@@ -100,10 +102,14 @@ export const PipelineViewer: React.FC<PipelineViewerProps> = ({
             <Button
               onClick={onDownloadAll}
               size="sm"
-              className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-lg text-white"
+              disabled={isDownloading}
+              className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-lg text-white disabled:opacity-60"
             >
-              <Download className="h-4 w-4" />
-              Download All
+              {isDownloading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Downloading…</>
+              ) : (
+                <><Download className="h-4 w-4" /> Download All</>
+              )}
             </Button>
           )}
         </div>
