@@ -1,0 +1,47 @@
+# ── Node modules (reinstalled inside Docker) ──────────────────
+**/node_modules
+
+# ── Build outputs ─────────────────────────────────────────────
+**/dist
+**/build
+**/.next
+frontend/dist
+
+# ── Generated Prisma clients ──────────────────────────────────
+**/generated
+
+# ── Test files ────────────────────────────────────────────────
+**/*.spec.ts
+**/*.test.ts
+**/test/
+**/__tests__/
+**/coverage/
+
+# ── Logs ─────────────────────────────────────────────────────
+**/*.log
+**/logs/
+
+# ── Git ───────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── Editor / OS ───────────────────────────────────────────────
+.vscode
+.idea
+**/.DS_Store
+**/Thumbs.db
+
+# ── Docker files themselves ───────────────────────────────────
+**/Dockerfile
+docker-compose*.yml
+
+# ── Secrets / env files (env vars are passed via docker-compose) ──
+.env
+**/.env.local
+**/.env.development
+**/.env.test
+**/prisma/migrations/**/*.sql.bak
+**/tsconfig.tsbuildinfo
+**/.turbo
+**/.nx
