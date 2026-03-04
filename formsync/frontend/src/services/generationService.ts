@@ -20,7 +20,7 @@ export interface GenerateResponse {
   error?: string;
 }
 
-const API_GATEWAY_URL = 'http://localhost:3000';
+const API_GATEWAY_URL = "http://localhost:3000";
 
 export const generationService = {
   /**
@@ -35,22 +35,27 @@ export const generationService = {
    * Download a complete Spring Boot backend (with test cases) as a ZIP file
    * from the runtime-binding-engine via the API gateway.
    */
-  async downloadBackendZip(schema: any, filename: string = 'springboot-server.zip'): Promise<void> {
+  async downloadBackendZip(
+    schema: any,
+    filename: string = "springboot-server.zip",
+  ): Promise<void> {
     const response = await fetch(`${API_GATEWAY_URL}/runtime/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ schema }),
     });
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      throw new Error(errorBody?.error || `Backend generation failed (${response.status})`);
+      throw new Error(
+        errorBody?.error || `Backend generation failed (${response.status})`,
+      );
     }
 
     // Response is a ZIP binary — trigger browser download
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -61,28 +66,43 @@ export const generationService = {
 
   generateFromSchema(schema: any): GenerateResponse {
     const props: Record<string, any> = schema?.properties || {};
-    const title = (schema?.title as string) || 'GeneratedForm';
-    const componentName = title.replace(/\s+/g, '');
+    const title = (schema?.title as string) || "GeneratedForm";
+    const componentName = title.replace(/\s+/g, "");
     const fields = Object.entries(props);
 
     // --- Frontend React component ---
-    const tsInterface = fields.map(([k, v]: [string, any]) => {
-      const t = v.type === 'integer' || v.type === 'number' ? 'number'
-        : v.type === 'boolean' ? 'boolean'
-        : v.type === 'array' ? 'string[]'
-        : 'string';
-      return `  ${k}: ${t};`;
-    }).join('\n');
+    const tsInterface = fields
+      .map(([k, v]: [string, any]) => {
+        const t =
+          v.type === "integer" || v.type === "number"
+            ? "number"
+            : v.type === "boolean"
+              ? "boolean"
+              : v.type === "array"
+                ? "string[]"
+                : "string";
+        return `  ${k}: ${t};`;
+      })
+      .join("\n");
 
-    const formInputs = fields.map(([k, v]: [string, any]) => {
-      const label = (v.title as string) || k;
-      if (v.enum) {
-        const opts = (v.enum as string[]).map(o => `          <option value="${o}">${o}</option>`).join('\n');
-        return `      <div>\n        <label>${label}</label>\n        <select {...register('${k}')}>${opts}\n        </select>\n      </div>`;
-      }
-      const inputType = v.type === 'integer' || v.type === 'number' ? 'number' : v.type === 'boolean' ? 'checkbox' : 'text';
-      return `      <div>\n        <label>${label}</label>\n        <input type="${inputType}" {...register('${k}')} />\n      </div>`;
-    }).join('\n');
+    const formInputs = fields
+      .map(([k, v]: [string, any]) => {
+        const label = (v.title as string) || k;
+        if (v.enum) {
+          const opts = (v.enum as string[])
+            .map((o) => `          <option value="${o}">${o}</option>`)
+            .join("\n");
+          return `      <div>\n        <label>${label}</label>\n        <select {...register('${k}')}>${opts}\n        </select>\n      </div>`;
+        }
+        const inputType =
+          v.type === "integer" || v.type === "number"
+            ? "number"
+            : v.type === "boolean"
+              ? "checkbox"
+              : "text";
+        return `      <div>\n        <label>${label}</label>\n        <input type="${inputType}" {...register('${k}')} />\n      </div>`;
+      })
+      .join("\n");
 
     const frontend = `import React from 'react';\nimport { useForm } from 'react-hook-form';\n\ninterface ${componentName}Data {\n${tsInterface}\n}\n\nexport const ${componentName}: React.FC = () => {\n  const { register, handleSubmit } = useForm<${componentName}Data>();\n\n  const onSubmit = (data: ${componentName}Data) => {\n    console.log(data);\n  };\n\n  return (\n    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">\n${formInputs}\n      <button type="submit">Submit</button>\n    </form>\n  );\n};`;
 
@@ -90,24 +110,39 @@ export const generationService = {
     const backend = `import { Controller, Post, Body, Get, Param, Put, Delete } from '@nestjs/common';\nimport { Create${componentName}Dto } from './dto/${componentName.toLowerCase()}.dto';\nimport { ${componentName}Service } from './${componentName.toLowerCase()}.service';\n\n@Controller('${componentName.toLowerCase()}')\nexport class ${componentName}Controller {\n  constructor(private readonly service: ${componentName}Service) {}\n\n  @Post()\n  create(@Body() dto: Create${componentName}Dto) {\n    return this.service.create(dto);\n  }\n\n  @Get()\n  findAll() {\n    return this.service.findAll();\n  }\n\n  @Get(':id')\n  findOne(@Param('id') id: string) {\n    return this.service.findOne(id);\n  }\n\n  @Put(':id')\n  update(@Param('id') id: string, @Body() dto: Create${componentName}Dto) {\n    return this.service.update(id, dto);\n  }\n\n  @Delete(':id')\n  remove(@Param('id') id: string) {\n    return this.service.remove(id);\n  }\n}`;
 
     // --- DTOs ---
-    const dtoDecorators = fields.map(([k, v]: [string, any]) => {
-      const required = (schema?.required as string[] || []).includes(k);
-      const lines: string[] = [];
-      if (v.type === 'string' && !v.enum)  lines.push('  @IsString()');
-      if (v.enum)                          lines.push('  @IsIn([' + (v.enum as string[]).map((e: string) => `'${e}'`).join(', ') + '])');
-      if (v.type === 'integer' || v.type === 'number') lines.push('  @IsNumber()');
-      if (v.type === 'boolean')            lines.push('  @IsBoolean()');
-      if (required)                        lines.push('  @IsNotEmpty()');
-      else                                 lines.push('  @IsOptional()');
-      const tsType = v.type === 'integer' || v.type === 'number' ? 'number' : v.type === 'boolean' ? 'boolean' : v.type === 'array' ? 'string[]' : 'string';
-      lines.push(`  ${k}${required ? '' : '?'}: ${tsType};`);
-      return lines.join('\n');
-    }).join('\n\n');
+    const dtoDecorators = fields
+      .map(([k, v]: [string, any]) => {
+        const required = ((schema?.required as string[]) || []).includes(k);
+        const lines: string[] = [];
+        if (v.type === "string" && !v.enum) lines.push("  @IsString()");
+        if (v.enum)
+          lines.push(
+            "  @IsIn([" +
+              (v.enum as string[]).map((e: string) => `'${e}'`).join(", ") +
+              "])",
+          );
+        if (v.type === "integer" || v.type === "number")
+          lines.push("  @IsNumber()");
+        if (v.type === "boolean") lines.push("  @IsBoolean()");
+        if (required) lines.push("  @IsNotEmpty()");
+        else lines.push("  @IsOptional()");
+        const tsType =
+          v.type === "integer" || v.type === "number"
+            ? "number"
+            : v.type === "boolean"
+              ? "boolean"
+              : v.type === "array"
+                ? "string[]"
+                : "string";
+        lines.push(`  ${k}${required ? "" : "?"}: ${tsType};`);
+        return lines.join("\n");
+      })
+      .join("\n\n");
 
     const dtos = `import { IsString, IsNumber, IsBoolean, IsIn, IsNotEmpty, IsOptional } from 'class-validator';\n\nexport class Create${componentName}Dto {\n${dtoDecorators}\n}`;
 
     // --- Tests ---
-    const tests = `import { describe, it, expect } from 'vitest';\nimport { render, screen } from '@testing-library/react';\nimport { ${componentName} } from '../${componentName}';\n\ndescribe('${componentName}', () => {\n  it('renders the form', () => {\n    render(<${componentName} />);\n    expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();\n  });\n\n${fields.map(([k, v]: [string, any]) => `  it('renders ${(v.title as string) || k} field', () => {\n    render(<${componentName} />);\n    expect(screen.getByText('${(v.title as string) || k}')).toBeInTheDocument();\n  });`).join('\n\n')}\n});`;
+    const tests = `import { describe, it, expect } from 'vitest';\nimport { render, screen } from '@testing-library/react';\nimport { ${componentName} } from '../${componentName}';\n\ndescribe('${componentName}', () => {\n  it('renders the form', () => {\n    render(<${componentName} />);\n    expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();\n  });\n\n${fields.map(([k, v]: [string, any]) => `  it('renders ${(v.title as string) || k} field', () => {\n    render(<${componentName} />);\n    expect(screen.getByText('${(v.title as string) || k}')).toBeInTheDocument();\n  });`).join("\n\n")}\n});`;
 
     return { success: true, data: { frontend, backend, dtos, tests } };
   },
@@ -115,22 +150,25 @@ export const generationService = {
   /**
    * Download generated code as ZIP
    */
-  async downloadZip(validatedSchema: any, _filename: string = 'generated-project'): Promise<void> {
+  async downloadZip(
+    validatedSchema: any,
+    _filename: string = "generated-project",
+  ): Promise<void> {
     // Generate client-side and download as individual files (no ZIP service needed)
     const result = this.generateFromSchema(validatedSchema);
-    if (!result.success || !result.data) throw new Error('Generation failed');
+    if (!result.success || !result.data) throw new Error("Generation failed");
 
     const files: { name: string; content: string }[] = [
-      { name: 'UserForm.tsx',      content: result.data.frontend },
-      { name: 'UserController.ts', content: result.data.backend },
-      { name: 'user.dto.ts',       content: result.data.dtos },
-      { name: 'UserForm.test.tsx', content: result.data.tests },
+      { name: "UserForm.tsx", content: result.data.frontend },
+      { name: "UserController.ts", content: result.data.backend },
+      { name: "user.dto.ts", content: result.data.dtos },
+      { name: "UserForm.test.tsx", content: result.data.tests },
     ];
 
     files.forEach(({ name, content }) => {
-      const blob = new Blob([content], { type: 'text/plain' });
+      const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = name;
       document.body.appendChild(a);
@@ -145,7 +183,7 @@ export const generationService = {
    */
   async generateMock(): Promise<GenerateResponse> {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     return {
       success: true,

@@ -1,13 +1,12 @@
 /**
  * Action Toolbar Component
- * 
+ *
  * Floating toolbar with primary actions (Convert, Validate, AI Enhance)
  */
 
-import React from 'react';
-import { Zap, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
-import { Button } from './ui/button';
-
+import React from "react";
+import { Zap, CheckCircle, Sparkles, Loader2 } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface ActionToolbarProps {
   onConvert: () => void;
@@ -96,7 +95,9 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
       {/* Keyboard Shortcut Hints */}
       <div className="hidden lg:flex items-center gap-4 ml-4 pl-4 border-l border-white/20 dark:border-white/10">
         <div className="text-xs text-neutral-600 dark:text-neutral-400">
-          <kbd className="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded text-xs">Ctrl+Enter</kbd>
+          <kbd className="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded text-xs">
+            Ctrl+Enter
+          </kbd>
           <span className="ml-1">Convert</span>
         </div>
       </div>

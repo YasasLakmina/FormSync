@@ -4,8 +4,8 @@
  * Global state management for schemas, conversion, validation, and AI enhancement
  */
 
-import { create } from 'zustand';
-import { schemaApi } from '../api/schemaApi';
+import { create } from "zustand";
+import { schemaApi } from "../api/schemaApi";
 
 interface Schema {
   id: string;
@@ -23,7 +23,7 @@ interface Schema {
 export interface ValidationIssue {
   id: string;
   path: string;
-  severity: 'error' | 'warning' | 'info';
+  severity: "error" | "warning" | "info";
   message: string;
   suggestion?: string;
 }
@@ -32,14 +32,14 @@ interface SchemaEnhancement {
   path: string;
   originalValue: any;
   newValue: any;
-  changeType: 'added' | 'modified' | 'removed';
+  changeType: "added" | "modified" | "removed";
   reason: string;
 }
 
 interface SchemaSuggestion {
   id: string;
   path: string;
-  category: 'validation' | 'accessibility' | 'structure' | 'metadata';
+  category: "validation" | "accessibility" | "structure" | "metadata";
   rule: Record<string, any>;
   description: string;
   applied: boolean;
@@ -85,11 +85,14 @@ interface SchemaStore {
 
   // Actions
   setCurrentSchema: (schema: any) => void;
-  convertSchema: (input: string, format?: 'json' | 'yaml' | 'xml') => Promise<any>;
+  convertSchema: (
+    input: string,
+    format?: "json" | "yaml" | "xml",
+  ) => Promise<any>;
   enhanceSchema: (schema: any, options?: any) => Promise<void>;
   applySuggestion: (
     suggestion: SchemaSuggestion,
-    action: 'apply' | 'undo'
+    action: "apply" | "undo",
   ) => Promise<number | undefined>;
   recalculateQuality: () => Promise<void>;
   validateSchema: (schema: any, validators?: string[]) => Promise<void>;
@@ -131,7 +134,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       return response.data.schema;
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Conversion failed',
+        error: error.response?.data?.message || "Conversion failed",
         loading: false,
       });
       // Re-throw so caller can handle the error
@@ -164,7 +167,9 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       for (const newSugg of newSuggestions) {
         // Only skip if the suggestion is already in the merged list (i.e. already applied)
         const alreadyExists = mergedSuggestions.some(
-          (s) => s.path === newSugg.path && JSON.stringify(s.rule) === JSON.stringify(newSugg.rule)
+          (s) =>
+            s.path === newSugg.path &&
+            JSON.stringify(s.rule) === JSON.stringify(newSugg.rule),
         );
 
         if (!alreadyExists) {
@@ -195,21 +200,30 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             suggestions: mergedSuggestions,
             aiChanges: data.changes || [],
             qualityMetrics: {
-              qualityScore: recalcData.quality?.score || recalcData.qualityScore,
-              qualityBreakdown: recalcData.quality?.breakdown || recalcData.qualityBreakdown,
+              qualityScore:
+                recalcData.quality?.score || recalcData.qualityScore,
+              qualityBreakdown:
+                recalcData.quality?.breakdown || recalcData.qualityBreakdown,
               issues: recalcData.quality?.issues || recalcData.issues || [],
               explanations: data.explanations || [],
-              metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+              metrics: data.metrics || {
+                totalChanges: 0,
+                accessibilityCoverage: 0,
+              },
               appliedSuggestionsCount:
                 recalcData.appliedSuggestionsCount ||
                 mergedSuggestions.filter((s) => s.applied).length,
-              totalSuggestionsCount: recalcData.totalSuggestionsCount || mergedSuggestions.length,
+              totalSuggestionsCount:
+                recalcData.totalSuggestionsCount || mergedSuggestions.length,
             },
             loading: false,
           });
           return;
         } catch (recalcError) {
-          console.warn('[SchemaStore] Failed to recalculate quality, using default:', recalcError);
+          console.warn(
+            "[SchemaStore] Failed to recalculate quality, using default:",
+            recalcError,
+          );
           // Fall through to default set below
         }
       }
@@ -233,15 +247,19 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
             },
           issues: data.quality?.issues || data.issues || [],
           explanations: data.explanations || [],
-          metrics: data.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
-          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied).length,
+          metrics: data.metrics || {
+            totalChanges: 0,
+            accessibilityCoverage: 0,
+          },
+          appliedSuggestionsCount: mergedSuggestions.filter((s) => s.applied)
+            .length,
           totalSuggestionsCount: mergedSuggestions.length,
         },
         loading: false,
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'AI enhancement failed',
+        error: error.response?.data?.message || "AI enhancement failed",
         loading: false,
       });
       // Re-throw so caller (handleEnhance) can show a toast and update stages
@@ -266,7 +284,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
 
       // Update the suggestion in the list
       const updatedSuggestions = state.suggestions.map((s) =>
-        s.id === suggestion.id ? data.suggestion : s
+        s.id === suggestion.id ? data.suggestion : s,
       );
 
       set({
@@ -277,8 +295,12 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
           qualityBreakdown: data.quality?.breakdown || data.qualityBreakdown,
           issues: data.quality?.issues || data.issues || [],
           explanations: state.qualityMetrics?.explanations || [],
-          metrics: state.qualityMetrics?.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
-          appliedSuggestionsCount: updatedSuggestions.filter((s) => s.applied).length,
+          metrics: state.qualityMetrics?.metrics || {
+            totalChanges: 0,
+            accessibilityCoverage: 0,
+          },
+          appliedSuggestionsCount: updatedSuggestions.filter((s) => s.applied)
+            .length,
           totalSuggestionsCount: updatedSuggestions.length,
         },
         loading: false,
@@ -287,7 +309,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       return data.scoreDelta;
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to apply suggestion',
+        error: error.response?.data?.message || "Failed to apply suggestion",
         loading: false,
       });
       throw error;
@@ -313,7 +335,10 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
           qualityBreakdown: data.breakdown,
           issues: data.issues || [],
           explanations: state.qualityMetrics?.explanations || [],
-          metrics: state.qualityMetrics?.metrics || { totalChanges: 0, accessibilityCoverage: 0 },
+          metrics: state.qualityMetrics?.metrics || {
+            totalChanges: 0,
+            accessibilityCoverage: 0,
+          },
           appliedSuggestionsCount: data.appliedSuggestionsCount,
           totalSuggestionsCount: data.totalSuggestionsCount,
         },
@@ -321,7 +346,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to recalculate quality',
+        error: error.response?.data?.message || "Failed to recalculate quality",
         loading: false,
       });
     }
@@ -337,7 +362,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Validation failed',
+        error: error.response?.data?.message || "Validation failed",
         loading: false,
       });
     }
@@ -350,7 +375,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       set({ schemas: response.data, loading: false });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to load schemas',
+        error: error.response?.data?.message || "Failed to load schemas",
         loading: false,
       });
     }
@@ -366,7 +391,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to load schema',
+        error: error.response?.data?.message || "Failed to load schema",
         loading: false,
       });
     }
@@ -382,7 +407,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       }));
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to create schema',
+        error: error.response?.data?.message || "Failed to create schema",
         loading: false,
       });
     }
@@ -398,7 +423,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       }));
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to update schema',
+        error: error.response?.data?.message || "Failed to update schema",
         loading: false,
       });
     }
@@ -414,7 +439,7 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       }));
     } catch (error: any) {
       set({
-        error: error.response?.data?.message || 'Failed to delete schema',
+        error: error.response?.data?.message || "Failed to delete schema",
         loading: false,
       });
     }

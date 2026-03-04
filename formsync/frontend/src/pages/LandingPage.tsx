@@ -4,9 +4,9 @@
  * Professional SaaS-level landing page with modern design
  */
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Sparkles,
@@ -27,10 +27,10 @@ import {
   Terminal,
   CheckCircle2,
   AlertCircle,
-} from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { Footer } from '../components/layout/Footer';
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Footer } from "../components/layout/Footer";
 
 export const LandingPage: React.FC = () => {
   return (
@@ -76,28 +76,32 @@ export const LandingPage: React.FC = () => {
                 <motion.span
                   className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent inline-block"
                   animate={{
-                    backgroundPosition: ['0%', '100%', '0%'],
+                    backgroundPosition: ["0%", "100%", "0%"],
                   }}
                   transition={{
                     duration: 8,
                     repeat: Infinity,
-                    ease: 'linear',
+                    ease: "linear",
                   }}
-                  style={{ backgroundSize: '200% auto' }}
+                  style={{ backgroundSize: "200% auto" }}
                 >
                   Production Code
                 </motion.span>
               </h1>
 
               <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-300 mb-8 leading-relaxed max-w-xl">
-                Validate, enhance, and generate full-stack applications from JSON Schema. Create
-                forms, APIs, DTOs, and tests—all powered by AI.
+                Validate, enhance, and generate full-stack applications from
+                JSON Schema. Create forms, APIs, DTOs, and tests—all powered by
+                AI.
               </p>
 
               {/* CTA Buttons with enhanced animations */}
               <div className="flex flex-col sm:flex-row items-start gap-4 mb-12">
                 <Link to="/editor">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
                     <Button
                       size="lg"
                       className="relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-2xl text-white px-8 py-6 text-base font-semibold rounded-lg transition-all overflow-hidden group"
@@ -111,8 +115,15 @@ export const LandingPage: React.FC = () => {
                     </Button>
                   </motion.div>
                 </Link>
-                <a href="https://github.com/formsync" target="_blank" rel="noopener noreferrer">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <a
+                  href="https://github.com/formsync"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
                     <Button
                       size="lg"
                       variant="outline"
@@ -133,9 +144,9 @@ export const LandingPage: React.FC = () => {
                 className="flex flex-wrap items-center gap-6 text-sm text-neutral-600 dark:text-neutral-400"
               >
                 {[
-                  { icon: Check, text: 'Multi-format support' },
-                  { icon: Check, text: 'AI-enhanced validation' },
-                  { icon: Check, text: 'Production-ready' },
+                  { icon: Check, text: "Multi-format support" },
+                  { icon: Check, text: "AI-enhanced validation" },
+                  { icon: Check, text: "Production-ready" },
                 ].map((item, i) => (
                   <motion.div
                     key={item.text}
@@ -166,7 +177,7 @@ export const LandingPage: React.FC = () => {
                 transition={{
                   duration: 4,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 }}
                 className="absolute -top-4 -left-4 z-20"
               >
@@ -185,14 +196,16 @@ export const LandingPage: React.FC = () => {
                 transition={{
                   duration: 5,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                   delay: 0.5,
                 }}
                 className="absolute -bottom-4 -right-4 z-20"
               >
                 <div className="bg-purple-600 rounded-lg shadow-lg px-3 py-2 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-white" />
-                  <span className="text-xs font-medium text-white">AI Enhanced</span>
+                  <span className="text-xs font-medium text-white">
+                    AI Enhanced
+                  </span>
                 </div>
               </motion.div>
 
@@ -206,7 +219,7 @@ export const LandingPage: React.FC = () => {
                   transition={{
                     duration: 3,
                     repeat: Infinity,
-                    ease: 'easeInOut',
+                    ease: "easeInOut",
                   }}
                   className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl blur-3xl"
                 ></motion.div>
@@ -214,7 +227,7 @@ export const LandingPage: React.FC = () => {
                 {/* Mock UI Preview with parallax */}
                 <motion.div
                   whileHover={{ y: -5, scale: 1.02 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                   className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden backdrop-blur-sm bg-opacity-90"
                 >
                   <SchemaEditorPreview />
@@ -236,19 +249,24 @@ export const LandingPage: React.FC = () => {
             className="text-center mb-20"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
-              Complete{' '}
+              Complete{" "}
               <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Schema Automation
-              </span>{' '}
+              </span>{" "}
               Platform
             </h2>
             <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
-              From schema creation to production code generation—all in one powerful workflow
+              From schema creation to production code generation—all in one
+              powerful workflow
             </p>
           </motion.div>
 
           {systemFeatures.map((feature, index) => (
-            <SystemFeatureBlock key={feature.title} feature={feature} index={index} />
+            <SystemFeatureBlock
+              key={feature.title}
+              feature={feature}
+              index={index}
+            />
           ))}
         </div>
       </section>
@@ -273,7 +291,11 @@ export const LandingPage: React.FC = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <FeatureCard key={feature.title} feature={feature} index={index} />
+              <FeatureCard
+                key={feature.title}
+                feature={feature}
+                index={index}
+              />
             ))}
           </div>
         </div>
@@ -290,10 +312,10 @@ export const LandingPage: React.FC = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
-              How{' '}
+              How{" "}
               <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 FormSync
-              </span>{' '}
+              </span>{" "}
               Works
             </h2>
             <p className="text-lg text-neutral-600 dark:text-neutral-300">
@@ -306,7 +328,7 @@ export const LandingPage: React.FC = () => {
             {/* Connecting Line */}
             <div
               className="absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-200 via-indigo-300 to-blue-200 dark:from-purple-900 dark:via-indigo-800 dark:to-blue-900 hidden md:block"
-              style={{ left: '12.5%', right: '12.5%' }}
+              style={{ left: "12.5%", right: "12.5%" }}
             ></div>
 
             <div className="grid md:grid-cols-4 gap-8 relative">
@@ -329,10 +351,10 @@ export const LandingPage: React.FC = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight">
-              Complete{' '}
+              Complete{" "}
               <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Application
-              </span>{' '}
+              </span>{" "}
               Generation
             </h2>
             <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
@@ -361,15 +383,15 @@ export const LandingPage: React.FC = () => {
               {/* Animated background gradient */}
               <motion.div
                 animate={{
-                  backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
+                  backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
                 }}
                 transition={{
                   duration: 10,
                   repeat: Infinity,
-                  ease: 'linear',
+                  ease: "linear",
                 }}
                 className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-blue-500/10"
-                style={{ backgroundSize: '200% 200%' }}
+                style={{ backgroundSize: "200% 200%" }}
               ></motion.div>
 
               {/* Glow border effect */}
@@ -380,7 +402,7 @@ export const LandingPage: React.FC = () => {
                 transition={{
                   duration: 3,
                   repeat: Infinity,
-                  ease: 'easeInOut',
+                  ease: "easeInOut",
                 }}
                 className="absolute inset-0 border-2 border-purple-400/50 rounded-lg blur-sm"
               ></motion.div>
@@ -404,7 +426,10 @@ export const LandingPage: React.FC = () => {
                   Join developers automating their workflow with FormSync
                 </motion.p>
                 <Link to="/editor">
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
                     <Button
                       size="lg"
                       className="relative bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-2xl text-white px-12 py-6 text-lg font-semibold rounded-lg transition-all group overflow-hidden"
@@ -445,7 +470,9 @@ const SchemaEditorPreview = () => {
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
         </div>
-        <span className="text-xs text-neutral-500">user-registration.schema.json</span>
+        <span className="text-xs text-neutral-500">
+          user-registration.schema.json
+        </span>
       </div>
 
       {/* AI Enhancement Label */}
@@ -459,144 +486,159 @@ const SchemaEditorPreview = () => {
       {/* Mock Code Content - Real AI Enhanced Schema */}
       <div className="font-mono text-xs space-y-1 text-neutral-700 dark:text-neutral-300 max-h-64 overflow-y-auto">
         <div>
-          <span className="text-purple-600">{'{'}</span>
+          <span className="text-purple-600">{"{"}</span>
         </div>
         <div className="pl-4">
-          <span className="text-blue-600">"$schema"</span>:{' '}
-          <span className="text-green-600">"http://json-schema.org/draft-07/schema#"</span>,
+          <span className="text-blue-600">"$schema"</span>:{" "}
+          <span className="text-green-600">
+            "http://json-schema.org/draft-07/schema#"
+          </span>
+          ,
         </div>
         <div className="pl-4">
-          <span className="text-blue-600">"title"</span>:{' '}
+          <span className="text-blue-600">"title"</span>:{" "}
           <span className="text-green-600">"User Registration"</span>,
         </div>
         <div className="pl-4">
-          <span className="text-blue-600">"description"</span>:{' '}
+          <span className="text-blue-600">"description"</span>:{" "}
           <span className="text-green-600">
             "Schema for user registration with comprehensive validation"
           </span>
           ,
         </div>
         <div className="pl-4">
-          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-blue-600">"type"</span>:{" "}
           <span className="text-green-600">"object"</span>,
         </div>
         <div className="pl-4">
-          <span className="text-blue-600">"required"</span>:{' '}
-          <span className="text-yellow-600">["username", "email", "password"]</span>,
+          <span className="text-blue-600">"required"</span>:{" "}
+          <span className="text-yellow-600">
+            ["username", "email", "password"]
+          </span>
+          ,
         </div>
         <div className="pl-4">
-          <span className="text-blue-600">"properties"</span>:{' '}
-          <span className="text-purple-600">{'{'}</span>
+          <span className="text-blue-600">"properties"</span>:{" "}
+          <span className="text-purple-600">{"{"}</span>
         </div>
 
         <div className="pl-8">
-          <span className="text-blue-600">"username"</span>:{' '}
-          <span className="text-purple-600">{'{'}</span>
+          <span className="text-blue-600">"username"</span>:{" "}
+          <span className="text-purple-600">{"{"}</span>
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-blue-600">"type"</span>:{" "}
           <span className="text-green-600">"string"</span>,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"description"</span>:{' '}
-          <span className="text-green-600">"Unique username for the account"</span>,
+          <span className="text-blue-600">"description"</span>:{" "}
+          <span className="text-green-600">
+            "Unique username for the account"
+          </span>
+          ,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"minLength"</span>:{' '}
+          <span className="text-blue-600">"minLength"</span>:{" "}
           <span className="text-orange-600">3</span>,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"maxLength"</span>:{' '}
+          <span className="text-blue-600">"maxLength"</span>:{" "}
           <span className="text-orange-600">20</span>,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"pattern"</span>:{' '}
+          <span className="text-blue-600">"pattern"</span>:{" "}
           <span className="text-green-600">"^[a-zA-Z0-9_-]+$"</span>,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"errorMessage"</span>:{' '}
+          <span className="text-blue-600">"errorMessage"</span>:{" "}
           <span className="text-green-600">
-            "Username must be 3-20 characters and contain only letters, numbers, underscores, or
-            hyphens"
+            "Username must be 3-20 characters and contain only letters, numbers,
+            underscores, or hyphens"
           </span>
         </div>
         <div className="pl-8">
-          <span className="text-purple-600">{'},'}</span>
+          <span className="text-purple-600">{"},"}</span>
         </div>
 
         <div className="pl-8">
-          <span className="text-blue-600">"email"</span>:{' '}
-          <span className="text-purple-600">{'{'}</span>
+          <span className="text-blue-600">"email"</span>:{" "}
+          <span className="text-purple-600">{"{"}</span>
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-blue-600">"type"</span>:{" "}
           <span className="text-green-600">"string"</span>,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"description"</span>:{' '}
+          <span className="text-blue-600">"description"</span>:{" "}
           <span className="text-green-600">"User's email address"</span>,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"format"</span>:{' '}
+          <span className="text-blue-600">"format"</span>:{" "}
           <span className="text-green-600">"email"</span>,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"pattern"</span>:{' '}
+          <span className="text-blue-600">"pattern"</span>:{" "}
           <span className="text-green-600">
             "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{`{2,}`}$"
           </span>
           ,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"errorMessage"</span>:{' '}
-          <span className="text-green-600">"Please provide a valid email address"</span>
+          <span className="text-blue-600">"errorMessage"</span>:{" "}
+          <span className="text-green-600">
+            "Please provide a valid email address"
+          </span>
         </div>
         <div className="pl-8">
-          <span className="text-purple-600">{'},'}</span>
+          <span className="text-purple-600">{"},"}</span>
         </div>
 
         <div className="pl-8">
-          <span className="text-blue-600">"password"</span>:{' '}
-          <span className="text-purple-600">{'{'}</span>
+          <span className="text-blue-600">"password"</span>:{" "}
+          <span className="text-purple-600">{"{"}</span>
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"type"</span>:{' '}
+          <span className="text-blue-600">"type"</span>:{" "}
           <span className="text-green-600">"string"</span>,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"description"</span>:{' '}
-          <span className="text-green-600">"Secure password meeting complexity requirements"</span>,
+          <span className="text-blue-600">"description"</span>:{" "}
+          <span className="text-green-600">
+            "Secure password meeting complexity requirements"
+          </span>
+          ,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"minLength"</span>:{' '}
+          <span className="text-blue-600">"minLength"</span>:{" "}
           <span className="text-orange-600">8</span>,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"maxLength"</span>:{' '}
+          <span className="text-blue-600">"maxLength"</span>:{" "}
           <span className="text-orange-600">128</span>,
         </div>
         <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"pattern"</span>:{' '}
+          <span className="text-blue-600">"pattern"</span>:{" "}
           <span className="text-green-600">
             "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]"
           </span>
           ,
         </div>
         <div className="pl-12">
-          <span className="text-blue-600">"errorMessage"</span>:{' '}
+          <span className="text-blue-600">"errorMessage"</span>:{" "}
           <span className="text-green-600">
-            "Password must contain uppercase, lowercase, number, and special character"
+            "Password must contain uppercase, lowercase, number, and special
+            character"
           </span>
         </div>
         <div className="pl-8">
-          <span className="text-purple-600">{'}'}</span>
+          <span className="text-purple-600">{"}"}</span>
         </div>
 
         <div className="pl-4">
-          <span className="text-purple-600">{'}'}</span>
+          <span className="text-purple-600">{"}"}</span>
         </div>
         <div>
-          <span className="text-purple-600">{'}'}</span>
+          <span className="text-purple-600">{"}"}</span>
         </div>
       </div>
 
@@ -616,7 +658,9 @@ const SchemaEditorPreview = () => {
         </div>
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
           <FileCode className="h-3 w-3 text-blue-600" />
-          <span className="text-xs font-medium text-blue-700 dark:text-blue-400">Descriptions</span>
+          <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
+            Descriptions
+          </span>
         </div>
       </div>
     </div>
@@ -630,7 +674,7 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => (
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.5 }}
-    whileHover={{ y: -8, transition: { duration: 0.2, ease: 'easeOut' } }}
+    whileHover={{ y: -8, transition: { duration: 0.2, ease: "easeOut" } }}
   >
     <Card className="h-full border border-neutral-200 dark:border-neutral-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-xl transition-all duration-300 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm relative overflow-hidden group">
       {/* Animated border glow */}
@@ -639,7 +683,7 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => (
       <CardContent className="p-6 relative z-10">
         <motion.div
           whileHover={{ rotate: 5, scale: 1.05 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4"
         >
           {feature.icon}
@@ -654,19 +698,25 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => (
 );
 
 // System Feature Block Component (Alternating Layout)
-const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number }) => {
+const SystemFeatureBlock = ({
+  feature,
+  index,
+}: {
+  feature: any;
+  index: number;
+}) => {
   const isEven = index % 2 === 0;
 
   return (
     <motion.div
       initial={{ y: 40, opacity: 0 }}
       whileInView={{ y: 0, opacity: 1 }}
-      viewport={{ once: true, margin: '-100px' }}
+      viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6, delay: 0.2 }}
-      className={`grid md:grid-cols-2 gap-12 items-center mb-32 last:mb-0 ${!isEven ? 'md:grid-flow-dense' : ''}`}
+      className={`grid md:grid-cols-2 gap-12 items-center mb-32 last:mb-0 ${!isEven ? "md:grid-flow-dense" : ""}`}
     >
       {/* Content */}
-      <div className={isEven ? '' : 'md:col-start-2'}>
+      <div className={isEven ? "" : "md:col-start-2"}>
         <motion.div
           initial={{ x: isEven ? -20 : 20, opacity: 0 }}
           whileInView={{ x: 0, opacity: 1 }}
@@ -679,7 +729,9 @@ const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number })
               {feature.badge}
             </span>
           </div>
-          <h3 className="text-3xl md:text-4xl font-bold mb-4">{feature.title}</h3>
+          <h3 className="text-3xl md:text-4xl font-bold mb-4">
+            {feature.title}
+          </h3>
           <p className="text-lg text-neutral-600 dark:text-neutral-300 mb-6 leading-relaxed">
             {feature.description}
           </p>
@@ -694,7 +746,9 @@ const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number })
                 className="flex items-start gap-3"
               >
                 <Check className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                <span className="text-neutral-700 dark:text-neutral-300">{point}</span>
+                <span className="text-neutral-700 dark:text-neutral-300">
+                  {point}
+                </span>
               </motion.li>
             ))}
           </ul>
@@ -702,13 +756,17 @@ const SystemFeatureBlock = ({ feature, index }: { feature: any; index: number })
       </div>
 
       {/* Visual */}
-      <div className={isEven ? '' : 'md:col-start-1'}>
+      <div className={isEven ? "" : "md:col-start-1"}>
         <motion.div
           initial={{ x: isEven ? 20 : -20, opacity: 0 }}
           whileInView={{ x: 0, opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          whileHover={{ scale: 1.02, y: -5, transition: { duration: 0.2, ease: 'easeOut' } }}
+          whileHover={{
+            scale: 1.02,
+            y: -5,
+            transition: { duration: 0.2, ease: "easeOut" },
+          }}
           className="relative"
         >
           {/* Glow effect */}
@@ -730,21 +788,25 @@ const ProcessStep = ({ step, index }: { step: any; index: number }) => (
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.15, duration: 0.5 }}
-    whileHover={{ y: -5, scale: 1.05, transition: { duration: 0.2, ease: 'easeOut' } }}
+    whileHover={{
+      y: -5,
+      scale: 1.05,
+      transition: { duration: 0.2, ease: "easeOut" },
+    }}
     className="flex flex-col items-center text-center relative group cursor-pointer"
   >
     {/* Step Number Circle with animated glow */}
     <motion.div
       whileHover={{
-        boxShadow: '0 0 30px rgba(147, 51, 234, 0.5)',
+        boxShadow: "0 0 30px rgba(147, 51, 234, 0.5)",
         scale: 1.1,
       }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl mb-6 shadow-lg relative z-10 transition-all duration-300"
     >
       <motion.div
         animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-indigo-400 opacity-0 group-hover:opacity-50 blur-xl"
       ></motion.div>
       <span className="relative z-10">{index + 1}</span>
@@ -757,7 +819,9 @@ const ProcessStep = ({ step, index }: { step: any; index: number }) => (
         <h3 className="text-xl font-bold mb-2 group-hover:text-purple-600 transition-colors">
           {step.title}
         </h3>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">{step.description}</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          {step.description}
+        </p>
       </div>
     </div>
   </motion.div>
@@ -770,7 +834,7 @@ const OutputCard = ({ output, index }: { output: any; index: number }) => (
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.5 }}
-    whileHover={{ y: -8, transition: { duration: 0.2, ease: 'easeOut' } }}
+    whileHover={{ y: -8, transition: { duration: 0.2, ease: "easeOut" } }}
   >
     <Card className="h-full border border-neutral-200 dark:border-neutral-800 hover:shadow-lg transition-shadow duration-200 bg-white dark:bg-neutral-900">
       <CardContent className="p-6">
@@ -778,7 +842,9 @@ const OutputCard = ({ output, index }: { output: any; index: number }) => (
           {output.icon}
         </div>
         <h3 className="text-lg font-bold mb-2">{output.title}</h3>
-        <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">{output.description}</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-300 mb-4">
+          {output.description}
+        </p>
         <ul className="space-y-2">
           {output.features.map((feature: string) => (
             <li
@@ -799,43 +865,43 @@ const OutputCard = ({ output, index }: { output: any; index: number }) => (
 const features = [
   {
     icon: <FileJson className="h-6 w-6" />,
-    title: 'Multi-Format Support',
+    title: "Multi-Format Support",
     description:
-      'Import and validate JSON, YAML, or XML schemas. Convert between formats seamlessly.',
+      "Import and validate JSON, YAML, or XML schemas. Convert between formats seamlessly.",
   },
   {
     icon: <Sparkles className="h-6 w-6" />,
-    title: 'AI Enhancement',
+    title: "AI Enhancement",
     description:
-      'GPT-4 powered suggestions for validation rules, accessibility, and structure improvements.',
+      "GPT-4 powered suggestions for validation rules, accessibility, and structure improvements.",
   },
   {
     icon: <Workflow className="h-6 w-6" />,
-    title: 'Dual Workflow Modes',
+    title: "Dual Workflow Modes",
     description:
-      'Choose manual step-by-step control or automated one-click pipeline for maximum flexibility.',
+      "Choose manual step-by-step control or automated one-click pipeline for maximum flexibility.",
   },
   {
     icon: <Shield className="h-6 w-6" />,
-    title: 'Quality Assurance',
+    title: "Quality Assurance",
     description:
-      'Automated validation with quality scoring and detailed suggestions for production readiness.',
+      "Automated validation with quality scoring and detailed suggestions for production readiness.",
   },
 ];
 
 // System Features Data (for alternating blocks)
 const systemFeatures = [
   {
-    badge: 'Schema Creation',
-    title: 'Build Schemas Visually or with Code',
+    badge: "Schema Creation",
+    title: "Build Schemas Visually or with Code",
     description:
-      'Create JSON schemas using our drag-and-drop template builder or write directly in the technical editor with real-time validation.',
+      "Create JSON schemas using our drag-and-drop template builder or write directly in the technical editor with real-time validation.",
     icon: <Layout className="h-4 w-4 text-purple-600" />,
     points: [
-      'Visual template builder with pre-built components',
-      'Monaco-powered code editor with IntelliSense',
-      'Real-time syntax validation and error detection',
-      'Import from JSON, YAML, or XML formats',
+      "Visual template builder with pre-built components",
+      "Monaco-powered code editor with IntelliSense",
+      "Real-time syntax validation and error detection",
+      "Import from JSON, YAML, or XML formats",
     ],
     visual: (
       <div className="space-y-4">
@@ -843,7 +909,9 @@ const systemFeatures = [
           <Layout className="h-8 w-8 text-purple-600" />
           <div>
             <div className="font-semibold text-sm">Template Builder</div>
-            <div className="text-xs text-neutral-500">Drag & drop components</div>
+            <div className="text-xs text-neutral-500">
+              Drag & drop components
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
@@ -868,16 +936,16 @@ const systemFeatures = [
     ),
   },
   {
-    badge: 'Validation Engine',
-    title: 'Intelligent Syntax Validation & Quick Fix',
+    badge: "Validation Engine",
+    title: "Intelligent Syntax Validation & Quick Fix",
     description:
-      'Advanced validation engine detects errors in real-time and offers AI-powered auto-fix suggestions to resolve issues instantly.',
+      "Advanced validation engine detects errors in real-time and offers AI-powered auto-fix suggestions to resolve issues instantly.",
     icon: <Shield className="h-4 w-4 text-purple-600" />,
     points: [
-      'Multi-format syntax validation (JSON, YAML, XML)',
-      'AI-powered quick fix for common errors',
-      'Detailed error messages with line numbers',
-      'Format mismatch detection and suggestions',
+      "Multi-format syntax validation (JSON, YAML, XML)",
+      "AI-powered quick fix for common errors",
+      "Detailed error messages with line numbers",
+      "Format mismatch detection and suggestions",
     ],
     visual: (
       <div className="space-y-3">
@@ -892,7 +960,10 @@ const systemFeatures = [
             Line 12: Missing closing brace
           </p>
         </div>
-        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+        <motion.div
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
           <Button
             size="sm"
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white"
@@ -913,16 +984,16 @@ const systemFeatures = [
     ),
   },
   {
-    badge: 'AI Enhancement',
-    title: 'GPT-4 Powered Schema Enhancement',
+    badge: "AI Enhancement",
+    title: "GPT-4 Powered Schema Enhancement",
     description:
-      'Leverage advanced AI to automatically improve your schema with validation rules, accessibility features, and structural optimizations.',
+      "Leverage advanced AI to automatically improve your schema with validation rules, accessibility features, and structural optimizations.",
     icon: <Sparkles className="h-4 w-4 text-purple-600" />,
     points: [
-      'AI-generated validation rules and constraints',
-      'Accessibility improvements (titles, descriptions)',
-      'Structure optimization suggestions',
-      'Quality scoring with detailed breakdown',
+      "AI-generated validation rules and constraints",
+      "Accessibility improvements (titles, descriptions)",
+      "Structure optimization suggestions",
+      "Quality scoring with detailed breakdown",
     ],
     visual: (
       <div className="space-y-3">
@@ -950,31 +1021,33 @@ const systemFeatures = [
           </div>
         </div>
         <div className="p-3 bg-neutral-50 dark:bg-neutral-800 rounded-lg">
-          <p className="text-xs text-neutral-600 dark:text-neutral-400">+ 12 suggestions applied</p>
+          <p className="text-xs text-neutral-600 dark:text-neutral-400">
+            + 12 suggestions applied
+          </p>
         </div>
       </div>
     ),
   },
   {
-    badge: 'Code Generation',
-    title: 'Full-Stack Code Generation',
+    badge: "Code Generation",
+    title: "Full-Stack Code Generation",
     description:
-      'Generate production-ready frontend forms, backend APIs, DTOs, and test cases from your validated schema—all in one click.',
+      "Generate production-ready frontend forms, backend APIs, DTOs, and test cases from your validated schema—all in one click.",
     icon: <Terminal className="h-4 w-4 text-purple-600" />,
     points: [
-      'React form components with validation',
-      'Express/NestJS backend controllers',
-      'TypeScript DTOs with decorators',
-      'Complete test suites (unit + integration)',
+      "React form components with validation",
+      "Express/NestJS backend controllers",
+      "TypeScript DTOs with decorators",
+      "Complete test suites (unit + integration)",
     ],
     visual: (
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           {[
-            { icon: Code2, label: 'Forms', color: 'blue' },
-            { icon: Server, label: 'API', color: 'green' },
-            { icon: Database, label: 'DTOs', color: 'purple' },
-            { icon: TestTube, label: 'Tests', color: 'orange' },
+            { icon: Code2, label: "Forms", color: "blue" },
+            { icon: Server, label: "API", color: "green" },
+            { icon: Database, label: "DTOs", color: "purple" },
+            { icon: TestTube, label: "Tests", color: "orange" },
           ].map((item, i) => (
             <motion.div
               key={item.label}
@@ -1003,20 +1076,20 @@ const systemFeatures = [
 // Steps Data
 const steps = [
   {
-    title: 'Validate',
-    description: 'Check syntax and structure of your schema',
+    title: "Validate",
+    description: "Check syntax and structure of your schema",
   },
   {
-    title: 'Convert',
-    description: 'Transform to JSON Schema Draft-7 format',
+    title: "Convert",
+    description: "Transform to JSON Schema Draft-7 format",
   },
   {
-    title: 'Enhance',
-    description: 'Apply AI-powered improvements and suggestions',
+    title: "Enhance",
+    description: "Apply AI-powered improvements and suggestions",
   },
   {
-    title: 'Generate',
-    description: 'Create full-stack code automatically',
+    title: "Generate",
+    description: "Create full-stack code automatically",
   },
 ];
 
@@ -1024,32 +1097,32 @@ const steps = [
 const outputs = [
   {
     icon: <Code2 className="h-7 w-7" />,
-    title: 'Frontend Forms',
-    description: 'Dynamic React components with validation',
-    features: ['Form UI Components', 'Client Validation', 'State Management'],
+    title: "Frontend Forms",
+    description: "Dynamic React components with validation",
+    features: ["Form UI Components", "Client Validation", "State Management"],
   },
   {
     icon: <Server className="h-7 w-7" />,
-    title: 'Backend API',
-    description: 'REST endpoints with Express/NestJS',
-    features: ['Controllers & Routes', 'Request Handlers', 'Error Middleware'],
+    title: "Backend API",
+    description: "REST endpoints with Express/NestJS",
+    features: ["Controllers & Routes", "Request Handlers", "Error Middleware"],
   },
   {
     icon: <Database className="h-7 w-7" />,
-    title: 'DTOs & Types',
-    description: 'TypeScript interfaces and validation',
-    features: ['Type Definitions', 'Class Validators', 'Transform Decorators'],
+    title: "DTOs & Types",
+    description: "TypeScript interfaces and validation",
+    features: ["Type Definitions", "Class Validators", "Transform Decorators"],
   },
   {
     icon: <TestTube className="h-7 w-7" />,
-    title: 'Test Suites',
-    description: 'Automated test cases',
-    features: ['Unit Tests', 'Integration Tests', 'Full Coverage'],
+    title: "Test Suites",
+    description: "Automated test cases",
+    features: ["Unit Tests", "Integration Tests", "Full Coverage"],
   },
 ];
 
 // Animation Styles
-const style = document.createElement('style');
+const style = document.createElement("style");
 style.textContent = `
   @keyframes blob {
     0%, 100% { 

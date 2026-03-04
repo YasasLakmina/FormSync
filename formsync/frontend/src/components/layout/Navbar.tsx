@@ -1,8 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Code2, BookOpen, Menu, X, User, LogOut, ChevronDown, Settings } from 'lucide-react';
-import { Button } from '../ui/button';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useRef, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Code2,
+  BookOpen,
+  Menu,
+  X,
+  User,
+  LogOut,
+  ChevronDown,
+  Settings,
+} from "lucide-react";
+import { Button } from "../ui/button";
+import { useAuth } from "../../context/AuthContext";
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
@@ -15,13 +24,13 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navLinks = [
-    { path: '/editor', label: 'Schema Editor', icon: Code2 },
-    { path: '/documentation', label: 'Documentation', icon: BookOpen },
+    { path: "/editor", label: "Schema Editor", icon: Code2 },
+    { path: "/documentation", label: "Documentation", icon: BookOpen },
   ];
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
     setMobileMenuOpen(false);
     setProfileDropdownOpen(false);
   };
@@ -29,16 +38,19 @@ export const Navbar: React.FC = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setProfileDropdownOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const avatarInitial = user ? (user.name || user.email)[0].toUpperCase() : '';
-  const displayName = user ? (user.name || user.email.split('@')[0]) : '';
+  const avatarInitial = user ? (user.name || user.email)[0].toUpperCase() : "";
+  const displayName = user ? user.name || user.email.split("@")[0] : "";
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-lg">
@@ -61,10 +73,11 @@ export const Navbar: React.FC = () => {
                 <Link key={link.path} to={link.path}>
                   <Button
                     variant="ghost"
-                    className={`gap-2 ${isActive(link.path)
-                        ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400'
-                        : 'text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400'
-                      }`}
+                    className={`gap-2 ${
+                      isActive(link.path)
+                        ? "bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400"
+                        : "text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400"
+                    }`}
                   >
                     <Icon className="h-4 w-4" />
                     {link.label}
@@ -81,9 +94,10 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={() => setProfileDropdownOpen((o) => !o)}
                     className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 transition-all duration-150 select-none
-                      ${profileDropdownOpen
-                        ? 'bg-purple-50 dark:bg-purple-950/30 ring-1 ring-purple-200 dark:ring-purple-800'
-                        : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                      ${
+                        profileDropdownOpen
+                          ? "bg-purple-50 dark:bg-purple-950/30 ring-1 ring-purple-200 dark:ring-purple-800"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
                       }`}
                   >
                     {/* Avatar */}
@@ -103,7 +117,7 @@ export const Navbar: React.FC = () => {
                     </div>
                     <ChevronDown
                       className={`h-3.5 w-3.5 text-neutral-400 transition-transform duration-200 ${
-                        profileDropdownOpen ? 'rotate-180' : ''
+                        profileDropdownOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
@@ -156,7 +170,10 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <Link to="/login">
-                    <Button variant="ghost" className="text-neutral-600 dark:text-neutral-400">
+                    <Button
+                      variant="ghost"
+                      className="text-neutral-600 dark:text-neutral-400"
+                    >
                       Sign in
                     </Button>
                   </Link>
@@ -178,7 +195,11 @@ export const Navbar: React.FC = () => {
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </Button>
         </div>
 
@@ -196,10 +217,11 @@ export const Navbar: React.FC = () => {
                   >
                     <Button
                       variant="ghost"
-                      className={`w-full justify-start gap-2 ${isActive(link.path)
-                          ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400'
-                          : 'text-neutral-600 dark:text-neutral-400'
-                        }`}
+                      className={`w-full justify-start gap-2 ${
+                        isActive(link.path)
+                          ? "bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400"
+                          : "text-neutral-600 dark:text-neutral-400"
+                      }`}
                     >
                       <Icon className="h-4 w-4" />
                       {link.label}
@@ -216,12 +238,19 @@ export const Navbar: React.FC = () => {
                       {avatarInitial}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-50 truncate">{displayName}</p>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{user.email}</p>
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-50 truncate">
+                        {displayName}
+                      </p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
+                        {user.email}
+                      </p>
                     </div>
                   </div>
                   <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start gap-2 text-neutral-600 dark:text-neutral-400">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2 text-neutral-600 dark:text-neutral-400"
+                    >
                       <Settings className="h-4 w-4" />
                       Account Settings
                     </Button>
@@ -238,7 +267,10 @@ export const Navbar: React.FC = () => {
               ) : (
                 <>
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-neutral-600 dark:text-neutral-400">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-neutral-600 dark:text-neutral-400"
+                    >
                       Sign in
                     </Button>
                   </Link>

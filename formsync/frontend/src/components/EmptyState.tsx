@@ -1,13 +1,13 @@
 /**
  * Empty State Component
- * 
+ *
  * Beautiful empty state with suggested actions
  */
 
-import React from 'react';
-import { Upload, FileJson, Sparkles } from 'lucide-react';
-import { Button } from './ui/button';
-import { motion } from 'framer-motion';
+import React from "react";
+import { Upload, FileJson, Sparkles } from "lucide-react";
+import { Button } from "./ui/button";
+import { motion } from "framer-motion";
 
 interface EmptyStateProps {
   onUploadClick?: () => void;
@@ -31,7 +31,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-primary mb-6"
         >
           <FileJson className="w-12 h-12 text-white float" />
@@ -44,7 +44,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
         {/* Description */}
         <p className="text-neutral-600 dark:text-neutral-400 mb-8">
-          Get started by uploading a file, selecting a template, or pasting your schema code
+          Get started by uploading a file, selecting a template, or pasting your
+          schema code
         </p>
 
         {/* Action Buttons */}

@@ -7,9 +7,9 @@
  * - Improved UX and button styling
  */
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
 import {
   Plus,
   FileJson,
@@ -40,9 +40,9 @@ import {
   LifeBuoy,
   ShoppingCart,
   Layers,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   DndContext,
   closestCenter,
@@ -51,15 +51,15 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -67,8 +67,8 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogCancel,
-} from './ui/alert-dialog';
-import { schemaApi } from '../api/schemaApi';
+} from "./ui/alert-dialog";
+import { schemaApi } from "../api/schemaApi";
 
 interface SchemaField {
   id: string;
@@ -105,60 +105,60 @@ interface FieldTemplate {
 
 const FIELD_TEMPLATES: FieldTemplate[] = [
   {
-    name: 'email',
-    type: 'string',
-    description: 'Email address with validation',
+    name: "email",
+    type: "string",
+    description: "Email address with validation",
     icon: <Mail className="h-4 w-4" />,
-    color: 'blue',
+    color: "blue",
   },
   {
-    name: 'phone',
-    type: 'string',
-    description: 'Phone number',
+    name: "phone",
+    type: "string",
+    description: "Phone number",
     icon: <Phone className="h-4 w-4" />,
-    color: 'green',
+    color: "green",
   },
   {
-    name: 'website',
-    type: 'string',
-    description: 'URL/Website address',
+    name: "website",
+    type: "string",
+    description: "URL/Website address",
     icon: <Link className="h-4 w-4" />,
-    color: 'purple',
+    color: "purple",
   },
   {
-    name: 'date',
-    type: 'string',
-    description: 'Date picker',
+    name: "date",
+    type: "string",
+    description: "Date picker",
     icon: <Calendar className="h-4 w-4" />,
-    color: 'orange',
+    color: "orange",
   },
   {
-    name: 'password',
-    type: 'string',
-    description: 'Password field',
+    name: "password",
+    type: "string",
+    description: "Password field",
     icon: <Lock className="h-4 w-4" />,
-    color: 'red',
+    color: "red",
   },
   {
-    name: 'description',
-    type: 'string',
-    description: 'Long text area',
+    name: "description",
+    type: "string",
+    description: "Long text area",
     icon: <AlignLeft className="h-4 w-4" />,
-    color: 'gray',
+    color: "gray",
   },
   {
-    name: 'age',
-    type: 'number',
-    description: 'Numeric value',
+    name: "age",
+    type: "number",
+    description: "Numeric value",
     icon: <Hash className="h-4 w-4" />,
-    color: 'indigo',
+    color: "indigo",
   },
   {
-    name: 'accept_terms',
-    type: 'boolean',
-    description: 'Checkbox/Toggle',
+    name: "accept_terms",
+    type: "boolean",
+    description: "Checkbox/Toggle",
     icon: <ToggleLeft className="h-4 w-4" />,
-    color: 'teal',
+    color: "teal",
   },
 ];
 
@@ -166,229 +166,368 @@ const FIELD_TEMPLATES: FieldTemplate[] = [
 interface SchemaTemplate {
   name: string;
   description: string;
-  fields: Omit<SchemaField, 'id'>[];
+  fields: Omit<SchemaField, "id">[];
 }
 
 const TEMPLATE_CONFIG: Record<string, { icon: React.ReactNode }> = {
-  'Contact Form':      { icon: <MessageSquare className="h-4 w-4" /> },
-  'Newsletter Signup': { icon: <Mail className="h-4 w-4" /> },
-  'Login Form':        { icon: <Lock className="h-4 w-4" /> },
-  'Registration Form': { icon: <UserPlus className="h-4 w-4" /> },
-  'Feedback Form':     { icon: <Star className="h-4 w-4" /> },
-  'Booking Form':      { icon: <Calendar className="h-4 w-4" /> },
-  'Job Application':   { icon: <Briefcase className="h-4 w-4" /> },
-  'Support Ticket':    { icon: <LifeBuoy className="h-4 w-4" /> },
-  'Order Form':        { icon: <ShoppingCart className="h-4 w-4" /> },
+  "Contact Form": { icon: <MessageSquare className="h-4 w-4" /> },
+  "Newsletter Signup": { icon: <Mail className="h-4 w-4" /> },
+  "Login Form": { icon: <Lock className="h-4 w-4" /> },
+  "Registration Form": { icon: <UserPlus className="h-4 w-4" /> },
+  "Feedback Form": { icon: <Star className="h-4 w-4" /> },
+  "Booking Form": { icon: <Calendar className="h-4 w-4" /> },
+  "Job Application": { icon: <Briefcase className="h-4 w-4" /> },
+  "Support Ticket": { icon: <LifeBuoy className="h-4 w-4" /> },
+  "Order Form": { icon: <ShoppingCart className="h-4 w-4" /> },
 };
 
 const SCHEMA_TEMPLATES: SchemaTemplate[] = [
   {
-    name: 'Contact Form',
-    description: 'Basic contact information',
+    name: "Contact Form",
+    description: "Basic contact information",
     fields: [
       {
-        name: 'name',
-        type: 'string',
+        name: "name",
+        type: "string",
         required: true,
-        description: 'Full name',
+        description: "Full name",
         minLength: 2,
         maxLength: 100,
       },
       {
-        name: 'email',
-        type: 'string',
+        name: "email",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Email address",
+        format: "email",
       },
-      { name: 'phone', type: 'string', required: false, description: 'Phone number' },
       {
-        name: 'message',
-        type: 'string',
+        name: "phone",
+        type: "string",
+        required: false,
+        description: "Phone number",
+      },
+      {
+        name: "message",
+        type: "string",
         required: true,
-        description: 'Message content',
+        description: "Message content",
         minLength: 10,
         maxLength: 1000,
       },
     ],
   },
   {
-    name: 'Newsletter Signup',
-    description: 'Email subscription',
+    name: "Newsletter Signup",
+    description: "Email subscription",
     fields: [
       {
-        name: 'email',
-        type: 'string',
+        name: "email",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Email address",
+        format: "email",
       },
-      { name: 'first_name', type: 'string', required: true, description: 'First name' },
-      { name: 'last_name', type: 'string', required: false, description: 'Last name' },
-      { name: 'consent', type: 'boolean', required: true, description: 'Marketing consent' },
+      {
+        name: "first_name",
+        type: "string",
+        required: true,
+        description: "First name",
+      },
+      {
+        name: "last_name",
+        type: "string",
+        required: false,
+        description: "Last name",
+      },
+      {
+        name: "consent",
+        type: "boolean",
+        required: true,
+        description: "Marketing consent",
+      },
     ],
   },
   {
-    name: 'Login Form',
-    description: 'User authentication',
+    name: "Login Form",
+    description: "User authentication",
     fields: [
       {
-        name: 'email',
-        type: 'string',
+        name: "email",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Email address",
+        format: "email",
       },
-      { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
-      { name: 'remember_me', type: 'boolean', required: false, description: 'Remember me' },
+      {
+        name: "password",
+        type: "string",
+        required: true,
+        description: "Password",
+        minLength: 8,
+      },
+      {
+        name: "remember_me",
+        type: "boolean",
+        required: false,
+        description: "Remember me",
+      },
     ],
   },
   {
-    name: 'Registration Form',
-    description: 'New user signup',
+    name: "Registration Form",
+    description: "New user signup",
     fields: [
       {
-        name: 'username',
-        type: 'string',
+        name: "username",
+        type: "string",
         required: true,
-        description: 'Unique username',
+        description: "Unique username",
         minLength: 3,
         maxLength: 20,
       },
       {
-        name: 'email',
-        type: 'string',
+        name: "email",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Email address",
+        format: "email",
       },
-      { name: 'password', type: 'string', required: true, description: 'Password', minLength: 8 },
       {
-        name: 'confirm_password',
-        type: 'string',
+        name: "password",
+        type: "string",
         required: true,
-        description: 'Confirm password',
+        description: "Password",
         minLength: 8,
       },
       {
-        name: 'terms_accepted',
-        type: 'boolean',
+        name: "confirm_password",
+        type: "string",
         required: true,
-        description: 'Accept terms and conditions',
+        description: "Confirm password",
+        minLength: 8,
+      },
+      {
+        name: "terms_accepted",
+        type: "boolean",
+        required: true,
+        description: "Accept terms and conditions",
       },
     ],
   },
   {
-    name: 'Feedback Form',
-    description: 'Customer feedback',
+    name: "Feedback Form",
+    description: "Customer feedback",
     fields: [
-      { name: 'name', type: 'string', required: true, description: 'Your name' },
       {
-        name: 'email',
-        type: 'string',
+        name: "name",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Your name",
       },
       {
-        name: 'rating',
-        type: 'number',
+        name: "email",
+        type: "string",
         required: true,
-        description: 'Rating (1-5)',
+        description: "Email address",
+        format: "email",
+      },
+      {
+        name: "rating",
+        type: "number",
+        required: true,
+        description: "Rating (1-5)",
         minimum: 1,
         maximum: 5,
       },
       {
-        name: 'comments',
-        type: 'string',
+        name: "comments",
+        type: "string",
         required: false,
-        description: 'Additional comments',
+        description: "Additional comments",
         maxLength: 500,
       },
       {
-        name: 'would_recommend',
-        type: 'boolean',
+        name: "would_recommend",
+        type: "boolean",
         required: true,
-        description: 'Would you recommend us?',
+        description: "Would you recommend us?",
       },
     ],
   },
   {
-    name: 'Booking Form',
-    description: 'Appointment booking',
+    name: "Booking Form",
+    description: "Appointment booking",
     fields: [
-      { name: 'name', type: 'string', required: true, description: 'Full name' },
       {
-        name: 'email',
-        type: 'string',
+        name: "name",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Full name",
       },
-      { name: 'phone', type: 'string', required: true, description: 'Phone number' },
-      { name: 'date', type: 'string', required: true, description: 'Booking date', format: 'date' },
-      { name: 'time', type: 'string', required: true, description: 'Preferred time' },
-      { name: 'service', type: 'string', required: true, description: 'Service type' },
+      {
+        name: "email",
+        type: "string",
+        required: true,
+        description: "Email address",
+        format: "email",
+      },
+      {
+        name: "phone",
+        type: "string",
+        required: true,
+        description: "Phone number",
+      },
+      {
+        name: "date",
+        type: "string",
+        required: true,
+        description: "Booking date",
+        format: "date",
+      },
+      {
+        name: "time",
+        type: "string",
+        required: true,
+        description: "Preferred time",
+      },
+      {
+        name: "service",
+        type: "string",
+        required: true,
+        description: "Service type",
+      },
     ],
   },
   {
-    name: 'Job Application',
-    description: 'Employment application',
+    name: "Job Application",
+    description: "Employment application",
     fields: [
-      { name: 'full_name', type: 'string', required: true, description: 'Full name' },
       {
-        name: 'email',
-        type: 'string',
+        name: "full_name",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Full name",
       },
-      { name: 'phone', type: 'string', required: true, description: 'Phone number' },
-      { name: 'resume', type: 'string', required: true, description: 'Resume/CV' },
-      { name: 'cover_letter', type: 'string', required: false, description: 'Cover letter' },
-      { name: 'position', type: 'string', required: true, description: 'Position applied for' },
+      {
+        name: "email",
+        type: "string",
+        required: true,
+        description: "Email address",
+        format: "email",
+      },
+      {
+        name: "phone",
+        type: "string",
+        required: true,
+        description: "Phone number",
+      },
+      {
+        name: "resume",
+        type: "string",
+        required: true,
+        description: "Resume/CV",
+      },
+      {
+        name: "cover_letter",
+        type: "string",
+        required: false,
+        description: "Cover letter",
+      },
+      {
+        name: "position",
+        type: "string",
+        required: true,
+        description: "Position applied for",
+      },
     ],
   },
   {
-    name: 'Support Ticket',
-    description: 'Help desk request',
+    name: "Support Ticket",
+    description: "Help desk request",
     fields: [
-      { name: 'name', type: 'string', required: true, description: 'Your name' },
       {
-        name: 'email',
-        type: 'string',
+        name: "name",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Your name",
       },
-      { name: 'subject', type: 'string', required: true, description: 'Issue subject' },
-      { name: 'priority', type: 'string', required: true, description: 'Priority level' },
       {
-        name: 'description',
-        type: 'string',
+        name: "email",
+        type: "string",
         required: true,
-        description: 'Issue description',
+        description: "Email address",
+        format: "email",
+      },
+      {
+        name: "subject",
+        type: "string",
+        required: true,
+        description: "Issue subject",
+      },
+      {
+        name: "priority",
+        type: "string",
+        required: true,
+        description: "Priority level",
+      },
+      {
+        name: "description",
+        type: "string",
+        required: true,
+        description: "Issue description",
         minLength: 20,
       },
-      { name: 'attachments', type: 'string', required: false, description: 'File attachments' },
+      {
+        name: "attachments",
+        type: "string",
+        required: false,
+        description: "File attachments",
+      },
     ],
   },
   {
-    name: 'Order Form',
-    description: 'Purchase order',
+    name: "Order Form",
+    description: "Purchase order",
     fields: [
-      { name: 'customer_name', type: 'string', required: true, description: 'Customer name' },
       {
-        name: 'email',
-        type: 'string',
+        name: "customer_name",
+        type: "string",
         required: true,
-        description: 'Email address',
-        format: 'email',
+        description: "Customer name",
       },
-      { name: 'product', type: 'string', required: true, description: 'Product name' },
-      { name: 'quantity', type: 'number', required: true, description: 'Quantity', minimum: 1 },
-      { name: 'shipping_address', type: 'string', required: true, description: 'Shipping address' },
-      { name: 'payment_method', type: 'string', required: true, description: 'Payment method' },
+      {
+        name: "email",
+        type: "string",
+        required: true,
+        description: "Email address",
+        format: "email",
+      },
+      {
+        name: "product",
+        type: "string",
+        required: true,
+        description: "Product name",
+      },
+      {
+        name: "quantity",
+        type: "number",
+        required: true,
+        description: "Quantity",
+        minimum: 1,
+      },
+      {
+        name: "shipping_address",
+        type: "string",
+        required: true,
+        description: "Shipping address",
+      },
+      {
+        name: "payment_method",
+        type: "string",
+        required: true,
+        description: "Payment method",
+      },
     ],
   },
 ];
@@ -408,46 +547,48 @@ const TYPE_CONFIG: Record<
   { color: string; bg: string; border: string; icon: React.ReactNode }
 > = {
   string: {
-    color: 'text-violet-600',
-    bg: 'bg-violet-50 dark:bg-violet-950/30',
-    border: 'border-violet-200 dark:border-violet-800',
+    color: "text-violet-600",
+    bg: "bg-violet-50 dark:bg-violet-950/30",
+    border: "border-violet-200 dark:border-violet-800",
     icon: <Type className="h-3 w-3" />,
   },
   number: {
-    color: 'text-blue-600',
-    bg: 'bg-blue-50 dark:bg-blue-950/30',
-    border: 'border-blue-200 dark:border-blue-800',
+    color: "text-blue-600",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    border: "border-blue-200 dark:border-blue-800",
     icon: <Hash className="h-3 w-3" />,
   },
   integer: {
-    color: 'text-blue-600',
-    bg: 'bg-blue-50 dark:bg-blue-950/30',
-    border: 'border-blue-200 dark:border-blue-800',
+    color: "text-blue-600",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    border: "border-blue-200 dark:border-blue-800",
     icon: <Hash className="h-3 w-3" />,
   },
   boolean: {
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-    border: 'border-emerald-200 dark:border-emerald-800',
+    color: "text-emerald-600",
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    border: "border-emerald-200 dark:border-emerald-800",
     icon: <ToggleRight className="h-3 w-3" />,
   },
   array: {
-    color: 'text-orange-600',
-    bg: 'bg-orange-50 dark:bg-orange-950/30',
-    border: 'border-orange-200 dark:border-orange-800',
+    color: "text-orange-600",
+    bg: "bg-orange-50 dark:bg-orange-950/30",
+    border: "border-orange-200 dark:border-orange-800",
     icon: <List className="h-3 w-3" />,
   },
   object: {
-    color: 'text-pink-600',
-    bg: 'bg-pink-50 dark:bg-pink-950/30',
-    border: 'border-pink-200 dark:border-pink-800',
+    color: "text-pink-600",
+    bg: "bg-pink-50 dark:bg-pink-950/30",
+    border: "border-pink-200 dark:border-pink-800",
     icon: <Braces className="h-3 w-3" />,
   },
 };
 
 const getTypeConfig = (type: string) => TYPE_CONFIG[type] || TYPE_CONFIG.string;
 
-const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = ({
+const FieldCard: React.FC<
+  SortableFieldItemProps & { dragHandleProps?: any }
+> = ({
   field,
   index: _index,
   onToggleRequired,
@@ -461,8 +602,8 @@ const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = 
     <div
       className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-xl border bg-white dark:bg-neutral-900 transition-all ${
         isDragOverlay
-          ? 'border-purple-400 shadow-2xl shadow-purple-200/60 dark:shadow-purple-900/40 ring-2 ring-purple-300/50'
-          : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-md'
+          ? "border-purple-400 shadow-2xl shadow-purple-200/60 dark:shadow-purple-900/40 ring-2 ring-purple-300/50"
+          : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-md"
       }`}
     >
       {/* Drag handle */}
@@ -516,11 +657,11 @@ const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = 
       <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onToggleRequired(field.id)}
-          title={field.required ? 'Mark optional' : 'Mark required'}
+          title={field.required ? "Mark optional" : "Mark required"}
           className={`p-1.5 rounded-md text-xs font-medium transition-colors ${
             field.required
-              ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/60'
-              : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+              ? "bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/60"
+              : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
           }`}
         >
           <Check className="h-3.5 w-3.5" />
@@ -545,7 +686,14 @@ const FieldCard: React.FC<SortableFieldItemProps & { dragHandleProps?: any }> = 
 };
 
 const SortableFieldItem: React.FC<SortableFieldItemProps> = (props) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: props.field.id,
   });
 
@@ -565,24 +713,26 @@ const SortableFieldItem: React.FC<SortableFieldItemProps> = (props) => {
         scale: isDragging ? 0.98 : 1,
       }}
       exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
     >
       <FieldCard {...props} dragHandleProps={{ ...attributes, ...listeners }} />
     </motion.div>
   );
 };
 
-export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema }) => {
+export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
+  onUseSchema,
+}) => {
   const [fields, setFields] = useState<SchemaField[]>([]);
-  const [newFieldName, setNewFieldName] = useState('');
-  const [newFieldType, setNewFieldType] = useState('string');
-  const [newFieldDescription, setNewFieldDescription] = useState('');
+  const [newFieldName, setNewFieldName] = useState("");
+  const [newFieldType, setNewFieldType] = useState("string");
+  const [newFieldDescription, setNewFieldDescription] = useState("");
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Schema name state
-  const [schemaName, setSchemaName] = useState('');
+  const [schemaName, setSchemaName] = useState("");
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -591,12 +741,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const addField = () => {
     if (!newFieldName.trim()) {
-      toast.error('Please enter a field name');
+      toast.error("Please enter a field name");
       return;
     }
 
@@ -609,18 +759,20 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     };
 
     setFields([...fields, newField]);
-    setNewFieldName('');
-    setNewFieldDescription('');
-    toast.success('Field added successfully');
+    setNewFieldName("");
+    setNewFieldDescription("");
+    toast.success("Field added successfully");
   };
 
   const removeField = (id: string) => {
     setFields(fields.filter((f) => f.id !== id));
-    toast.success('Field removed');
+    toast.success("Field removed");
   };
 
   const toggleRequired = (id: string) => {
-    setFields(fields.map((f) => (f.id === id ? { ...f, required: !f.required } : f)));
+    setFields(
+      fields.map((f) => (f.id === id ? { ...f, required: !f.required } : f)),
+    );
   };
 
   // Add field from template
@@ -629,7 +781,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       id: `field-${Date.now()}`,
       name: template.name,
       type: template.type,
-      required: template.name === 'email' || template.name === 'password', // Email and password required by default
+      required: template.name === "email" || template.name === "password", // Email and password required by default
       description: template.description,
     };
     setFields([...fields, newField]);
@@ -693,7 +845,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         ...(field.multipleOf && { multipleOf: field.multipleOf }),
         // Add default values
         ...(field.default !== undefined && { default: field.default }),
-        ...(field.placeholder && { 'x-placeholder': field.placeholder }),
+        ...(field.placeholder && { "x-placeholder": field.placeholder }),
         ...(field.example !== undefined && { examples: [field.example] }),
       };
       properties[field.name] = fieldSchema;
@@ -703,8 +855,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     });
 
     const schema = {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
       ...(schemaTitle && { title: schemaTitle }),
       properties,
       ...(required.length > 0 && { required }),
@@ -713,10 +865,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     return schema;
   };
 
-
   const handleUseSchema = async () => {
     if (fields.length === 0) {
-      toast.error('Please add at least one field before using the schema');
+      toast.error("Please add at least one field before using the schema");
       return;
     }
 
@@ -744,7 +895,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
     }
 
     toast.success(
-      'Schema transferred to Technical Editor! Switch to Technical Editor tab to continue.'
+      "Schema transferred to Technical Editor! Switch to Technical Editor tab to continue.",
     );
   };
 
@@ -788,7 +939,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
           {/* Add Field Section */}
           <div className="px-5 py-4 space-y-3">
-            <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Add a Field</p>
+            <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+              Add a Field
+            </p>
 
             <div>
               <label className="block text-[11px] text-neutral-500 dark:text-neutral-400 mb-1">
@@ -799,7 +952,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 placeholder="e.g., email, username"
                 value={newFieldName}
                 onChange={(e) => setNewFieldName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addField()}
+                onKeyDown={(e) => e.key === "Enter" && addField()}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
               />
             </div>
@@ -826,14 +979,15 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
 
             <div>
               <label className="block text-[11px] text-neutral-500 dark:text-neutral-400 mb-1">
-                Description <span className="text-neutral-400 font-normal">(optional)</span>
+                Description{" "}
+                <span className="text-neutral-400 font-normal">(optional)</span>
               </label>
               <input
                 type="text"
                 placeholder="e.g., User's email address"
                 value={newFieldDescription}
                 onChange={(e) => setNewFieldDescription(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addField()}
+                onKeyDown={(e) => e.key === "Enter" && addField()}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
               />
             </div>
@@ -873,10 +1027,10 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               ))}
             </div>
             <p className="text-[11px] text-neutral-400 dark:text-neutral-500 text-center mt-3">
-              Press{' '}
+              Press{" "}
               <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[10px] font-mono text-neutral-600 dark:text-neutral-300">
                 Enter
-              </kbd>{' '}
+              </kbd>{" "}
               to quickly add
             </p>
           </div>
@@ -890,7 +1044,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-purple-500" />
               <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Schema Fields{' '}
+                Schema Fields{" "}
                 <span className="text-neutral-400 dark:text-neutral-500 font-normal">
                   ({fields.length})
                 </span>
@@ -964,7 +1118,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
               <DragOverlay
                 dropAnimation={{
                   duration: 200,
-                  easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+                  easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
                 }}
               >
                 {activeField ? (
@@ -993,20 +1147,26 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
       {/* Right Panel - Live Preview */}
       <div
         className="w-100 flex-shrink-0 flex flex-col rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-950 overflow-hidden shadow-sm"
-        style={{ minHeight: '800px', maxHeight: '85vh' }}
+        style={{ minHeight: "800px", maxHeight: "85vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-xs font-semibold text-neutral-200">Live Preview</span>
+            <span className="text-xs font-semibold text-neutral-200">
+              Live Preview
+            </span>
           </div>
           <button
             onClick={() => {
               navigator.clipboard.writeText(
-                JSON.stringify(generateSchema(schemaName || undefined), null, 2)
+                JSON.stringify(
+                  generateSchema(schemaName || undefined),
+                  null,
+                  2,
+                ),
               );
-              toast.success('Copied to clipboard');
+              toast.success("Copied to clipboard");
             }}
             className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors"
           >
@@ -1018,7 +1178,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         <div className="flex-1 overflow-auto">
           <pre className="text-[12px] font-mono leading-relaxed p-4 text-emerald-400">
             {JSON.stringify(generateSchema(schemaName || undefined), null, 2)
-              .split('\n')
+              .split("\n")
               .map((line, i) => (
                 <div key={i} className="flex">
                   <span className="select-none text-neutral-600 w-7 shrink-0 text-right mr-4 leading-[1.7]">
@@ -1032,9 +1192,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
         {/* Footer */}
         <div className="px-4 py-2.5 border-t border-neutral-800 bg-neutral-900 flex items-center justify-between">
           <span className="text-[11px] text-neutral-500">
-            {fields.length} field{fields.length !== 1 ? 's' : ''}
+            {fields.length} field{fields.length !== 1 ? "s" : ""}
           </span>
-          <span className="text-[11px] text-neutral-500">JSON Schema Draft-07</span>
+          <span className="text-[11px] text-neutral-500">
+            JSON Schema Draft-07
+          </span>
         </div>
       </div>
 
@@ -1059,7 +1221,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           {/* Template Grid */}
           <div className="grid grid-cols-3 gap-3 p-6 max-h-[460px] overflow-y-auto">
             {SCHEMA_TEMPLATES.map((template) => {
-              const cfg = TEMPLATE_CONFIG[template.name] ?? { icon: <FileJson className="h-4 w-4" /> };
+              const cfg = TEMPLATE_CONFIG[template.name] ?? {
+                icon: <FileJson className="h-4 w-4" />,
+              };
               return (
                 <button
                   key={template.name}
@@ -1079,7 +1243,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                     {template.description}
                   </div>
                   <div className="mt-3 text-[11px] text-neutral-400 dark:text-neutral-500">
-                    {template.fields.length} fields &middot; {template.fields.filter(f => f.required).length} required
+                    {template.fields.length} fields &middot;{" "}
+                    {template.fields.filter((f) => f.required).length} required
                   </div>
                 </button>
               );
@@ -1102,10 +1267,15 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
           if (!editField) return null;
 
           return (
-            <AlertDialog open={true} onOpenChange={() => setExpandedFieldId(null)}>
+            <AlertDialog
+              open={true}
+              onOpenChange={() => setExpandedFieldId(null)}
+            >
               <AlertDialogContent className="max-w-2xl">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Edit Field: {editField.name}</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    Edit Field: {editField.name}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
                     Modify field properties and validation rules
                   </AlertDialogDescription>
@@ -1125,7 +1295,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                         <input
                           type="text"
                           value={editField.name}
-                          onChange={(e) => updateField(editField.id, { name: e.target.value })}
+                          onChange={(e) =>
+                            updateField(editField.id, { name: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                         />
                       </div>
@@ -1135,7 +1307,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                         </label>
                         <select
                           value={editField.type}
-                          onChange={(e) => updateField(editField.id, { type: e.target.value })}
+                          onChange={(e) =>
+                            updateField(editField.id, { type: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                         >
                           <option value="string">String</option>
@@ -1152,9 +1326,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                         </label>
                         <input
                           type="text"
-                          value={editField.description || ''}
+                          value={editField.description || ""}
                           onChange={(e) =>
-                            updateField(editField.id, { description: e.target.value })
+                            updateField(editField.id, {
+                              description: e.target.value,
+                            })
                           }
                           className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                           placeholder="Optional description"
@@ -1164,7 +1340,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                   </div>
 
                   {/* Validation Rules Section */}
-                  {editField.type === 'string' && (
+                  {editField.type === "string" && (
                     <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
                       <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                         Validation Rules
@@ -1176,10 +1352,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                           </label>
                           <input
                             type="number"
-                            value={editField.minLength || ''}
+                            value={editField.minLength || ""}
                             onChange={(e) =>
                               updateField(editField.id, {
-                                minLength: e.target.value ? Number(e.target.value) : undefined,
+                                minLength: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
                               })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
@@ -1192,10 +1370,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                           </label>
                           <input
                             type="number"
-                            value={editField.maxLength || ''}
+                            value={editField.maxLength || ""}
                             onChange={(e) =>
                               updateField(editField.id, {
-                                maxLength: e.target.value ? Number(e.target.value) : undefined,
+                                maxLength: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
                               })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
@@ -1208,9 +1388,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                           </label>
                           <input
                             type="text"
-                            value={editField.pattern || ''}
+                            value={editField.pattern || ""}
                             onChange={(e) =>
-                              updateField(editField.id, { pattern: e.target.value || undefined })
+                              updateField(editField.id, {
+                                pattern: e.target.value || undefined,
+                              })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
                             placeholder="e.g., ^[A-Z][a-z]+$"
@@ -1221,9 +1403,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                             Format
                           </label>
                           <select
-                            value={editField.format || ''}
+                            value={editField.format || ""}
                             onChange={(e) =>
-                              updateField(editField.id, { format: e.target.value || undefined })
+                              updateField(editField.id, {
+                                format: e.target.value || undefined,
+                              })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                           >
@@ -1239,7 +1423,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                     </div>
                   )}
 
-                  {(editField.type === 'number' || editField.type === 'integer') && (
+                  {(editField.type === "number" ||
+                    editField.type === "integer") && (
                     <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
                       <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                         Validation Rules
@@ -1251,10 +1436,16 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                           </label>
                           <input
                             type="number"
-                            value={editField.minimum !== undefined ? editField.minimum : ''}
+                            value={
+                              editField.minimum !== undefined
+                                ? editField.minimum
+                                : ""
+                            }
                             onChange={(e) =>
                               updateField(editField.id, {
-                                minimum: e.target.value ? Number(e.target.value) : undefined,
+                                minimum: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
                               })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
@@ -1267,10 +1458,16 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                           </label>
                           <input
                             type="number"
-                            value={editField.maximum !== undefined ? editField.maximum : ''}
+                            value={
+                              editField.maximum !== undefined
+                                ? editField.maximum
+                                : ""
+                            }
                             onChange={(e) =>
                               updateField(editField.id, {
-                                maximum: e.target.value ? Number(e.target.value) : undefined,
+                                maximum: e.target.value
+                                  ? Number(e.target.value)
+                                  : undefined,
                               })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
@@ -1283,7 +1480,10 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onUseSchema })
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <AlertDialogCancel className="mt-0" onClick={() => setExpandedFieldId(null)}>
+                  <AlertDialogCancel
+                    className="mt-0"
+                    onClick={() => setExpandedFieldId(null)}
+                  >
                     Done
                   </AlertDialogCancel>
                 </div>
