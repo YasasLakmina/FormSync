@@ -22,8 +22,8 @@ RUN npm run build
 # ── Runtime stage ──────────────────────────────────────────────
 FROM node:20-slim
 
-# Required by Prisma on Debian/slim
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# Required by Prisma on Debian/slim; wget needed for Docker health checks
+RUN apt-get update -y && apt-get install -y openssl wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

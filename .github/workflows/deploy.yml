@@ -64,39 +64,41 @@ jobs:
             echo "✅ Found docker-compose.yml"
 
             echo "⚙️ Creating environment file..."
-            cat > .env << EOF
-            NODE_ENV=production
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRES_IN=7d
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            OPENAI_BASE_URL=https://api.groq.com/openai/v1
-            OPENAI_MODEL=llama-3.3-70b-versatile
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            GATEWAY_PORT=3000
-            SCHEMA_ENGINE_PORT=3010
-            USER_SERVICE_PORT=3011
-            DTO_GENERATOR_PORT=3012
-            RUNTIME_ENGINE_PORT=3013
-            FORMGEN_SERVICE_PORT=3014
-            SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010
-            USER_SERVICE_URL=http://user-management-service:3011
-            DTO_GENERATOR_URL=http://backend-dto-generator:3012
-            RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013
-            FORMGEN_SERVICE_URL=http://formgen-service:3014
-            SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema
-            FRONTEND_URL=http://localhost:5173
-
-            # Docker build optimizations
-            DOCKER_BUILDKIT=1
-            COMPOSE_DOCKER_CLI_BUILD=1
-            BUILDKIT_PROGRESS=plain
-
-            # NPM optimizations for faster installs
-            NPM_CONFIG_LOGLEVEL=warn
-            NPM_CONFIG_PROGRESS=false
-            NPM_CONFIG_AUDIT=false
-            NPM_CONFIG_FUND=false
-            EOF
+            cat > .env <<'ENVEOF'
+NODE_ENV=production
+JWT_EXPIRES_IN=7d
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_MODEL=llama-3.3-70b-versatile
+GATEWAY_PORT=3000
+SCHEMA_ENGINE_PORT=3010
+USER_SERVICE_PORT=3011
+DTO_GENERATOR_PORT=3012
+RUNTIME_ENGINE_PORT=3013
+FORMGEN_SERVICE_PORT=3014
+SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010
+USER_SERVICE_URL=http://user-management-service:3011
+DTO_GENERATOR_URL=http://backend-dto-generator:3012
+RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013
+FORMGEN_SERVICE_URL=http://formgen-service:3014
+SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema
+FRONTEND_URL=http://localhost:5173
+DOCKER_BUILDKIT=1
+COMPOSE_DOCKER_CLI_BUILD=1
+NPM_CONFIG_LOGLEVEL=warn
+NPM_CONFIG_PROGRESS=false
+NPM_CONFIG_AUDIT=false
+NPM_CONFIG_FUND=false
+ENVEOF
+            # Append secrets (these need variable expansion)
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
+            
+            echo "📋 .env file contents (redacted):"
+            grep -v "SECRET\|PASSWORD\|KEY\|DATABASE_URL" .env || true
 
             echo "🐳 Stopping existing containers..."
             docker compose down -v 2>/dev/null || true
@@ -141,33 +143,38 @@ jobs:
             echo "🧹 Cleaning up old images..."
             docker image prune -f
 
-            echo "📊 Final container status:"
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo "📊 Final container status (ALL containers):"
+            docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-            echo "🔍 Health check status:"
-            docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(healthy|unhealthy|starting)" || echo "No health status info"
+            echo ""
+            echo "🔍 Health check details:"
+            docker inspect --format '{{.Name}}: {{.State.Health.Status}} ({{.State.Status}})' $(docker ps -aq) 2>/dev/null || echo "No health info"
 
+            echo ""
             echo "📈 Resource usage:"
             docker system df || echo "Could not get resource usage"
 
-            # Check for any failed containers
-            FAILED_CONTAINERS=$(docker ps -a --filter "status=exited" --format "{{.Names}}" | head -5)
-            if [ ! -z "$FAILED_CONTAINERS" ]; then
-              echo "⚠️  Failed containers detected:"
-              echo "$FAILED_CONTAINERS" | while read container; do
-                echo "=== $container logs (last 10 lines) ==="
-                docker logs --tail 10 "$container" 2>&1 || echo "Could not get logs"
+            # Check for any non-running containers
+            NOT_RUNNING=$(docker ps -a --filter "status=exited" --filter "status=created" --filter "status=restarting" --format "{{.Names}}" | head -5)
+            if [ ! -z "$NOT_RUNNING" ]; then
+              echo ""
+              echo "⚠️  Non-running containers detected:"
+              echo "$NOT_RUNNING" | while read container; do
+                echo "=== $container logs (last 15 lines) ==="
+                docker logs --tail 15 "$container" 2>&1 || echo "Could not get logs"
+                echo ""
               done
             else
-              echo "✅ No failed containers detected"
+              echo "✅ All containers are running"
             fi
 
-            # Final status check
-            RUNNING_COUNT=$(docker ps --filter "status=running" | wc -l)
-            if [ "$RUNNING_COUNT" -gt 5 ]; then
-              echo "🎉 Deployment successful! $RUNNING_COUNT containers running"
+            # Final status check (subtract 1 for header line)
+            RUNNING_COUNT=$(docker ps --filter "status=running" --format "{{.Names}}" | wc -l)
+            TOTAL_COUNT=$(docker ps -a --format "{{.Names}}" | wc -l)
+            if [ "$RUNNING_COUNT" -ge 7 ]; then
+              echo "🎉 Deployment successful! $RUNNING_COUNT/$TOTAL_COUNT containers running"
             else
-              echo "⚠️  Only $RUNNING_COUNT containers running - check for issues"
+              echo "⚠️  Only $RUNNING_COUNT/$TOTAL_COUNT containers running - check logs above"
             fi
 
             echo "✅ Deployment script complete!"
