@@ -2,7 +2,7 @@ name: Deploy FormSync to EC2
 
 on:
   push:
-    branches: [ Deployment ]
+    branches: [Deployment]
   workflow_dispatch:
 
 jobs:
@@ -20,13 +20,46 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/formsync
-            # Create .env file on the fly from Github Secrets
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env
-            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
-            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-            # Add other env vars here...
+            echo "🔄 Pulling latest code..."
+            git pull origin Deployment || git clone https://github.com/${{ github.repository }}.git .
 
-            # Pull and Restart
-            git pull origin main || git clone https://github.com/${{ github.repository }}.git .
+            echo "📁 Navigating to formsync directory..."
+            cd formsync
+
+            echo "⚙️ Creating environment file..."
+            cat > .env << EOF
+            NODE_ENV=production
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=7d
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            OPENAI_BASE_URL=https://api.groq.com/openai/v1
+            OPENAI_MODEL=llama-3.3-70b-versatile
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            GATEWAY_PORT=3000
+            SCHEMA_ENGINE_PORT=3010
+            USER_SERVICE_PORT=3011
+            DTO_GENERATOR_PORT=3012
+            RUNTIME_ENGINE_PORT=3013
+            FORMGEN_SERVICE_PORT=3014
+            SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010
+            USER_SERVICE_URL=http://user-management-service:3011
+            DTO_GENERATOR_URL=http://backend-dto-generator:3012
+            RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013
+            FORMGEN_SERVICE_URL=http://formgen-service:3014
+            SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema
+            FRONTEND_URL=http://localhost:5173
+            EOF
+
+            echo "🐳 Stopping existing containers..."
+            docker compose down -v 2>/dev/null || true
+
+            echo "🔨 Building and starting containers..."
             docker compose up -d --build
+
+            echo "🧹 Cleaning up old images..."
             docker image prune -f
+
+            echo "📊 Container status:"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+            echo "✅ Deployment complete!"
