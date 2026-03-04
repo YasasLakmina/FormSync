@@ -3,6 +3,7 @@ name: Deploy FormSync to EC2
 on:
   push:
     branches: [ Deployment ]
+  workflow_dispatch:  
 
 jobs:
   deploy:
