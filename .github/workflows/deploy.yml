@@ -1,0 +1,31 @@
+name: Deploy FormSync to EC2
+
+on:
+  push:
+    branches: [ Deployment ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/formsync
+            # Create .env file on the fly from Github Secrets
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" > .env
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            # Add other env vars here...
+
+            # Pull and Restart
+            git pull origin main || git clone https://github.com/${{ github.repository }}.git .
+            docker compose up -d --build
+            docker image prune -f
