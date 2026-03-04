@@ -136,6 +136,11 @@ app.post('/generate', async (req, res) => {
     }
 });
 
+// Health check endpoint
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', service: 'backend-dto-generator', uptime: process.uptime() });
+});
+
 // Start Server
 app.listen(port, () => {
     console.log(`Backend DTO Generator API listening at http://localhost:${port}`);

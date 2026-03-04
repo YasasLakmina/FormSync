@@ -17,13 +17,13 @@ export const SERVICES: Record<string, ServiceConfig> = {
     name: 'schema-enhancement-engine',
     url: process.env.SCHEMA_ENGINE_URL || 'http://localhost:3010',
     description: 'Schema conversion, AI enhancement, validation & CRUD',
-    healthPath: '/schema',
+    healthPath: '/health',
   },
   userManagementService: {
     name: 'user-management-service',
     url: process.env.USER_SERVICE_URL || 'http://localhost:3011',
     description: 'User authentication, JWT, and template management',
-    healthPath: '/auth',
+    healthPath: '/health',
   },
   backendDtoGenerator: {
     name: 'backend-dto-generator',

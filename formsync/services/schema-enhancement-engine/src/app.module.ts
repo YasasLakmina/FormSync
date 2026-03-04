@@ -11,6 +11,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
 import { SchemaModule } from './schema/schema.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SchemaModule } from './schema/schema.module';
     }),
     // Feature modules
     SchemaModule,
+    HealthModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

@@ -4,6 +4,7 @@ import { PrismaService } from './prisma/prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { TemplateModule } from './template/template.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { TemplateModule } from './template/template.module';
         AuthModule,
         UserModule,
         TemplateModule,
+        HealthModule,
     ],
     providers: [PrismaService],
     exports: [PrismaService],
