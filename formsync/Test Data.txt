@@ -108,3 +108,87 @@ new json example
   },
   "required": ["username"]
 }
+
+
+long Form
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Job Application Form",
+  "description": "A comprehensive test form to exercise all form builder features.",
+  "type": "object",
+  "required": ["fullName", "email", "isEmployed"],
+  "properties": {
+    "fullName": {
+      "type": "string",
+      "title": "Full Name",
+      "description": "Your legal full name",
+      "minLength": 2,
+      "maxLength": 100
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "title": "Email Address"
+    },
+    "dateOfBirth": {
+      "type": "string",
+      "format": "date",
+      "title": "Date of Birth"
+    },
+    "age": {
+      "type": "integer",
+      "title": "Age",
+      "minimum": 18,
+      "maximum": 120
+    },
+    "salary": {
+      "type": "number",
+      "title": "Expected Salary ($)",
+      "minimum": 0
+    },
+    "department": {
+      "type": "string",
+      "title": "Department",
+      "enum": ["Engineering", "Design", "Product", "Sales", "HR", "Finance"]
+    },
+    "experienceLevel": {
+      "type": "string",
+      "title": "Experience Level",
+      "enum": ["Junior", "Mid-level", "Senior", "Lead", "Principal"]
+    },
+    "isEmployed": {
+      "type": "boolean",
+      "title": "Currently Employed?"
+    },
+    "remoteWork": {
+      "type": "boolean",
+      "title": "Open to Remote Work?"
+    },
+    "address": {
+      "type": "object",
+      "title": "Address",
+      "properties": {
+        "street": {
+          "type": "string",
+          "title": "Street Address"
+        },
+        "city": {
+          "type": "string",
+          "title": "City"
+        },
+        "postalCode": {
+          "type": "string",
+          "title": "Postal Code",
+          "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+        }
+      },
+      "required": ["city"]
+    },
+    "startDate": {
+      "type": "string",
+      "format": "date",
+      "title": "Available Start Date"
+    }
+  }
+}

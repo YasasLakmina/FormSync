@@ -54,6 +54,8 @@ export interface FieldModel {
   constraints?: FieldConstraints;
   ui?: FieldUIConfig;
   children?: FieldModel[];
+  /** Wizard step index this field belongs to (0-based). Undefined = all steps. */
+  stepIndex?: number;
 }
 
 export interface ThemeColors {
@@ -85,6 +87,8 @@ export interface ThemeConfig {
 
 export interface LayoutConfig {
   order: string[];
+  /** Wizard steps. When present, fields are grouped by their stepIndex. */
+  steps?: Array<{ id: string; title: string }>;
 }
 
 export interface SubmitConfig {

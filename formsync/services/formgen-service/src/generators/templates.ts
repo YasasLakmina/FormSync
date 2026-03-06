@@ -11,37 +11,37 @@ import { FormModel } from '../types';
  * Generate package.json for the exported React app
  */
 export function generatePackageJson(formModel: FormModel): string {
-    const projectName = formModel.name.toLowerCase().replace(/\s+/g, '-');
+  const projectName = formModel.name.toLowerCase().replace(/\s+/g, '-');
 
-    return JSON.stringify({
-        name: projectName,
-        private: true,
-        version: '0.0.0',
-        type: 'module',
-        scripts: {
-            dev: 'vite',
-            build: 'tsc && vite build',
-            preview: 'vite preview'
-        },
-        dependencies: {
-            react: '^18.2.0',
-            'react-dom': '^18.2.0'
-        },
-        devDependencies: {
-            '@types/react': '^18.2.66',
-            '@types/react-dom': '^18.2.22',
-            '@vitejs/plugin-react': '^4.2.1',
-            typescript: '^5.2.2',
-            vite: '^5.2.0'
-        }
-    }, null, 2);
+  return JSON.stringify({
+    name: projectName,
+    private: true,
+    version: '0.0.0',
+    type: 'module',
+    scripts: {
+      dev: 'vite',
+      build: 'tsc && vite build',
+      preview: 'vite preview'
+    },
+    dependencies: {
+      react: '^18.2.0',
+      'react-dom': '^18.2.0'
+    },
+    devDependencies: {
+      '@types/react': '^18.2.66',
+      '@types/react-dom': '^18.2.22',
+      '@vitejs/plugin-react': '^4.2.1',
+      typescript: '^5.2.2',
+      vite: '^5.2.0'
+    }
+  }, null, 2);
 }
 
 /**
  * Generate vite.config.ts
  */
 export function generateViteConfig(): string {
-    return `import { defineConfig } from 'vite'
+  return `import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -54,52 +54,52 @@ export default defineConfig({
  * Generate tsconfig.json
  */
 export function generateTsConfig(): string {
-    return JSON.stringify({
-        compilerOptions: {
-            target: 'ES2020',
-            useDefineForClassFields: true,
-            lib: ['ES2020', 'DOM', 'DOM.Iterable'],
-            module: 'ESNext',
-            skipLibCheck: true,
-            moduleResolution: 'bundler',
-            allowImportingTsExtensions: true,
-            resolveJsonModule: true,
-            isolatedModules: true,
-            noEmit: true,
-            jsx: 'react-jsx',
-            strict: true,
-            noUnusedLocals: true,
-            noUnusedParameters: true,
-            noFallthroughCasesInSwitch: true
-        },
-        include: ['src'],
-        references: [{ path: './tsconfig.node.json' }]
-    }, null, 2);
+  return JSON.stringify({
+    compilerOptions: {
+      target: 'ES2020',
+      useDefineForClassFields: true,
+      lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+      module: 'ESNext',
+      skipLibCheck: true,
+      moduleResolution: 'bundler',
+      allowImportingTsExtensions: true,
+      resolveJsonModule: true,
+      isolatedModules: true,
+      noEmit: true,
+      jsx: 'react-jsx',
+      strict: true,
+      noUnusedLocals: true,
+      noUnusedParameters: true,
+      noFallthroughCasesInSwitch: true
+    },
+    include: ['src'],
+    references: [{ path: './tsconfig.node.json' }]
+  }, null, 2);
 }
 
 /**
  * Generate tsconfig.node.json
  */
 export function generateTsConfigNode(): string {
-    return JSON.stringify({
-        compilerOptions: {
-            composite: true,
-            skipLibCheck: true,
-            module: 'ESNext',
-            moduleResolution: 'bundler',
-            allowSyntheticDefaultImports: true
-        },
-        include: ['vite.config.ts']
-    }, null, 2);
+  return JSON.stringify({
+    compilerOptions: {
+      composite: true,
+      skipLibCheck: true,
+      module: 'ESNext',
+      moduleResolution: 'bundler',
+      allowSyntheticDefaultImports: true
+    },
+    include: ['vite.config.ts']
+  }, null, 2);
 }
 
 /**
  * Generate index.html
  */
 export function generateIndexHtml(formModel: FormModel): string {
-    const title = formModel.meta?.title || formModel.name;
+  const title = formModel.meta?.title || formModel.name;
 
-    return `<!doctype html>
+  return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -118,7 +118,7 @@ export function generateIndexHtml(formModel: FormModel): string {
  * Generate main.tsx (React entry point)
  */
 export function generateMainTsx(): string {
-    return `import React from 'react'
+  return `import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
@@ -136,14 +136,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
  * This mirrors the styling approach from Canvas.tsx.
  */
 export function generateIndexCss(formModel: FormModel): string {
-    const { theme } = formModel;
-    const densityMap: Record<string, string> = {
-        compact: '8px',
-        normal: '12px',
-        comfortable: '16px',
-    };
+  const { theme } = formModel;
+  const densityMap: Record<string, string> = {
+    compact: '8px',
+    normal: '12px',
+    comfortable: '16px',
+  };
 
-    return `/* CSS Reset & Base Styles */
+  return `/* CSS Reset & Base Styles */
 * {
   margin: 0;
   padding: 0;
@@ -193,7 +193,7 @@ body {
 .form-container {
   max-width: 600px;
   width: 100%;
-  background: var(--color-surface);
+  background: var(--color-bg);
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -288,6 +288,47 @@ body {
   border-radius: var(--border-radius);
   color: var(--color-muted);
 }
+
+/* Wizard Step Sections */
+.form-section {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+}
+
+.section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.section-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 `;
 }
 
@@ -295,9 +336,9 @@ body {
  * Generate README.md
  */
 export function generateReadme(formModel: FormModel): string {
-    const projectName = formModel.name;
+  const projectName = formModel.name;
 
-    return `# ${projectName}
+  return `# ${projectName}
 
 This form was generated from FormSync Form Builder.
 
@@ -342,40 +383,40 @@ ${formModel.meta?.description ? `- **Description**: ${formModel.meta.description
 // --- Helpers ---
 
 const THEME_DEFAULTS = {
-    light: {
-        primary: '#3b82f6',
-        background: '#ffffff',
-        surface: '#ffffff',
-        text: '#111827',
-        muted: '#6b7280',
-        border: '#e5e7eb',
-        error: '#ef4444',
-        inputBackground: '#ffffff',
-    },
-    dark: {
-        primary: '#60a5fa',
-        background: '#111827',
-        surface: '#1f2937',
-        text: '#f9fafb',
-        muted: '#9ca3af',
-        border: '#374151',
-        error: '#f87171',
-        inputBackground: '#374151',
-    }
+  light: {
+    primary: '#3b82f6',
+    background: '#ffffff',
+    surface: '#ffffff',
+    text: '#111827',
+    muted: '#6b7280',
+    border: '#e5e7eb',
+    error: '#ef4444',
+    inputBackground: '#ffffff',
+  },
+  dark: {
+    primary: '#60a5fa',
+    background: '#111827',
+    surface: '#1f2937',
+    text: '#f9fafb',
+    muted: '#9ca3af',
+    border: '#374151',
+    error: '#f87171',
+    inputBackground: '#374151',
+  }
 };
 
 function getLightColors(form: FormModel) {
-    return form.theme.schemes?.light
-        || (form.theme.mode === 'light' ? form.theme.colors : THEME_DEFAULTS.light);
+  return form.theme.schemes?.light
+    || (form.theme.mode === 'light' ? form.theme.colors : THEME_DEFAULTS.light);
 }
 
 function getDarkColors(form: FormModel) {
-    return form.theme.schemes?.dark
-        || (form.theme.mode === 'dark' ? form.theme.colors : THEME_DEFAULTS.dark);
+  return form.theme.schemes?.dark
+    || (form.theme.mode === 'dark' ? form.theme.colors : THEME_DEFAULTS.dark);
 }
 
 function generateCssVariables(colors: any) {
-    return `
+  return `
   --color-primary: ${colors.primary};
   --color-bg: ${colors.background};
   --color-surface: ${colors.surface};
