@@ -100,37 +100,33 @@ jobs:
             grep -v "SECRET\|PASSWORD\|KEY\|DATABASE_URL" .env || true
 
             echo "🐳 Stopping existing containers..."
-            docker compose down -v 2>/dev/null || true
+            docker compose down --rmi local 2>/dev/null || true
 
-            echo "🧹 Pre-build cleanup..."
-            docker system prune -f --volumes 2>/dev/null || true
+            echo "🧹 Pre-build cleanup — reclaim all unused space..."
+            docker system prune -af --volumes 2>/dev/null || true
+            docker builder prune -af 2>/dev/null || true
+
+            echo "📊 Disk space before build:"
+            df -h / | tail -1
 
             echo "⚙️ Configuring Docker for resource-limited environment..."
             # Limit Docker build parallelism to prevent resource exhaustion
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
 
-            echo "🔨 Building containers (sequential build to prevent timeout)..."
-            echo "   📦 Building PostgreSQL..."
-            docker compose build postgres || {
-              echo "❌ Failed to build postgres"
-              exit 1
-            }
+            echo "🔨 Building containers sequentially to conserve disk..."
 
-            echo "   📦 Building services (with build timeout)..."
-            timeout 900s docker compose build --parallel 3 || {
-              echo "⚠️  Parallel build timed out, trying sequential build..."
-              
-              # Try building the most resource-intensive services first
-              echo "   🔨 Building schema-enhancement-engine..."
-              docker compose build schema-enhancement-engine || echo "⚠️ Schema engine build failed"
-              
-              echo "   🔨 Building user-management-service..."  
-              docker compose build user-management-service || echo "⚠️ User service build failed"
-              
-              echo "   🔨 Building remaining services..."
-              docker compose build backend-dto-generator runtime-binding-engine formgen-service api-gateway frontend || echo "⚠️ Some service builds failed"
-            }
+            # Build each service one at a time, pruning build cache between builds
+            for svc in schema-enhancement-engine user-management-service backend-dto-generator runtime-binding-engine formgen-service api-gateway frontend; do
+              echo "   📦 Building $svc..."
+              docker compose build "$svc" || {
+                echo "⚠️  Build failed for $svc, pruning and retrying..."
+                docker builder prune -af 2>/dev/null || true
+                docker compose build "$svc" || echo "❌ $svc build failed"
+              }
+              # Clear build cache after each service to free disk
+              docker builder prune -af 2>/dev/null || true
+            done
 
             echo "🚀 Starting containers..."
             docker compose up -d --no-build

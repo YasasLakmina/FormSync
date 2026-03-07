@@ -27,8 +27,9 @@ WORKDIR /app
 # Compiled output + embedded Handlebars templates (from postbuild cpx step)
 COPY --from=builder /workspace/services/runtime-binding-engine/dist ./dist
 
-# node_modules from builder (avoids reinstall)
-COPY --from=builder /workspace/services/runtime-binding-engine/node_modules ./node_modules
+# Production dependencies only
+COPY services/runtime-binding-engine/package*.json ./
+RUN npm install --omit=dev
 
 EXPOSE 3013
 

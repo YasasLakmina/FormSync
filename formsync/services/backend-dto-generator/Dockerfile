@@ -26,8 +26,9 @@ WORKDIR /app
 # Compiled output + embedded templates (from postbuild cpx step)
 COPY --from=builder /workspace/services/backend-dto-generator/dist ./dist
 
-# node_modules from builder (avoids reinstall)
-COPY --from=builder /workspace/services/backend-dto-generator/node_modules ./node_modules
+# Production dependencies only
+COPY services/backend-dto-generator/package*.json ./
+RUN npm install --omit=dev
 
 EXPOSE 3012
 
