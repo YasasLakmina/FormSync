@@ -1,0 +1,239 @@
+# ============================================================
+#  FormSync — Docker Compose
+#
+#  Services:
+#    postgres                  → PostgreSQL 16         :5432
+#    api-gateway               → Express gateway       :3000
+#    schema-enhancement-engine → NestJS + Prisma       :3010
+#    user-management-service   → NestJS + Prisma       :3011
+#    backend-dto-generator     → Express               :3012
+#    runtime-binding-engine    → Express               :3013
+#    formgen-service           → Express               :3014
+#    frontend                  → React (nginx)         :5173
+#
+#  Usage:
+#    docker compose up --build          # first run
+#    docker compose up -d               # background
+#    docker compose down -v             # stop + remove volumes
+# ============================================================
+
+# ── Shared env for all Node services ─────────────────────────
+x-common-env: &common-env
+  NODE_ENV: production
+  # ── Auth ──────────────────────────────────────────────────
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRES_IN: 7d
+  # ── AI ────────────────────────────────────────────────────
+  OPENAI_API_KEY: ${OPENAI_API_KEY}
+  OPENAI_BASE_URL: https://api.groq.com/openai/v1
+  OPENAI_MODEL: llama-3.3-70b-versatile
+  # ── Database (uses "postgres" Docker service hostname) ────
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  # ── Service ports ─────────────────────────────────────────
+  GATEWAY_PORT: 3000
+  SCHEMA_ENGINE_PORT: 3010
+  USER_SERVICE_PORT: 3011
+  DTO_GENERATOR_PORT: 3012
+  RUNTIME_ENGINE_PORT: 3013
+  FORMGEN_SERVICE_PORT: 3014
+  # ── Internal URLs (Docker service names, not localhost) ───
+  SCHEMA_ENGINE_URL: http://schema-enhancement-engine:3010
+  USER_SERVICE_URL: http://user-management-service:3011
+  DTO_GENERATOR_URL: http://backend-dto-generator:3012
+  RUNTIME_ENGINE_URL: http://runtime-binding-engine:3013
+  FORMGEN_SERVICE_URL: http://formgen-service:3014
+  SCHEMA_API_URL: http://schema-enhancement-engine:3010/schema
+  FRONTEND_URL: http://localhost
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: formsync-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init script runs only on first-time volume creation
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d formsync"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - formsync-net
+
+  # ── Schema Enhancement Engine (NestJS) ─────────────────────
+  schema-enhancement-engine:
+    build:
+      context: .
+      dockerfile: services/schema-enhancement-engine/Dockerfile
+    container_name: formsync-schema-engine
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3010:3010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3010/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - formsync-net
+
+  # ── User Management Service (NestJS) ───────────────────────
+  user-management-service:
+    build:
+      context: .
+      dockerfile: services/user-management-service/Dockerfile
+    container_name: formsync-user-service
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3011:3011"
+    depends_on:
+      # Wait for schema-engine to finish its migrations first (shared DB, avoid race)
+      schema-enhancement-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3011/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - formsync-net
+
+  # ── Backend DTO Generator (Express) ────────────────────────
+  backend-dto-generator:
+    build:
+      context: .
+      dockerfile: services/backend-dto-generator/Dockerfile
+    container_name: formsync-dto-generator
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3012:3012"
+    depends_on:
+      - schema-enhancement-engine
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3012/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - formsync-net
+
+  # ── Runtime Binding Engine (Express) ───────────────────────
+  runtime-binding-engine:
+    build:
+      context: .
+      dockerfile: services/runtime-binding-engine/Dockerfile
+    container_name: formsync-runtime-engine
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3013:3013"
+    depends_on:
+      - schema-enhancement-engine
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3013/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - formsync-net
+
+  # ── Formgen Service (Express) ───────────────────────────────
+  formgen-service:
+    build:
+      context: .
+      dockerfile: services/formgen-service/Dockerfile
+    container_name: formsync-formgen
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3014:3014"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3014/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - formsync-net
+
+  # ── API Gateway (Express) ───────────────────────────────────
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: formsync-gateway
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3000:3000"
+    depends_on:
+      schema-enhancement-engine:
+        condition: service_healthy
+      user-management-service:
+        condition: service_healthy
+      backend-dto-generator:
+        condition: service_started
+      runtime-binding-engine:
+        condition: service_started
+      formgen-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - formsync-net
+
+  # ── Frontend (React → nginx) ────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: formsync-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - formsync-net
+
+# ── Volumes ──────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────
+networks:
+  formsync-net:
+    driver: bridge
