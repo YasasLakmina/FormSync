@@ -117,17 +117,12 @@ export const GeneratedCodePage: React.FC = () => {
         setIsLoading(true);
         try {
           // Fetch schema
-          const response = await fetch(`/schema/${schemaId}`);
+          const response = await fetch(`/api/schema/${schemaId}`);
           if (!response.ok) throw new Error('Failed to fetch schema');
 
           const schemaData = await response.json();
-          // Ideally schemaData is the schema object or has content. 
-          // Based on EditorPage: "content: currentSchema", so the API likely returns the DB record.
-          // Let's assume schemaData.content is the actual schema or schemaData itself if it IS the schema.
-          // EditorPage saves: { name, description, content, ... }
-          // So we likely need schemaData.content
-
-          const schema = schemaData.content || schemaData;
+          // Extract the content field from the DB record
+          const schema = schemaData.content;
 
           // Generate code
           const result = await generationService.generateAll(schema);

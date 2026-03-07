@@ -27,8 +27,10 @@ export const generationService = {
    * Generate all code from validated schema
    */
   async generateAll(validatedSchema: any): Promise<GenerateResponse> {
+    // Extract content if the schema is a DB record wrapper
+    const actualSchema = validatedSchema.content || validatedSchema;
     // Generate code client-side from the schema (no external service required)
-    return this.generateFromSchema(validatedSchema);
+    return this.generateFromSchema(actualSchema);
   },
 
   /**
@@ -36,10 +38,13 @@ export const generationService = {
    * from the runtime-binding-engine via the API gateway.
    */
   async downloadBackendZip(schema: any, filename: string = 'springboot-server.zip'): Promise<void> {
+    // Extract content if the schema is a DB record wrapper
+    const actualSchema = schema.content || schema;
+    
     const response = await fetch(`${API_GATEWAY_URL}/runtime/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ schema }),
+      body: JSON.stringify({ schema: actualSchema }),
     });
 
     if (!response.ok) {
@@ -116,8 +121,10 @@ export const generationService = {
    * Download generated code as ZIP
    */
   async downloadZip(validatedSchema: any, _filename: string = 'generated-project'): Promise<void> {
+    // Extract content if the schema is a DB record wrapper
+    const actualSchema = validatedSchema.content || validatedSchema;
     // Generate client-side and download as individual files (no ZIP service needed)
-    const result = this.generateFromSchema(validatedSchema);
+    const result = this.generateFromSchema(actualSchema);
     if (!result.success || !result.data) throw new Error('Generation failed');
 
     const files: { name: string; content: string }[] = [
