@@ -25,7 +25,7 @@ export const RegisterPage: React.FC = () => {
         setIsLoading(true);
         try {
             await register(email, password, name || undefined);
-            toast.success('Account created! Welcome to FormSync 🎉');
+            toast.success('Account created! Welcome to FormSync');
             navigate('/');
         } catch (err: any) {
             toast.error(err.message || 'Registration failed');
