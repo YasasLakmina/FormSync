@@ -7,7 +7,7 @@
  * - Improved UX and button styling
  */
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import {
@@ -40,6 +40,14 @@ import {
   LifeBuoy,
   ShoppingCart,
   Layers,
+  LayoutTemplate,
+  PenLine,
+  Wand2,
+  X,
+  ChevronRight,
+  RotateCcw,
+  RotateCw,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -64,8 +72,8 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
+  AlertDialogTitle as AlertDialogTitle_,
+  AlertDialogDescription as AlertDialogDescription_,
   AlertDialogCancel,
 } from "./ui/alert-dialog";
 import { schemaApi } from "../api/schemaApi";
@@ -539,6 +547,7 @@ interface SortableFieldItemProps {
   onToggleRequired: (id: string) => void;
   onRemove: (id: string) => void;
   onEdit: (id: string) => void;
+  onDuplicate: (id: string) => void;
   isDragOverlay?: boolean;
 }
 
@@ -586,6 +595,94 @@ const TYPE_CONFIG: Record<
 
 const getTypeConfig = (type: string) => TYPE_CONFIG[type] || TYPE_CONFIG.string;
 
+const TYPE_LABELS: Record<string, string> = {
+  string: "Text",
+  number: "Number",
+  integer: "Integer",
+  boolean: "Yes / No",
+  array: "List",
+  object: "Group",
+};
+const getTypeLabel = (type: string) => TYPE_LABELS[type] ?? type;
+
+const FIELD_EXAMPLES: Record<string, string> = {
+  "string:email": "e.g. john@example.com",
+  "string:uri": "e.g. https://example.com",
+  "string:date": "e.g. 2026-03-07",
+  "string:date-time": "e.g. 2026-03-07T09:00:00Z",
+  "string:time": "e.g. 09:00",
+  "string:": "e.g. Hello World",
+  "number:": "e.g. 42",
+  "integer:": "e.g. 5",
+  "boolean:": "true or false (checkbox / toggle)",
+  "array:": 'e.g. ["item1", "item2"]',
+  "object:": 'e.g. { "key": "value" }',
+};
+const getFieldExample = (type: string, format?: string) =>
+  FIELD_EXAMPLES[`${type}:${format ?? ""}`] ??
+  FIELD_EXAMPLES[`${type}:`] ??
+  null;
+
+// Smart field auto-detection
+interface DetectionHint {
+  type: string;
+  format?: string;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const DETECTION_RULES: Array<{ patterns: RegExp[]; hint: DetectionHint }> = [
+  {
+    patterns: [/email/i],
+    hint: { type: "string", format: "email", label: "Email field", icon: <Mail className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/phone|mobile|tel|cell/i],
+    hint: { type: "string", label: "Phone field", icon: <Phone className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/url|website|link|href|site/i],
+    hint: { type: "string", format: "uri", label: "URL field", icon: <Link className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/(^|_)date($|_)|birthday|birth_date|dob/i],
+    hint: { type: "string", format: "date", label: "Date field", icon: <Calendar className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/^age$|^count$|quantity|price|amount|score|rating|weight|height|total|qty/i],
+    hint: { type: "number", label: "Number field", icon: <Hash className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/^is_|^has_|accept|agree|term|consent|remember|subscribe|active|verified|enabled/i],
+    hint: { type: "boolean", label: "Yes / No field", icon: <ToggleRight className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/password|passwd/i],
+    hint: { type: "string", label: "Password field", icon: <Lock className="h-3 w-3" /> },
+  },
+  {
+    patterns: [/description|message|comment|bio|note|details|content|body|summary/i],
+    hint: { type: "string", label: "Long text field", icon: <AlignLeft className="h-3 w-3" /> },
+  },
+];
+
+const detectFieldType = (name: string): DetectionHint | null => {
+  if (!name.trim()) return null;
+  for (const rule of DETECTION_RULES) {
+    if (rule.patterns.some((p) => p.test(name))) return rule.hint;
+  }
+  return null;
+};
+
+const TYPE_HINTS: Record<string, string> = {
+  string: "Stores any text — names, messages, descriptions",
+  number: "Stores numeric values — age, price, count",
+  integer: "Stores whole numbers — quantity, step count",
+  boolean: "A true / false value — checkbox, toggle",
+  array: "A list of multiple items in order",
+  object: "A group of nested fields",
+};
+
 const FieldCard: React.FC<
   SortableFieldItemProps & { dragHandleProps?: any }
 > = ({
@@ -594,6 +691,7 @@ const FieldCard: React.FC<
   onToggleRequired,
   onRemove,
   onEdit,
+  onDuplicate,
   isDragOverlay = false,
   dragHandleProps,
 }) => {
@@ -643,7 +741,7 @@ const FieldCard: React.FC<
             } ${tc.color} ${tc.border}`}
           >
             {tc.icon}
-            {field.type}
+            {getTypeLabel(field.type)}
           </span>
           {field.description && (
             <span className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
@@ -665,6 +763,13 @@ const FieldCard: React.FC<
           }`}
         >
           <Check className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => onDuplicate(field.id)}
+          title="Duplicate field"
+          className="p-1.5 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:bg-violet-100 dark:hover:bg-violet-950/40 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+        >
+          <Copy className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={() => onEdit(field.id)}
@@ -730,9 +835,24 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
+  const [hoveredTemplate, setHoveredTemplate] = useState<string>(SCHEMA_TEMPLATES[0].name);
+
+  // Smart detection state
+  const [detectedHint, setDetectedHint] = useState<DetectionHint | null>(null);
+  const [hintDismissed, setHintDismissed] = useState(false);
+  const [pendingFormat, setPendingFormat] = useState<string | undefined>(undefined);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Schema name state
   const [schemaName, setSchemaName] = useState("");
+
+  // Undo / redo history
+  const [undoStack, setUndoStack] = useState<SchemaField[][]>([]);
+  const [redoStack, setRedoStack] = useState<SchemaField[][]>([]);
+
+  // Template modal search
+  const [templateSearch, setTemplateSearch] = useState("");
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -743,6 +863,39 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  // ── History helpers ──────────────────────────────────────────────────
+  const setFieldsWithHistory = (newFields: SchemaField[]) => {
+    setUndoStack((prev) => [...prev, fields]);
+    setRedoStack([]);
+    setFields(newFields);
+  };
+
+  const undo = () => {
+    if (undoStack.length === 0) return;
+    const prev = undoStack[undoStack.length - 1];
+    setRedoStack((r) => [...r, fields]);
+    setUndoStack((s) => s.slice(0, -1));
+    setFields(prev);
+    toast.success("Undone");
+  };
+
+  const redo = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack((s) => [...s, fields]);
+    setRedoStack((r) => r.slice(0, -1));
+    setFields(next);
+    toast.success("Redone");
+  };
+
+  const clearAll = () => {
+    if (fields.length === 0) return;
+    setFieldsWithHistory([]);
+    setSchemaName("");
+    toast.success("Cleared — undo to restore");
+  };
+  // ─────────────────────────────────────────────────────────────────────
 
   const addField = () => {
     if (!newFieldName.trim()) {
@@ -756,21 +909,25 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       type: newFieldType,
       required: false,
       description: newFieldDescription || undefined,
+      ...(pendingFormat && { format: pendingFormat }),
     };
 
-    setFields([...fields, newField]);
+    setFieldsWithHistory([...fields, newField]);
     setNewFieldName("");
     setNewFieldDescription("");
+    setDetectedHint(null);
+    setHintDismissed(false);
+    setPendingFormat(undefined);
     toast.success("Field added successfully");
   };
 
   const removeField = (id: string) => {
-    setFields(fields.filter((f) => f.id !== id));
+    setFieldsWithHistory(fields.filter((f) => f.id !== id));
     toast.success("Field removed");
   };
 
   const toggleRequired = (id: string) => {
-    setFields(
+    setFieldsWithHistory(
       fields.map((f) => (f.id === id ? { ...f, required: !f.required } : f)),
     );
   };
@@ -784,13 +941,26 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       required: template.name === "email" || template.name === "password", // Email and password required by default
       description: template.description,
     };
-    setFields([...fields, newField]);
+    setFieldsWithHistory([...fields, newField]);
     toast.success(`${template.name} field added!`);
   };
 
   // Update field properties (for validation editing)
   const updateField = (id: string, updates: Partial<SchemaField>) => {
     setFields(fields.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+  };
+
+  const duplicateField = (id: string) => {
+    const field = fields.find((f) => f.id === id);
+    if (!field) return;
+    const copy: SchemaField = {
+      ...field,
+      id: `field-${Date.now()}`,
+      name: `${field.name}_copy`,
+    };
+    const idx = fields.findIndex((f) => f.id === id);
+    setFieldsWithHistory([...fields.slice(0, idx + 1), copy, ...fields.slice(idx + 1)]);
+    toast.success(`Duplicated "${field.name}"`);
   };
 
   // Handle drag end for reordering
@@ -802,11 +972,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     setActiveId(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setFields((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
+      const oldIndex = fields.findIndex((item) => item.id === active.id);
+      const newIndex = fields.findIndex((item) => item.id === over.id);
+      setFieldsWithHistory(arrayMove(fields, oldIndex, newIndex));
     }
   };
 
@@ -820,7 +988,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         ...field,
         id: `field-${Date.now()}-${Math.random()}`,
       }));
-      setFields(newFields);
+      setFieldsWithHistory(newFields);
       // Auto-fill schema name from template
       setSchemaName(template.name);
       toast.success(`Loaded ${template.name} template!`);
@@ -948,13 +1116,56 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 Name <span className="text-purple-500">*</span>
               </label>
               <input
+                ref={nameInputRef}
                 type="text"
                 placeholder="e.g., email, username"
                 value={newFieldName}
-                onChange={(e) => setNewFieldName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewFieldName(val);
+                  setHintDismissed(false);
+                  setPendingFormat(undefined);
+                  setDetectedHint(detectFieldType(val));
+                }}
                 onKeyDown={(e) => e.key === "Enter" && addField()}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
               />
+              {/* Auto-detection chip */}
+              <AnimatePresence>
+                {detectedHint && !hintDismissed && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="flex items-center gap-2 mt-1.5 px-2.5 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800"
+                  >
+                    <Wand2 className="h-3 w-3 text-violet-500 flex-shrink-0" />
+                    <span className="text-[11px] text-violet-700 dark:text-violet-300 flex-1 font-medium truncate">
+                      {detectedHint.label} detected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewFieldType(detectedHint.type);
+                        setPendingFormat(detectedHint.format);
+                        setHintDismissed(true);
+                        toast.success(`Type set to ${detectedHint.label}`);
+                      }}
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 transition-colors flex-shrink-0"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHintDismissed(true)}
+                      className="text-violet-400 hover:text-violet-600 transition-colors flex-shrink-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div>
@@ -964,17 +1175,33 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
               <div className="relative">
                 <select
                   value={newFieldType}
-                  onChange={(e) => setNewFieldType(e.target.value)}
+                  onChange={(e) => {
+                    setNewFieldType(e.target.value);
+                    setPendingFormat(undefined);
+                  }}
                   className="w-full appearance-none px-3 py-2 text-sm border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all pr-8"
                 >
-                  <option value="string">String</option>
+                  <option value="string">Text</option>
                   <option value="number">Number</option>
-                  <option value="boolean">Boolean</option>
-                  <option value="array">Array</option>
-                  <option value="object">Object</option>
+                  <option value="boolean">Yes / No</option>
+                  <option value="array">List</option>
+                  <option value="object">Group</option>
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
               </div>
+              {/* Contextual type hint */}
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={newFieldType}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1.5 leading-snug"
+                >
+                  {TYPE_HINTS[newFieldType]}
+                </motion.p>
+              </AnimatePresence>
             </div>
 
             <div>
@@ -1040,7 +1267,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       {/* Center Panel - Field List */}
       <Card className="flex-1 border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
         <CardHeader className="border-b border-neutral-200 dark:border-neutral-800">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-purple-500" />
               <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
@@ -1050,19 +1277,78 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                 </span>
               </CardTitle>
             </div>
-            <Button
-              onClick={handleUseSchema}
-              disabled={fields.length === 0}
-              size="sm"
-              className="gap-1.5 bg-white dark:bg-neutral-900 border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20 text-xs disabled:opacity-40 disabled:cursor-not-allowed shadow-none"
-            >
-              <Check className="h-3.5 w-3.5" />
-              Use in Editor
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {fields.length > 0 && (
+                <>
+                  <button
+                    onClick={undo}
+                    disabled={undoStack.length === 0}
+                    title="Undo"
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={redo}
+                    disabled={redoStack.length === 0}
+                    title="Redo"
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <RotateCw className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="w-px h-4 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
+                  <button
+                    onClick={clearAll}
+                    title="Clear all fields"
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="w-px h-4 bg-neutral-200 dark:bg-neutral-700 mx-0.5" />
+                </>
+              )}
+              <Button
+                onClick={handleUseSchema}
+                disabled={fields.length === 0}
+                size="sm"
+                className="gap-1.5 bg-white dark:bg-neutral-900 border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20 text-xs disabled:opacity-40 disabled:cursor-not-allowed shadow-none"
+              >
+                <Check className="h-3.5 w-3.5" />
+                Use in Editor
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
           {/* Template Button - Opens Modal */}
           <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 mt-2">
+            {/* Field health hints */}
+            {fields.length > 0 && (() => {
+              const noDesc = fields.filter((f) => !f.description).length;
+              const noValidation = fields.filter((f) =>
+                f.type === "string"
+                  ? !f.minLength && !f.maxLength && !f.format && !f.pattern
+                  : f.type === "number" || f.type === "integer"
+                  ? f.minimum === undefined && f.maximum === undefined
+                  : false,
+              ).length;
+              if (noDesc === 0 && noValidation === 0) return null;
+              return (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {noDesc > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                      <span className="w-1 h-1 rounded-full bg-amber-500" />
+                      {noDesc} field{noDesc !== 1 ? "s" : ""} missing description
+                    </span>
+                  )}
+                  {noValidation > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800">
+                      <span className="w-1 h-1 rounded-full bg-sky-500" />
+                      {noValidation} field{noValidation !== 1 ? "s" : ""} without validation
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
             <Button
               onClick={() => setShowTemplateModal(true)}
               variant="outline"
@@ -1075,20 +1361,103 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
           </div>
         </CardHeader>
         <CardContent className="pt-6">
+          <AnimatePresence mode="wait">
           {fields.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-xl font-bold text-neutral-700 dark:text-neutral-200 mb-2">
-                No Fields Yet
-              </p>
-              <p className="text-sm text-neutral-500 mb-4">
-                Add fields from the left panel to build your schema
-              </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
-                <span className="text-sm text-indigo-700 dark:text-indigo-300">
-                  ← Start by adding your first field
-                </span>
+            <motion.div
+              key="onboarding"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.22 }}
+              className="py-8 px-4"
+            >
+              <motion.div
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.05, duration: 0.4, type: "spring", stiffness: 180 }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center mx-auto mb-5 shadow-sm"
+              >
+                <Layers className="h-8 w-8 text-purple-400" />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12, duration: 0.28 }}
+                className="text-center mb-7"
+              >
+                <h3 className="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">
+                  Let's build your schema
+                </h3>
+                <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                  Choose how you want to get started
+                </p>
+              </motion.div>
+
+              <div className="flex flex-col gap-2.5 w-full max-w-xs mx-auto">
+                {[
+                  {
+                    icon: <LayoutTemplate className="h-5 w-5" />,
+                    label: "Use a Template",
+                    description: "Pick from 9 ready-made schemas",
+                    color: "purple" as const,
+                    onClick: () => setShowTemplateModal(true),
+                  },
+                  {
+                    icon: <PenLine className="h-5 w-5" />,
+                    label: "Add Fields Myself",
+                    description: "Build it field by field",
+                    color: "blue" as const,
+                    onClick: () => setTimeout(() => nameInputRef.current?.focus(), 50),
+                  },
+                ].map((opt, i) => (
+                  <motion.button
+                    key={opt.label}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + i * 0.09, duration: 0.3, ease: "easeOut" }}
+                    whileHover={{ scale: 1.012, transition: { duration: 0.12 } }}
+                    whileTap={{ scale: 0.978 }}
+                    onClick={opt.onClick}
+                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left transition-colors group ${
+                      opt.color === "purple"
+                        ? "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/40 hover:border-purple-300 dark:hover:border-purple-700"
+                        : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700"
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                        opt.color === "purple"
+                          ? "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/60"
+                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/60"
+                      }`}
+                    >
+                      {opt.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`text-sm font-bold mb-0.5 ${
+                          opt.color === "purple"
+                            ? "text-purple-900 dark:text-purple-100"
+                            : "text-blue-900 dark:text-blue-100"
+                        }`}
+                      >
+                        {opt.label}
+                      </div>
+                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                        {opt.description}
+                      </div>
+                    </div>
+                    <ArrowRight
+                      className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-1 ${
+                        opt.color === "purple"
+                          ? "text-purple-300"
+                          : "text-blue-300"
+                      }`}
+                    />
+                  </motion.button>
+                ))}
               </div>
-            </div>
+            </motion.div>
           ) : (
             <DndContext
               sensors={sensors}
@@ -1110,6 +1479,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                         onToggleRequired={toggleRequired}
                         onRemove={removeField}
                         onEdit={() => setExpandedFieldId(field.id)}
+                        onDuplicate={duplicateField}
                       />
                     ))}
                   </div>
@@ -1133,6 +1503,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                       onToggleRequired={() => {}}
                       onRemove={() => {}}
                       onEdit={() => {}}
+                      onDuplicate={() => {}}
                       isDragOverlay
                       dragHandleProps={{}}
                     />
@@ -1141,6 +1512,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
               </DragOverlay>
             </DndContext>
           )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 
@@ -1200,62 +1572,279 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         </div>
       </div>
 
-      {/* Template Selection Modal */}
-      <AlertDialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
-        <AlertDialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl">
-          {/* Modal Header */}
-          <div className="px-7 pt-7 pb-5 border-b border-neutral-100 dark:border-neutral-800">
-            <div className="flex items-center gap-3 mb-1">
-              <span className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center">
-                <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              </span>
-              <AlertDialogTitle className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-                Quick Start Templates
-              </AlertDialogTitle>
+      {/* Template Selection Modal — split-panel layout */}
+      <AnimatePresence>
+        {showTemplateModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="template-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={() => { setShowTemplateModal(false); setTemplateSearch(""); }}
+              className="fixed inset-0 bg-black/60 z-50"
+            />
+            {/* Centering wrapper — static, pointer-events-none so backdrop clicks still close */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            {/* Panel */}
+            <motion.div
+              key="template-panel"
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 6 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-neutral-900 flex pointer-events-auto"
+              style={{ height: "540px" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => { setShowTemplateModal(false); setTemplateSearch(""); }}
+                className="absolute top-3 right-3 z-10 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {/* ── Left: scrollable card list ── */}
+              <div className="w-72 flex-shrink-0 flex flex-col border-r border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/60">
+                {/* Header */}
+                <div className="px-4 pt-5 pb-4 border-b border-neutral-100 dark:border-neutral-800">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className="w-6 h-6 rounded-md bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center flex-shrink-0">
+                      <Layers className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                      Quick Start Templates
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400 mt-0.5 ml-8">
+                    {SCHEMA_TEMPLATES.length} ready-made schemas
+                  </p>
+                </div>
+
+                {/* Search */}
+                <div className="px-3 py-2.5 border-b border-neutral-100 dark:border-neutral-800">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search templates..."
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Cards */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                  {(() => {
+                    const filtered = SCHEMA_TEMPLATES.filter(
+                      (t) =>
+                        t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+                        t.description.toLowerCase().includes(templateSearch.toLowerCase()),
+                    );
+                    if (filtered.length === 0)
+                      return (
+                        <div className="py-10 text-center">
+                          <p className="text-xs text-neutral-400 dark:text-neutral-500">No templates found</p>
+                        </div>
+                      );
+                    return filtered.map((template, i) => {
+                      const cfg = TEMPLATE_CONFIG[template.name] ?? { icon: <FileJson className="h-4 w-4" /> };
+                      const isActive = hoveredTemplate === template.name;
+                      return (
+                        <motion.button
+                          key={template.name}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.03, duration: 0.2, ease: "easeOut" }}
+                          onMouseEnter={() => setHoveredTemplate(template.name)}
+                          onClick={() => {
+                            if (fields.length > 0) {
+                              setPendingTemplate(template.name);
+                            } else {
+                              loadSchemaTemplate(template.name);
+                              setShowTemplateModal(false);
+                              setTemplateSearch("");
+                            }
+                          }}
+                          className={`w-full p-3 text-left rounded-xl border transition-all duration-150 ${
+                            isActive
+                              ? "bg-white dark:bg-neutral-900 border-purple-200 dark:border-purple-700 shadow-sm"
+                              : "border-neutral-100 dark:border-neutral-700/60 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:border-neutral-200 dark:hover:border-neutral-600"
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <span className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${isActive ? "bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500"}`}>
+                              {cfg.icon}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-xs font-semibold truncate ${isActive ? "text-purple-700 dark:text-purple-300" : "text-neutral-800 dark:text-neutral-200"}`}>
+                                {template.name}
+                              </div>
+                              <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">
+                                {template.description}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 font-medium">
+                                  {template.fields.length} fields
+                                </span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isActive ? "bg-purple-100 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500"}`}>
+                                  {template.fields.filter((f) => f.required).length} required
+                                </span>
+                              </div>
+                            </div>
+                            {isActive && <ChevronRight className="h-3.5 w-3.5 text-purple-400 flex-shrink-0 mt-2" />}
+                          </div>
+                        </motion.button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* ── Right: animated detail panel ── */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-900">
+                <AnimatePresence mode="wait">
+                  {(() => {
+                    const template = SCHEMA_TEMPLATES.find((t) => t.name === hoveredTemplate);
+                    if (!template) return null;
+                    const cfg = TEMPLATE_CONFIG[template.name] ?? { icon: <FileJson className="h-5 w-5" /> };
+                    return (
+                      <motion.div
+                        key={template.name}
+                        initial={{ opacity: 0, x: 16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="flex flex-col h-full"
+                      >
+                        {/* Detail header */}
+                        <div className="px-7 pt-6 pb-5 border-b border-neutral-100 dark:border-neutral-800">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-400">
+                              {cfg.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-0.5">
+                                {template.name}
+                              </h3>
+                              <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                                {template.description}
+                              </p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                                  {template.fields.length} fields total
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 text-xs text-purple-500 dark:text-purple-400">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                                  {template.fields.filter((f) => f.required).length} required
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Field list */}
+                        <div className="flex-1 overflow-y-auto px-7 py-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Fields</p>
+                          <div className="space-y-2">
+                            {template.fields.map((f, idx) => {
+                              const tc = getTypeConfig(f.type);
+                              return (
+                                <motion.div
+                                  key={f.name}
+                                  initial={{ opacity: 0, y: 6 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: idx * 0.04, duration: 0.18 }}
+                                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800"
+                                >
+                                  <span className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${tc.bg} ${tc.color}`}>
+                                    {tc.icon}
+                                  </span>
+                                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex-1 truncate">
+                                    {f.name}
+                                  </span>
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium border ${tc.bg} ${tc.color} ${tc.border}`}>
+                                    {getTypeLabel(f.type)}
+                                  </span>
+                                  {f.required ? (
+                                    <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded-md flex-shrink-0">req</span>
+                                  ) : (
+                                    <span className="text-[10px] text-neutral-300 dark:text-neutral-600 flex-shrink-0">opt</span>
+                                  )}
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* CTA */}
+                        <div className="px-7 py-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/30">
+                          <motion.button
+                            whileHover={{ scale: 1.015 }}
+                            whileTap={{ scale: 0.985 }}
+                            onClick={() => {
+                              if (fields.length > 0) {
+                                setPendingTemplate(template.name);
+                              } else {
+                                loadSchemaTemplate(template.name);
+                                setShowTemplateModal(false);
+                                setTemplateSearch("");
+                              }
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors"
+                          >
+                            <Check className="h-4 w-4" />
+                            Use {template.name}
+                            <ArrowRight className="h-4 w-4" />
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
+                </AnimatePresence>
+              </div>
+            </motion.div>
             </div>
-            <AlertDialogDescription className="text-sm text-neutral-500 ml-11">
-              Choose a pre-built template to get started quickly
-            </AlertDialogDescription>
-          </div>
+          </>
+        )}
+      </AnimatePresence>
 
-          {/* Template Grid */}
-          <div className="grid grid-cols-3 gap-3 p-6 max-h-[460px] overflow-y-auto">
-            {SCHEMA_TEMPLATES.map((template) => {
-              const cfg = TEMPLATE_CONFIG[template.name] ?? {
-                icon: <FileJson className="h-4 w-4" />,
-              };
-              return (
-                <button
-                  key={template.name}
-                  onClick={() => {
-                    loadSchemaTemplate(template.name);
-                    setShowTemplateModal(false);
-                  }}
-                  className="group text-left p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-purple-400 dark:hover:border-purple-600 hover:shadow-sm transition-all duration-150"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3 text-neutral-500 dark:text-neutral-400 group-hover:bg-purple-100 dark:group-hover:bg-purple-950/40 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                    {cfg.icon}
-                  </div>
-                  <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100 mb-1">
-                    {template.name}
-                  </div>
-                  <div className="text-xs text-neutral-400 dark:text-neutral-500">
-                    {template.description}
-                  </div>
-                  <div className="mt-3 text-[11px] text-neutral-400 dark:text-neutral-500">
-                    {template.fields.length} fields &middot;{" "}
-                    {template.fields.filter((f) => f.required).length} required
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-end bg-neutral-50 dark:bg-neutral-950/40">
-            <AlertDialogCancel className="mt-0 rounded-lg border border-neutral-200 dark:border-neutral-700 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-              Cancel
+      {/* Replace Confirmation Dialog */}
+      <AlertDialog open={!!pendingTemplate} onOpenChange={() => setPendingTemplate(null)}>
+        <AlertDialogContent className="max-w-sm rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle_>Replace current fields?</AlertDialogTitle_>
+            <AlertDialogDescription_>
+              This will replace your {fields.length} current field
+              {fields.length !== 1 ? "s" : ""} with the{" "}
+              <strong>{pendingTemplate}</strong> template. This cannot be undone.
+            </AlertDialogDescription_>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <AlertDialogCancel
+              className="mt-0 rounded-lg border border-neutral-200 dark:border-neutral-700 text-sm font-medium"
+              onClick={() => setPendingTemplate(null)}
+            >
+              Keep mine
             </AlertDialogCancel>
+            <button
+              onClick={() => {
+                if (pendingTemplate) {
+                  loadSchemaTemplate(pendingTemplate);
+                  setPendingTemplate(null);
+                  setShowTemplateModal(false);
+                }
+              }}
+              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors"
+            >
+              Replace
+            </button>
           </div>
         </AlertDialogContent>
       </AlertDialog>
@@ -1273,12 +1862,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
             >
               <AlertDialogContent className="max-w-2xl">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>
+                  <AlertDialogTitle_>
                     Edit Field: {editField.name}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
+                  </AlertDialogTitle_>
+                  <AlertDialogDescription_>
                     Modify field properties and validation rules
-                  </AlertDialogDescription>
+                  </AlertDialogDescription_>
                 </AlertDialogHeader>
 
                 <div className="space-y-4 my-4">
@@ -1312,12 +1901,12 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           }
                           className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
                         >
-                          <option value="string">String</option>
+                          <option value="string">Text</option>
                           <option value="number">Number</option>
                           <option value="integer">Integer</option>
-                          <option value="boolean">Boolean</option>
-                          <option value="array">Array</option>
-                          <option value="object">Object</option>
+                          <option value="boolean">Yes / No</option>
+                          <option value="array">List</option>
+                          <option value="object">Group</option>
                         </select>
                       </div>
                       <div className="col-span-2">
@@ -1336,6 +1925,16 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           placeholder="Optional description"
                         />
                       </div>
+                      {/* Contextual example hint */}
+                      {(() => {
+                        const ex = getFieldExample(editField.type, editField.format);
+                        return ex ? (
+                          <div className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-800">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 flex-shrink-0">Example</span>
+                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">{ex}</span>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
 

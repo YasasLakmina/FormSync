@@ -65,6 +65,8 @@ const SchemaLoader: React.FC = () => {
         const loadAndSave = async () => {
           try {
             const schema = JSON.parse(pending);
+            // Keep raw schema accessible for GeneratedCodePage (separate key, not removed here)
+            sessionStorage.setItem("formsync_schema_raw", pending);
             // Convert to FormModel and load into builder
             const formModel = parseJsonSchemaToFormModel(schema);
             dispatch({ type: "UPDATE_FORM", payload: formModel });

@@ -217,7 +217,18 @@ export const EditorPage: React.FC = () => {
 
   // User chose to save as template then go to builder
   const handleSaveAndNavigate = async () => {
-    if (!currentSchema || !user?.id) return;
+    if (!currentSchema) return;
+
+    // If not logged in, fall back to skip-save navigation
+    if (!user?.id) {
+      toast.info("Sign in to save templates to your library.", {
+        description: "Proceeding to Form Builder without saving.",
+        duration: 3500,
+      });
+      handleSkipAndNavigate();
+      return;
+    }
+
     setIsSaving(true);
     setNameConflictError(null);
     try {
@@ -255,7 +266,14 @@ export const EditorPage: React.FC = () => {
       sessionStorage.removeItem("formsync_pending_schema");
       goToBuilder(savedSchema.id);
     } catch (error) {
-      toast.error("Failed to save template. Please try again.");
+      toast.error("Failed to save template.", {
+        description: "Proceeding to Form Builder without saving.",
+        duration: 3500,
+        action: {
+          label: "Go anyway",
+          onClick: () => handleSkipAndNavigate(),
+        },
+      });
     } finally {
       setIsSaving(false);
     }

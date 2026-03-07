@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { LeftPanel } from "./LeftPanel";
 import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
 import { exportReactApp } from "./export-handler";
+import { generationService } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
@@ -12,6 +14,7 @@ import { Button } from "../components/ui/button";
 
 export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
+  const navigate = useNavigate();
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -57,8 +60,25 @@ export const BuilderLayout: React.FC = () => {
         markStage(name, "complete");
       }
       markStage("Frontend Generation", "complete");
-      const dest = state.schemaId ? `/generated?schemaId=${state.schemaId}` : "/generated";
-      window.location.href = dest;
+
+      if (state.schemaId) {
+        // Schema is saved — GeneratedCodePage can fetch it by ID
+        window.location.href = `/generated?schemaId=${state.schemaId}`;
+      } else {
+        // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
+        const rawSchemaStr = sessionStorage.getItem("formsync_schema_raw");
+        if (rawSchemaStr) {
+          const schema = JSON.parse(rawSchemaStr);
+          const result = generationService.generateFromSchema(schema);
+          sessionStorage.removeItem("formsync_schema_raw");
+          if (result.success && result.data) {
+            navigate("/generated", { state: { generatedCode: result.data, schema } });
+            return;
+          }
+        }
+        // Final fallback — no schema context available
+        window.location.href = "/generated";
+      }
     } catch {
       alert("Generation failed. Please try again.");
       setStages((prev) => prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)));
