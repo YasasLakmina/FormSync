@@ -1,19 +1,19 @@
 /**
  * Generated Code Results Page
- * 
+ *
  * Displays all generated code from the pipeline with download options
  */
 
-import React from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { PageTransition } from '../components/layout/PageTransition';
-import { PipelineViewer } from '../components/editor/PipelineViewer';
-import { Button } from '../components/ui/button';
-import { ArrowLeft, Home } from 'lucide-react';
+import React from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { PageTransition } from "../components/layout/PageTransition";
+import { PipelineViewer } from "../components/editor/PipelineViewer";
+import { Button } from "../components/ui/button";
+import { ArrowLeft, Home } from "lucide-react";
 
-import { toast } from 'sonner';
-import { generationService } from '../services/generationService';
-import { FlowDiagram } from '../components/shared/FlowDiagram';
+import { toast } from "sonner";
+import { generationService } from "../services/generationService";
+import { FlowDiagram } from "../components/shared/FlowDiagram";
 
 interface GeneratedCode {
   frontend: string;
@@ -86,29 +86,31 @@ export class CreateUserDto {
   @Min(18)
   age: number;
 }`,
-  tests: `// Tests Pending Generation...`
+  tests: `// Tests Pending Generation...`,
 };
 
 export const GeneratedCodePage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
-  const schemaId = query.get('schemaId');
+  const schemaId = query.get("schemaId");
 
-  const [localState, setLocalState] = React.useState<LocationState | null>(location.state as LocationState);
+  const [localState, setLocalState] = React.useState<LocationState | null>(
+    location.state as LocationState,
+  );
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
 
   // Define stages for the progress bar
   const completionStages: any[] = [
-    { name: 'Enter Schema', status: 'complete', progress: 100 },
-    { name: 'Input Validation', status: 'complete', progress: 100 },
-    { name: 'Schema Conversion', status: 'complete', progress: 100 },
-    { name: 'AI Enhancement', status: 'complete', progress: 100 },
-    { name: 'Frontend Generation', status: 'complete', progress: 100 },
-    { name: 'Backend Generation', status: 'complete', progress: 100 },
-    { name: 'DTO Generation', status: 'complete', progress: 100 },
-    { name: 'Test Generation', status: 'complete', progress: 100 },
+    { name: "Enter Schema", status: "complete", progress: 100 },
+    { name: "Input Validation", status: "complete", progress: 100 },
+    { name: "Schema Conversion", status: "complete", progress: 100 },
+    { name: "AI Enhancement", status: "complete", progress: 100 },
+    { name: "Frontend Generation", status: "complete", progress: 100 },
+    { name: "Backend Generation", status: "complete", progress: 100 },
+    { name: "DTO Generation", status: "complete", progress: 100 },
+    { name: "Test Generation", status: "complete", progress: 100 },
   ];
 
   React.useEffect(() => {
@@ -118,7 +120,7 @@ export const GeneratedCodePage: React.FC = () => {
         try {
           // Fetch schema
           const response = await fetch(`/api/schema/${schemaId}`);
-          if (!response.ok) throw new Error('Failed to fetch schema');
+          if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
           // Extract the content field from the DB record
@@ -130,28 +132,27 @@ export const GeneratedCodePage: React.FC = () => {
           if (result.success && result.data) {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
-              schema: schema
+              schema: schema,
             });
-            toast.success('Code generated successfully');
+            toast.success("Code generated successfully");
           } else {
-            throw new Error(result.error || 'Generation failed');
+            throw new Error(result.error || "Generation failed");
           }
-
         } catch (error) {
-          console.error('Error in GeneratedCodePage:', error);
+          console.error("Error in GeneratedCodePage:", error);
           // Fallback to mock logic
           setLocalState({
             generatedCode: MOCK_CODE,
-            schema: { name: 'Demo Schema', content: {} }
+            schema: { name: "Demo Schema", content: {} },
           });
-          toast.info('Using demo data (Generation failed)');
+          toast.info("Using demo data (Generation failed)");
         } finally {
           setIsLoading(false);
         }
       } else if (!localState && !schemaId) {
         setLocalState({
           generatedCode: MOCK_CODE,
-          schema: { name: 'Demo Schema', content: {} }
+          schema: { name: "Demo Schema", content: {} },
         });
       }
     };
@@ -178,20 +179,22 @@ export const GeneratedCodePage: React.FC = () => {
   // Use localState instead of state from here on
   const state = localState;
 
-
   /** Download the complete Spring Boot backend (with tests) as a ZIP via the runtime-binding-engine */
   const handleDownloadAll = async () => {
     if (!state?.schema) {
-      toast.error('No schema available for backend generation');
+      toast.error("No schema available for backend generation");
       return;
     }
     setIsDownloadingBackend(true);
     try {
-      await generationService.downloadBackendZip(state.schema, 'springboot-server.zip');
-      toast.success('Backend project downloaded successfully!');
+      await generationService.downloadBackendZip(
+        state.schema,
+        "springboot-server.zip",
+      );
+      toast.success("Backend project downloaded successfully!");
     } catch (error: any) {
-      console.error('Backend download failed:', error);
-      toast.error(error.message || 'Failed to download backend project');
+      console.error("Backend download failed:", error);
+      toast.error(error.message || "Failed to download backend project");
     } finally {
       setIsDownloadingBackend(false);
     }
@@ -222,7 +225,8 @@ export const GeneratedCodePage: React.FC = () => {
               Generated Code
             </h1>
             <p className="text-neutral-600 dark:text-neutral-400">
-              Your complete application code is ready! Review, copy, or download.
+              Your complete application code is ready! Review, copy, or
+              download.
             </p>
           </div>
 
@@ -230,8 +234,18 @@ export const GeneratedCodePage: React.FC = () => {
           <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/20 border-2 border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
               <div>
@@ -239,7 +253,8 @@ export const GeneratedCodePage: React.FC = () => {
                   Generation Complete!
                 </h3>
                 <p className="text-sm text-green-700 dark:text-green-300">
-                  All components have been successfully generated from your schema.
+                  All components have been successfully generated from your
+                  schema.
                 </p>
               </div>
             </div>
