@@ -119,7 +119,7 @@ export const GeneratedCodePage: React.FC = () => {
         setIsLoading(true);
         try {
           // Fetch schema
-          const response = await fetch(`/api/schema/${schemaId}`);
+          const response = await fetch(`/schema/${schemaId}`);
           if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
@@ -150,10 +150,32 @@ export const GeneratedCodePage: React.FC = () => {
           setIsLoading(false);
         }
       } else if (!localState && !schemaId) {
-        setLocalState({
-          generatedCode: MOCK_CODE,
-          schema: { name: "Demo Schema", content: {} },
-        });
+        // Check sessionStorage for schema passed from BuilderPage
+        const storedSchema = sessionStorage.getItem("formsync_builder_schema");
+        if (storedSchema) {
+          try {
+            const schema = JSON.parse(storedSchema);
+            const result = await generationService.generateAll(schema);
+            if (result.success && result.data) {
+              setLocalState({
+                generatedCode: { ...MOCK_CODE, ...result.data },
+                schema: schema,
+              });
+            } else {
+              setLocalState({ generatedCode: MOCK_CODE, schema });
+            }
+          } catch {
+            setLocalState({
+              generatedCode: MOCK_CODE,
+              schema: { name: "Demo Schema", content: {} },
+            });
+          }
+        } else {
+          setLocalState({
+            generatedCode: MOCK_CODE,
+            schema: { name: "Demo Schema", content: {} },
+          });
+        }
       }
     };
 

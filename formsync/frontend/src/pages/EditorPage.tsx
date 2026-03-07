@@ -221,7 +221,7 @@ export const EditorPage: React.FC = () => {
     setIsSaving(true);
     setNameConflictError(null);
     try {
-      const response = await fetch("/api/schema", {
+      const response = await fetch("/schema", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

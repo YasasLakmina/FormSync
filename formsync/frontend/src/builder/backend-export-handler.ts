@@ -7,7 +7,7 @@ import { generationService } from "../services/generationService";
 
 export async function exportBackendCode(schemaId: string): Promise<void> {
   try {
-    const schemaResponse = await fetch(`/api/schema/${schemaId}`);
+    const schemaResponse = await fetch(`/schema/${schemaId}`);
     if (!schemaResponse.ok) {
       throw new Error(
         `Failed to fetch schema: ${schemaResponse.status} ${schemaResponse.statusText}`,
