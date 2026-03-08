@@ -119,10 +119,7 @@ export const GeneratedCodePage: React.FC = () => {
         setIsLoading(true);
         try {
           // Fetch schema
-          // Note: In a real env, use env var. Assuming localhost:3000 based on EditorPage usage.
-          const response = await fetch(
-            `http://localhost:3000/schema/${schemaId}`,
-          );
+          const response = await fetch(`/schema/${schemaId}`);
           if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
