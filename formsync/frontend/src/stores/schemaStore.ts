@@ -184,8 +184,10 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
       if (hasAppliedSuggestions && state.currentSchema) {
         // Recalculate quality with correct applied count
         try {
+          // Use currentSchema (user's editor state) as base so that
+          // manually-added metadata is scored, not just the AI output.
           const recalcResponse = await schemaApi.recalculateQuality({
-            baseSchema: data.enhancedSchema,
+            baseSchema: state.currentSchema || data.enhancedSchema,
             allSuggestions: mergedSuggestions,
             aiChanges: data.changes || [],
           });
@@ -321,8 +323,12 @@ export const useSchemaStore = create<SchemaStore>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
+      // Use currentSchema (editor state) as the base so that manually-added
+      // metadata (x-accessibility, descriptions, etc.) is included in scoring.
+      // Re-applying already-applied suggestions is a safe no-op because the
+      // suggestion engine preserves existing values.
       const response = await schemaApi.recalculateQuality({
-        baseSchema: state.baseSchema,
+        baseSchema: state.currentSchema || state.baseSchema,
         allSuggestions: state.suggestions,
         aiChanges: state.aiChanges,
       });

@@ -64,7 +64,9 @@ export const QualityMetricsPanel: React.FC<QualityMetricsPanelProps> = ({ metric
   };
 
   const qualityLevel = getQualityLevel(metrics.qualityScore);
-  const accessibilityPercent = Math.round(metrics.metrics.accessibilityCoverage * 100);
+  // Derive accessibility% from the actual scored dimension (out of 20 pts),
+  // not from metrics.accessibilityCoverage which is always hardcoded to 0.
+  const accessibilityPercent = Math.round((metrics.qualityBreakdown.accessibility / 20) * 100);
 
   const categorizeIssues = () => {
     const critical: string[] = [];
