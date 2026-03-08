@@ -1329,29 +1329,32 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
           <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 mt-2">
             {/* Field health hints */}
             {fields.length > 0 && (() => {
-              const noDesc = fields.filter((f) => !f.description).length;
-              const noValidation = fields.filter((f) =>
+              const noDescFields = fields.filter((f) => !f.description);
+              const noValidationFields = fields.filter((f) =>
                 f.type === "string"
                   ? !f.minLength && !f.maxLength && !f.format && !f.pattern
                   : f.type === "number" || f.type === "integer"
                   ? f.minimum === undefined && f.maximum === undefined
                   : false,
-              ).length;
-              if (noDesc === 0 && noValidation === 0) return null;
+              );
+              if (noDescFields.length === 0 && noValidationFields.length === 0) return null;
               return (
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {noDesc > 0 && (
+                  {noDescFields.length > 0 && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                      <span className="w-1 h-1 rounded-full bg-amber-500" />
-                      {noDesc} field{noDesc !== 1 ? "s" : ""} missing description
+                      <span className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0" />
+                      {noDescFields.length} field{noDescFields.length !== 1 ? "s" : ""} missing description
                     </span>
                   )}
-                  {noValidation > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800">
-                      <span className="w-1 h-1 rounded-full bg-sky-500" />
-                      {noValidation} field{noValidation !== 1 ? "s" : ""} without validation
+                  {noValidationFields.map((f) => (
+                    <span
+                      key={f.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-sky-500 flex-shrink-0" />
+                      <span className="font-medium">{f.name}</span>: no validation
                     </span>
-                  )}
+                  ))}
                 </div>
               );
             })()}
@@ -2059,6 +2062,21 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                               { id: "custom",   label: "Custom pattern (advanced)",        format: undefined,  pattern: "__custom__",                                                        hint: "" },
                             ];
 
+                            // Suggested min/max lengths per format preset
+                            const FORMAT_LENGTH_HINTS: Record<string, { min: number; max: number; reason: string }> = {
+                              email:    { min: 6,  max: 254, reason: "RFC 5321: 6–254 chars" },
+                              url:      { min: 10, max: 2048, reason: "Typical URL: 10–2048 chars" },
+                              date:     { min: 10, max: 10,  reason: "YYYY-MM-DD is always 10 chars" },
+                              time:     { min: 5,  max: 8,   reason: "HH:MM or HH:MM:SS" },
+                              phone:    { min: 7,  max: 15,  reason: "ITU-T E.164: 7–15 digits" },
+                              numbers:  { min: 1,  max: 20,  reason: "Numeric strings" },
+                              letters:  { min: 1,  max: 100, reason: "Alphabetic text" },
+                              nospace:  { min: 1,  max: 50,  reason: "Single token / username" },
+                              zip:      { min: 3,  max: 10,  reason: "Postal codes: 3–10 chars" },
+                              upper:    { min: 1,  max: 100, reason: "Capitalised text" },
+                              password: { min: 8,  max: 15, reason: "Strong password: 8–15 chars" },
+                            };
+
                             const isCustomActive = editField.pattern !== undefined && !FORMAT_PRESETS.some(
                               (p) => p.id !== "custom" && p.id !== "none" && p.pattern === editField.pattern
                             );
@@ -2071,6 +2089,9 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                             }) ?? FORMAT_PRESETS[0];
 
                             const selectValue = activePreset.id;
+                            const lengthHint = FORMAT_LENGTH_HINTS[selectValue];
+                            const lengthSuggestNeeded = lengthHint &&
+                              (editField.minLength !== lengthHint.min || editField.maxLength !== lengthHint.max);
 
                             return (
                               <div className="space-y-2">
@@ -2105,6 +2126,23 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                   <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
                                     Example: <span className="font-mono">{activePreset.hint}</span>
                                   </p>
+                                )}
+
+                                {/* Min / Max length suggestion banner */}
+                                {lengthHint && lengthSuggestNeeded && (
+                                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                                    <span className="text-[11px] text-emerald-700 dark:text-emerald-300 flex-1">
+                                      Suggested: min <strong>{lengthHint.min}</strong>, max <strong>{lengthHint.max}</strong>
+                                      <span className="text-emerald-500 dark:text-emerald-500 ml-1">— {lengthHint.reason}</span>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateField(editField.id, { minLength: lengthHint.min, maxLength: lengthHint.max })}
+                                      className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-colors flex-shrink-0"
+                                    >
+                                      Apply
+                                    </button>
+                                  </div>
                                 )}
 
                                 {/* Custom pattern text input */}
