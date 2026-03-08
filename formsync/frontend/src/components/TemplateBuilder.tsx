@@ -627,6 +627,7 @@ const getFieldExample = (type: string, format?: string) =>
 interface DetectionHint {
   type: string;
   format?: string;
+  pattern?: string;
   label: string;
   icon: React.ReactNode;
 }
@@ -638,7 +639,7 @@ const DETECTION_RULES: Array<{ patterns: RegExp[]; hint: DetectionHint }> = [
   },
   {
     patterns: [/phone|mobile|tel|cell/i],
-    hint: { type: "string", label: "Phone field", icon: <Phone className="h-3 w-3" /> },
+    hint: { type: "string", pattern: "^\\+?[0-9 \\-()]{7,15}$", label: "Phone field", icon: <Phone className="h-3 w-3" /> },
   },
   {
     patterns: [/url|website|link|href|site/i],
@@ -658,7 +659,7 @@ const DETECTION_RULES: Array<{ patterns: RegExp[]; hint: DetectionHint }> = [
   },
   {
     patterns: [/password|passwd/i],
-    hint: { type: "string", label: "Password field", icon: <Lock className="h-3 w-3" /> },
+    hint: { type: "string", pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{8,}$", label: "Password field", icon: <Lock className="h-3 w-3" /> },
   },
   {
     patterns: [/description|message|comment|bio|note|details|content|body|summary/i],
@@ -748,6 +749,7 @@ const FieldCard: React.FC<
               {field.description}
             </span>
           )}
+
         </div>
       </div>
 
@@ -842,7 +844,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
   const [detectedHint, setDetectedHint] = useState<DetectionHint | null>(null);
   const [hintDismissed, setHintDismissed] = useState(false);
   const [pendingFormat, setPendingFormat] = useState<string | undefined>(undefined);
+  const [editDetectedHint, setEditDetectedHint] = useState<DetectionHint | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset edit-panel hint whenever a different field is opened
+  React.useEffect(() => { setEditDetectedHint(null); }, [expandedFieldId]);
 
   // Schema name state
   const [schemaName, setSchemaName] = useState("");
@@ -1323,29 +1329,32 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
           <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 mt-2">
             {/* Field health hints */}
             {fields.length > 0 && (() => {
-              const noDesc = fields.filter((f) => !f.description).length;
-              const noValidation = fields.filter((f) =>
+              const noDescFields = fields.filter((f) => !f.description);
+              const noValidationFields = fields.filter((f) =>
                 f.type === "string"
                   ? !f.minLength && !f.maxLength && !f.format && !f.pattern
                   : f.type === "number" || f.type === "integer"
                   ? f.minimum === undefined && f.maximum === undefined
                   : false,
-              ).length;
-              if (noDesc === 0 && noValidation === 0) return null;
+              );
+              if (noDescFields.length === 0 && noValidationFields.length === 0) return null;
               return (
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {noDesc > 0 && (
+                  {noDescFields.length > 0 && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                      <span className="w-1 h-1 rounded-full bg-amber-500" />
-                      {noDesc} field{noDesc !== 1 ? "s" : ""} missing description
+                      <span className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0" />
+                      {noDescFields.length} field{noDescFields.length !== 1 ? "s" : ""} missing description
                     </span>
                   )}
-                  {noValidation > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800">
-                      <span className="w-1 h-1 rounded-full bg-sky-500" />
-                      {noValidation} field{noValidation !== 1 ? "s" : ""} without validation
+                  {noValidationFields.map((f) => (
+                    <span
+                      key={f.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-sky-500 flex-shrink-0" />
+                      <span className="font-medium">{f.name}</span>: no validation
                     </span>
-                  )}
+                  ))}
                 </div>
               );
             })()}
@@ -1860,38 +1869,73 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
               open={true}
               onOpenChange={() => setExpandedFieldId(null)}
             >
-              <AlertDialogContent className="max-w-2xl">
+              <AlertDialogContent className="max-w-lg rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle_>
-                    Edit Field: {editField.name}
+                    Edit: <span className="text-violet-600 dark:text-violet-400">{editField.name}</span>
                   </AlertDialogTitle_>
                   <AlertDialogDescription_>
-                    Modify field properties and validation rules
+                    Configure field properties and validation rules
                   </AlertDialogDescription_>
                 </AlertDialogHeader>
 
-                <div className="space-y-4 my-4">
+                <div className="space-y-5 my-4">
                   {/* Basic Info Section */}
                   <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                       Basic Information
                     </h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                        <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
                           Field Name
                         </label>
                         <input
                           type="text"
                           value={editField.name}
-                          onChange={(e) =>
-                            updateField(editField.id, { name: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateField(editField.id, { name: val });
+                            if (editField.type === "string") {
+                              const hint = detectFieldType(val);
+                              setEditDetectedHint(hint && (hint.format || hint.pattern) ? hint : null);
+                            } else {
+                              setEditDetectedHint(null);
+                            }
+                          }}
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
                         />
+                        {editDetectedHint && (
+                          <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
+                            <span className="flex items-center gap-1.5 text-[11px] text-violet-700 dark:text-violet-300 font-medium flex-1">
+                              {editDetectedHint.icon}
+                              {editDetectedHint.label} detected
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateField(editField.id, {
+                                  format: editDetectedHint.format || undefined,
+                                  pattern: editDetectedHint.pattern || undefined,
+                                });
+                                setEditDetectedHint(null);
+                              }}
+                              className="px-2.5 py-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-semibold transition-colors"
+                            >
+                              Apply
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditDetectedHint(null)}
+                              className="text-[11px] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                        <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
                           Type
                         </label>
                         <select
@@ -1899,7 +1943,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           onChange={(e) =>
                             updateField(editField.id, { type: e.target.value })
                           }
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
                         >
                           <option value="string">Text</option>
                           <option value="number">Number</option>
@@ -1910,7 +1954,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                         </select>
                       </div>
                       <div className="col-span-2">
-                        <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                        <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
                           Description
                         </label>
                         <input
@@ -1921,7 +1965,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                               description: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
+                          className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
                           placeholder="Optional description"
                         />
                       </div>
@@ -1940,18 +1984,19 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
 
                   {/* Validation Rules Section */}
                   {editField.type === "string" && (
-                    <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                      <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    <div className="space-y-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                         Validation Rules
                       </h4>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                          <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
                             Min Length
                           </label>
                           <input
                             type="number"
-                            value={editField.minLength || ""}
+                            min={0}
+                            value={editField.minLength ?? ""}
                             onChange={(e) =>
                               updateField(editField.id, {
                                 minLength: e.target.value
@@ -1959,17 +2004,18 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                   : undefined,
                               })
                             }
-                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                            placeholder="Minimum"
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                            placeholder="e.g. 2"
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
+                          <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
                             Max Length
                           </label>
                           <input
                             type="number"
-                            value={editField.maxLength || ""}
+                            min={0}
+                            value={editField.maxLength ?? ""}
                             onChange={(e) =>
                               updateField(editField.id, {
                                 maxLength: e.target.value
@@ -1977,46 +2023,170 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                   : undefined,
                               })
                             }
-                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                            placeholder="Maximum"
+                            className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 ${
+                              editField.maxLength !== undefined &&
+                              editField.minLength !== undefined &&
+                              editField.maxLength < editField.minLength
+                                ? "border-red-400 dark:border-red-500 focus:ring-red-400"
+                                : "border-neutral-300 dark:border-neutral-600 focus:ring-violet-400"
+                            }`}
+                            placeholder="e.g. 100"
                           />
                         </div>
+                        {editField.maxLength !== undefined &&
+                          editField.minLength !== undefined &&
+                          editField.maxLength < editField.minLength && (
+                            <div className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[11px]">
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                              </svg>
+                              Max length ({editField.maxLength}) must be greater than min length ({editField.minLength}).
+                            </div>
+                          )}
+                        {/* ── Input Format ── */}
                         <div className="col-span-2">
-                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
-                            Pattern (Regex)
-                          </label>
-                          <input
-                            type="text"
-                            value={editField.pattern || ""}
-                            onChange={(e) =>
-                              updateField(editField.id, {
-                                pattern: e.target.value || undefined,
-                              })
-                            }
-                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 font-mono"
-                            placeholder="e.g., ^[A-Z][a-z]+$"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
-                            Format
-                          </label>
-                          <select
-                            value={editField.format || ""}
-                            onChange={(e) =>
-                              updateField(editField.id, {
-                                format: e.target.value || undefined,
-                              })
-                            }
-                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                          >
-                            <option value="">None</option>
-                            <option value="email">Email</option>
-                            <option value="uri">URL</option>
-                            <option value="date">Date</option>
-                            <option value="time">Time</option>
-                            <option value="date-time">DateTime</option>
-                          </select>
+                          {(() => {
+                            const FORMAT_PRESETS = [
+                              { id: "none",    label: "No restriction — accept any text",  format: undefined,  pattern: undefined,                        hint: "" },
+                              { id: "email",   label: "Email address",                     format: "email",    pattern: undefined,                        hint: "user@example.com" },
+                              { id: "url",     label: "Website URL",                       format: "uri",      pattern: undefined,                        hint: "https://example.com" },
+                              { id: "date",    label: "Date (YYYY-MM-DD)",                 format: "date",     pattern: undefined,                        hint: "2026-01-31" },
+                              { id: "time",    label: "Time (HH:MM)",                      format: "time",     pattern: undefined,                        hint: "14:30" },
+                              { id: "phone",   label: "Phone number",                      format: undefined,  pattern: "^\\+?[0-9 \\-()]{7,15}$",        hint: "+1 555 123 4567" },
+                              { id: "numbers", label: "Numbers only",                      format: undefined,  pattern: "^[0-9]+$",                       hint: "42, 100, 9999" },
+                              { id: "letters", label: "Letters only",                      format: undefined,  pattern: "^[A-Za-z]+$",                    hint: "John, Smith" },
+                              { id: "nospace", label: "No spaces allowed",                 format: undefined,  pattern: "^\\S+$",                         hint: "username123" },
+                              { id: "zip",     label: "Postal code / ZIP",                 format: undefined,  pattern: "^[0-9A-Z \\-]{3,10}$",          hint: "10001, SW1A" },
+                              { id: "upper",    label: "Must start with capital letter",    format: undefined,  pattern: "^[A-Z]",                                                           hint: "John, London" },
+                              { id: "password", label: "Password (strong)",                format: undefined,  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{8,}$",        hint: "Min 8 chars, at least one uppercase letter and one number" },
+                              { id: "custom",   label: "Custom pattern (advanced)",        format: undefined,  pattern: "__custom__",                                                        hint: "" },
+                            ];
+
+                            // Suggested min/max lengths per format preset
+                            const FORMAT_LENGTH_HINTS: Record<string, { min: number; max: number; reason: string }> = {
+                              email:    { min: 6,  max: 254, reason: "RFC 5321: 6–254 chars" },
+                              url:      { min: 10, max: 2048, reason: "Typical URL: 10–2048 chars" },
+                              date:     { min: 10, max: 10,  reason: "YYYY-MM-DD is always 10 chars" },
+                              time:     { min: 5,  max: 8,   reason: "HH:MM or HH:MM:SS" },
+                              phone:    { min: 7,  max: 15,  reason: "ITU-T E.164: 7–15 digits" },
+                              numbers:  { min: 1,  max: 20,  reason: "Numeric strings" },
+                              letters:  { min: 1,  max: 100, reason: "Alphabetic text" },
+                              nospace:  { min: 1,  max: 50,  reason: "Single token / username" },
+                              zip:      { min: 3,  max: 10,  reason: "Postal codes: 3–10 chars" },
+                              upper:    { min: 1,  max: 100, reason: "Capitalised text" },
+                              password: { min: 8,  max: 15, reason: "Strong password: 8–15 chars" },
+                            };
+
+                            const isCustomActive = editField.pattern !== undefined && !FORMAT_PRESETS.some(
+                              (p) => p.id !== "custom" && p.id !== "none" && p.pattern === editField.pattern
+                            );
+
+                            const activePreset = FORMAT_PRESETS.find((p) => {
+                              if (p.id === "none")   return editField.pattern === undefined && !editField.format;
+                              if (p.id === "custom") return isCustomActive;
+                              if (p.format)          return editField.format === p.format;
+                              return editField.pattern === p.pattern;
+                            }) ?? FORMAT_PRESETS[0];
+
+                            const selectValue = activePreset.id;
+                            const lengthHint = FORMAT_LENGTH_HINTS[selectValue];
+                            const lengthSuggestNeeded = lengthHint &&
+                              (editField.minLength !== lengthHint.min || editField.maxLength !== lengthHint.max);
+
+                            return (
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block">
+                                  Input Format
+                                </label>
+                                <select
+                                  value={selectValue}
+                                  onChange={(e) => {
+                                    const chosen = FORMAT_PRESETS.find((p) => p.id === e.target.value);
+                                    if (!chosen) return;
+                                    if (chosen.id === "none") {
+                                      updateField(editField.id, { pattern: undefined, format: undefined });
+                                    } else if (chosen.id === "custom") {
+                                      updateField(editField.id, { format: undefined, pattern: "" });
+                                    } else {
+                                      updateField(editField.id, {
+                                        format: chosen.format || undefined,
+                                        pattern: chosen.pattern || undefined,
+                                      });
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                >
+                                  {FORMAT_PRESETS.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.label}</option>
+                                  ))}
+                                </select>
+
+                                {/* Hint text for active preset */}
+                                {activePreset.hint && (
+                                  <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
+                                    Example: <span className="font-mono">{activePreset.hint}</span>
+                                  </p>
+                                )}
+
+                                {/* Min / Max length suggestion banner */}
+                                {lengthHint && lengthSuggestNeeded && (
+                                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                                    <span className="text-[11px] text-emerald-700 dark:text-emerald-300 flex-1">
+                                      Suggested: min <strong>{lengthHint.min}</strong>, max <strong>{lengthHint.max}</strong>
+                                      <span className="text-emerald-500 dark:text-emerald-500 ml-1">— {lengthHint.reason}</span>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateField(editField.id, { minLength: lengthHint.min, maxLength: lengthHint.max })}
+                                      className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-colors flex-shrink-0"
+                                    >
+                                      Apply
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Custom pattern text input */}
+                                {(selectValue === "custom") && (
+                                  <div className="space-y-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
+                                    <label className="text-xs font-medium text-violet-700 dark:text-violet-300 block">
+                                      Enter your regex pattern
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={editField.pattern || ""}
+                                      onChange={(e) =>
+                                        updateField(editField.id, { pattern: e.target.value || undefined })
+                                      }
+                                      className="w-full px-3 py-2 text-sm border border-violet-300 dark:border-violet-700 rounded-lg bg-white dark:bg-neutral-800 font-mono focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                      placeholder="e.g., ^[A-Z][a-z]+$"
+                                      autoFocus
+                                    />
+                                    <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
+                                      Only input matching this pattern will be accepted.
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Active rule tag */}
+                                {(editField.pattern || editField.format) && activePreset.id !== "none" && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-[10px] font-mono border border-violet-200 dark:border-violet-800">
+                                      {editField.format
+                                        ? `format: ${editField.format}`
+                                        : `pattern: ${editField.pattern}`}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateField(editField.id, { pattern: undefined, format: undefined })}
+                                      className="text-[10px] text-neutral-400 hover:text-red-500 transition-colors"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -2024,55 +2194,63 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
 
                   {(editField.type === "number" ||
                     editField.type === "integer") && (
-                    <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                      <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    <div className="space-y-3 pt-4 border-t border-neutral-200 dark:border-neutral-700">
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                         Validation Rules
                       </h4>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
-                            Minimum
+                          <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Minimum value
                           </label>
                           <input
                             type="number"
-                            value={
-                              editField.minimum !== undefined
-                                ? editField.minimum
-                                : ""
-                            }
+                            value={editField.minimum !== undefined ? editField.minimum : ""}
                             onChange={(e) =>
                               updateField(editField.id, {
-                                minimum: e.target.value
+                                minimum: e.target.value !== ""
                                   ? Number(e.target.value)
                                   : undefined,
                               })
                             }
-                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                            placeholder="Min value"
+                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                            placeholder="e.g. 0"
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-neutral-600 dark:text-neutral-400 block mb-1">
-                            Maximum
+                          <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">
+                            Maximum value
                           </label>
                           <input
                             type="number"
-                            value={
-                              editField.maximum !== undefined
-                                ? editField.maximum
-                                : ""
-                            }
+                            value={editField.maximum !== undefined ? editField.maximum : ""}
                             onChange={(e) =>
                               updateField(editField.id, {
-                                maximum: e.target.value
+                                maximum: e.target.value !== ""
                                   ? Number(e.target.value)
                                   : undefined,
                               })
                             }
-                            className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800"
-                            placeholder="Max value"
+                            className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 ${
+                              editField.maximum !== undefined &&
+                              editField.minimum !== undefined &&
+                              editField.maximum < editField.minimum
+                                ? "border-red-400 dark:border-red-500 focus:ring-red-400"
+                                : "border-neutral-300 dark:border-neutral-600 focus:ring-violet-400"
+                            }`}
+                            placeholder="e.g. 999"
                           />
                         </div>
+                        {editField.maximum !== undefined &&
+                          editField.minimum !== undefined &&
+                          editField.maximum < editField.minimum && (
+                            <div className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[11px]">
+                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                              </svg>
+                              Maximum ({editField.maximum}) must be greater than minimum ({editField.minimum}).
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}
