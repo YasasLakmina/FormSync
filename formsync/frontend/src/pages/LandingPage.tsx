@@ -1,11 +1,9 @@
 /**
  * Landing Page - FormSync Pipeline System Showcase
- *
- * Professional SaaS-level landing page with modern design
  */
 
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -27,6 +25,8 @@ import {
   Terminal,
   CheckCircle2,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -230,7 +230,7 @@ export const LandingPage: React.FC = () => {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                   className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden backdrop-blur-sm bg-opacity-90"
                 >
-                  <SchemaEditorPreview />
+                  <CodeEditorCarousel />
                 </motion.div>
               </div>
             </motion.div>
@@ -459,209 +459,505 @@ export const LandingPage: React.FC = () => {
   );
 };
 
-// Schema Editor Preview Component
-const SchemaEditorPreview = () => {
-  return (
-    <div className="p-6">
-      {/* Mock Editor Header */}
-      <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-        </div>
-        <span className="text-xs text-neutral-500">
-          user-registration.schema.json
-        </span>
-      </div>
+type BadgeVariant = "purple" | "green" | "blue";
+const BADGE_CLASSES: Record<BadgeVariant, string> = {
+  purple:
+    "bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800",
+  green:
+    "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800",
+  blue:
+    "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800",
+};
+const BADGE_TEXT_CLASSES: Record<BadgeVariant, string> = {
+  purple: "text-purple-700 dark:text-purple-400",
+  green: "text-green-700 dark:text-green-400",
+  blue: "text-blue-700 dark:text-blue-400",
+};
 
-      {/* AI Enhancement Label */}
+// Reusable code editor shell (header, label, code area, badges)
+const CodeEditorShell = ({
+  filename,
+  label,
+  children,
+  badges,
+}: {
+  filename: string;
+  label?: { icon: React.ReactNode; text: string };
+  children: React.ReactNode;
+  badges: Array<{
+    icon: React.ReactNode;
+    text: string;
+    variant?: BadgeVariant;
+  }>;
+}) => (
+  <div className="p-6">
+    <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full bg-red-500" />
+        <div className="w-3 h-3 rounded-full bg-yellow-500" />
+        <div className="w-3 h-3 rounded-full bg-green-500" />
+      </div>
+      <span className="text-xs text-neutral-500">{filename}</span>
+    </div>
+    {label && (
       <div className="mb-3 flex items-center gap-2">
-        <Sparkles className="h-3 w-3 text-purple-600" />
+        {label.icon}
         <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
-          AI Enhanced Schema
+          {label.text}
         </span>
       </div>
+    )}
+    <div className="font-mono text-xs space-y-1 text-neutral-700 dark:text-neutral-300 max-h-64 overflow-y-auto">
+      {children}
+    </div>
+    <div className="mt-4 flex flex-wrap gap-2">
+      {badges.map((badge) => {
+        const v = badge.variant ?? "purple";
+        return (
+          <div
+            key={badge.text}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md ${BADGE_CLASSES[v]}`}
+          >
+            {badge.icon}
+            <span className={`text-xs font-medium ${BADGE_TEXT_CLASSES[v]}`}>
+              {badge.text}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
 
-      {/* Mock Code Content - Real AI Enhanced Schema */}
-      <div className="font-mono text-xs space-y-1 text-neutral-700 dark:text-neutral-300 max-h-64 overflow-y-auto">
-        <div>
-          <span className="text-purple-600">{"{"}</span>
-        </div>
-        <div className="pl-4">
-          <span className="text-blue-600">"$schema"</span>:{" "}
-          <span className="text-green-600">
-            "http://json-schema.org/draft-07/schema#"
-          </span>
-          ,
-        </div>
-        <div className="pl-4">
-          <span className="text-blue-600">"title"</span>:{" "}
-          <span className="text-green-600">"User Registration"</span>,
-        </div>
-        <div className="pl-4">
-          <span className="text-blue-600">"description"</span>:{" "}
-          <span className="text-green-600">
-            "Schema for user registration with comprehensive validation"
-          </span>
-          ,
-        </div>
-        <div className="pl-4">
-          <span className="text-blue-600">"type"</span>:{" "}
-          <span className="text-green-600">"object"</span>,
-        </div>
-        <div className="pl-4">
-          <span className="text-blue-600">"required"</span>:{" "}
-          <span className="text-yellow-600">
-            ["username", "email", "password"]
-          </span>
-          ,
-        </div>
-        <div className="pl-4">
-          <span className="text-blue-600">"properties"</span>:{" "}
-          <span className="text-purple-600">{"{"}</span>
-        </div>
+// Schema slide content (same style as original user-registration.schema.json)
+const SchemaSlideContent = () => (
+  <>
+    <div>
+      <span className="text-purple-600">{"{"}</span>
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">"$schema"</span>:{" "}
+      <span className="text-green-600">
+        "http://json-schema.org/draft-07/schema#"
+      </span>
+      ,
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">"title"</span>:{" "}
+      <span className="text-green-600">"User Registration"</span>,
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">"description"</span>:{" "}
+      <span className="text-green-600">
+        "Schema for user registration with comprehensive validation"
+      </span>
+      ,
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">"type"</span>:{" "}
+      <span className="text-green-600">"object"</span>,
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">"required"</span>:{" "}
+      <span className="text-yellow-600">
+        ["username", "email", "password"]
+      </span>
+      ,
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">"properties"</span>:{" "}
+      <span className="text-purple-600">{"{"}</span>
+    </div>
+    <div className="pl-8">
+      <span className="text-blue-600">"username"</span>:{" "}
+      <span className="text-purple-600">{"{"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-blue-600">"type"</span>:{" "}
+      <span className="text-green-600">"string"</span>,
+    </div>
+    <div className="pl-12">
+      <span className="text-blue-600">"description"</span>:{" "}
+      <span className="text-green-600">
+        "Unique username for the account"
+      </span>
+      ,
+    </div>
+    <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+      <span className="text-blue-600">"minLength"</span>:{" "}
+      <span className="text-orange-600">3</span>,
+    </div>
+    <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+      <span className="text-blue-600">"maxLength"</span>:{" "}
+      <span className="text-orange-600">20</span>,
+    </div>
+    <div className="pl-8">
+      <span className="text-purple-600">{"},"}</span>
+    </div>
+    <div className="pl-8">
+      <span className="text-blue-600">"email"</span>:{" "}
+      <span className="text-purple-600">{"{"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-blue-600">"type"</span>:{" "}
+      <span className="text-green-600">"string"</span>,
+    </div>
+    <div className="pl-12">
+      <span className="text-blue-600">"format"</span>:{" "}
+      <span className="text-green-600">"email"</span>,
+    </div>
+    <div className="pl-8">
+      <span className="text-purple-600">{"},"}</span>
+    </div>
+    <div className="pl-8">
+      <span className="text-blue-600">"password"</span>:{" "}
+      <span className="text-purple-600">{"{"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-blue-600">"type"</span>:{" "}
+      <span className="text-green-600">"string"</span>,
+    </div>
+    <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
+      <span className="text-blue-600">"minLength"</span>:{" "}
+      <span className="text-orange-600">8</span>,
+    </div>
+    <div className="pl-8">
+      <span className="text-purple-600">{"}"}</span>
+    </div>
+    <div className="pl-4">
+      <span className="text-purple-600">{"}"}</span>
+    </div>
+    <div>
+      <span className="text-purple-600">{"}"}</span>
+    </div>
+  </>
+);
 
-        <div className="pl-8">
-          <span className="text-blue-600">"username"</span>:{" "}
-          <span className="text-purple-600">{"{"}</span>
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"type"</span>:{" "}
-          <span className="text-green-600">"string"</span>,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"description"</span>:{" "}
-          <span className="text-green-600">
-            "Unique username for the account"
-          </span>
-          ,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"minLength"</span>:{" "}
-          <span className="text-orange-600">3</span>,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"maxLength"</span>:{" "}
-          <span className="text-orange-600">20</span>,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"pattern"</span>:{" "}
-          <span className="text-green-600">"^[a-zA-Z0-9_-]+$"</span>,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"errorMessage"</span>:{" "}
-          <span className="text-green-600">
-            "Username must be 3-20 characters and contain only letters, numbers,
-            underscores, or hyphens"
-          </span>
-        </div>
-        <div className="pl-8">
-          <span className="text-purple-600">{"},"}</span>
-        </div>
+// Backend slide content (DTO/API style)
+const BackendSlideContent = () => (
+  <>
+    <div className="pl-4">
+      <span className="text-blue-600">export</span>{" "}
+      <span className="text-blue-600">class</span>{" "}
+      <span className="text-green-600">UserRegistrationDto</span>
+      <span className="text-purple-600">{" {"}</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">@IsString</span>()
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">@MinLength</span>
+      <span className="text-purple-600">(</span>
+      <span className="text-orange-600">3</span>
+      <span className="text-purple-600">)</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">username</span>:
+      <span className="text-green-600"> string</span>;
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">@IsEmail</span>()
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">email</span>:
+      <span className="text-green-600"> string</span>;
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">@IsString</span>()
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">@MinLength</span>
+      <span className="text-purple-600">(</span>
+      <span className="text-orange-600">8</span>
+      <span className="text-purple-600">)</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">password</span>:
+      <span className="text-green-600"> string</span>;
+    </div>
+    <div>
+      <span className="text-purple-600">{"}"}</span>
+    </div>
+  </>
+);
 
-        <div className="pl-8">
-          <span className="text-blue-600">"email"</span>:{" "}
-          <span className="text-purple-600">{"{"}</span>
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"type"</span>:{" "}
-          <span className="text-green-600">"string"</span>,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"description"</span>:{" "}
-          <span className="text-green-600">"User's email address"</span>,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"format"</span>:{" "}
-          <span className="text-green-600">"email"</span>,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"pattern"</span>:{" "}
-          <span className="text-green-600">
-            "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{`{2,}`}$"
-          </span>
-          ,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"errorMessage"</span>:{" "}
-          <span className="text-green-600">
-            "Please provide a valid email address"
-          </span>
-        </div>
-        <div className="pl-8">
-          <span className="text-purple-600">{"},"}</span>
-        </div>
+// Frontend slide content (SimpleForm - React form with useState)
+const FrontendSlideContent = () => (
+  <>
+    <div>
+      <span className="text-blue-600">import</span>{" "}
+      <span className="text-purple-600">{"{ useState }"}</span>{" "}
+      <span className="text-blue-600">from</span>{" "}
+      <span className="text-green-600">"react"</span>;
+    </div>
+    <div className="pl-4">
+      <span className="text-blue-600">export default function</span>{" "}
+      <span className="text-green-600">SimpleForm</span>
+      <span className="text-purple-600">() {"{"}</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">const</span>{" "}
+      <span className="text-purple-600">[</span>
+      <span className="text-blue-600">formData, setFormData</span>
+      <span className="text-purple-600">]</span>{" "}
+      <span className="text-blue-600">=</span>{" "}
+      <span className="text-green-600">useState</span>
+      <span className="text-purple-600">({"{"}</span>{" "}
+      <span className="text-blue-600">name</span>:{" "}
+      <span className="text-green-600">""</span>,{" "}
+      <span className="text-blue-600">email</span>:{" "}
+      <span className="text-green-600">""</span>,{" "}
+      <span className="text-blue-600">age</span>:{" "}
+      <span className="text-green-600">""</span>{" "}
+      <span className="text-purple-600">{"});"}</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">const handleChange</span>{" "}
+      <span className="text-purple-600">=</span>{" "}
+      <span className="text-purple-600">(</span>
+      <span className="text-blue-600">e</span>
+      <span className="text-purple-600">{") => {"}</span>
+    </div>
+    <div className="pl-8">
+      <span className="text-green-600">setFormData</span>
+      <span className="text-purple-600">({"{"} ...formData, {"["}</span>
+      <span className="text-blue-600">e.target.name</span>
+      <span className="text-purple-600">]:</span>{" "}
+      <span className="text-blue-600">e.target.value</span>{" "}
+      <span className="text-purple-600">{"});"}</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-purple-600">{"};"}</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-blue-600">return</span>{" "}
+      <span className="text-purple-600">(</span>
+    </div>
+    <div className="pl-8">
+      <span className="text-purple-600">{"<"}</span>
+      <span className="text-green-600">div</span>{" "}
+      <span className="text-blue-600">className</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">"flex justify-center ..."</span>
+      <span className="text-purple-600">{">"}</span>
+    </div>
+    <div className="pl-10">
+      <span className="text-purple-600">{"<"}</span>
+      <span className="text-green-600">form</span>{" "}
+      <span className="text-blue-600">onSubmit</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">{"{handleSubmit}"}</span>
+      <span className="text-purple-600">{">"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-purple-600">{"<"}</span>
+      <span className="text-green-600">h2</span>
+      <span className="text-purple-600">{">"}</span>
+      User Form
+      <span className="text-purple-600">{"</"}</span>
+      <span className="text-green-600">h2</span>
+      <span className="text-purple-600">{">"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-purple-600">{"<"}</span>
+      <span className="text-green-600">input</span>{" "}
+      <span className="text-blue-600">name</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">"name"</span>{" "}
+      <span className="text-blue-600">placeholder</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">"Name"</span>{" "}
+      <span className="text-blue-600">value</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">{"{formData.name}"}</span>
+      <span className="text-purple-600">{" ... />"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-purple-600">{"<"}</span>
+      <span className="text-green-600">input</span>{" "}
+      <span className="text-blue-600">type</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">"email"</span>{" "}
+      <span className="text-blue-600">name</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">"email"</span>
+      <span className="text-purple-600">{" ... />"}</span>
+    </div>
+    <div className="pl-12">
+      <span className="text-purple-600">{"<"}</span>
+      <span className="text-green-600">button</span>{" "}
+      <span className="text-blue-600">type</span>
+      <span className="text-purple-600">=</span>
+      <span className="text-green-600">"submit"</span>
+      <span className="text-purple-600">{">"}</span>
+      Submit
+      <span className="text-purple-600">{"</"}</span>
+      <span className="text-green-600">button</span>
+      <span className="text-purple-600">{">"}</span>
+    </div>
+    <div className="pl-10">
+      <span className="text-purple-600">{"</"}</span>
+      <span className="text-green-600">form</span>
+      <span className="text-purple-600">{">"}</span>
+    </div>
+    <div className="pl-8">
+      <span className="text-purple-600">{"</"}</span>
+      <span className="text-green-600">div</span>
+      <span className="text-purple-600">{">"}</span>
+    </div>
+    <div className="pl-6">
+      <span className="text-purple-600">);</span>
+    </div>
+    <div>
+      <span className="text-purple-600">{"}"}</span>
+    </div>
+  </>
+);
 
-        <div className="pl-8">
-          <span className="text-blue-600">"password"</span>:{" "}
-          <span className="text-purple-600">{"{"}</span>
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"type"</span>:{" "}
-          <span className="text-green-600">"string"</span>,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"description"</span>:{" "}
-          <span className="text-green-600">
-            "Secure password meeting complexity requirements"
-          </span>
-          ,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"minLength"</span>:{" "}
-          <span className="text-orange-600">8</span>,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"maxLength"</span>:{" "}
-          <span className="text-orange-600">128</span>,
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-950/20 -ml-8 pl-12 pr-2 rounded">
-          <span className="text-blue-600">"pattern"</span>:{" "}
-          <span className="text-green-600">
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]"
-          </span>
-          ,
-        </div>
-        <div className="pl-12">
-          <span className="text-blue-600">"errorMessage"</span>:{" "}
-          <span className="text-green-600">
-            "Password must contain uppercase, lowercase, number, and special
-            character"
-          </span>
-        </div>
-        <div className="pl-8">
-          <span className="text-purple-600">{"}"}</span>
-        </div>
+// Code editor carousel: schema, backend, frontend slides with same style
+const CAROUSEL_SLIDES = [
+  {
+    filename: "user-registration.schema.json",
+    label: {
+      icon: <Sparkles className="h-3 w-3 text-purple-600" />,
+      text: "AI Enhanced Schema",
+    },
+    badges: [
+      {
+        icon: <Sparkles className="h-3 w-3 text-purple-600" />,
+        text: "+6 Validations",
+        variant: "purple" as BadgeVariant,
+      },
+      {
+        icon: <Check className="h-3 w-3 text-green-600" />,
+        text: "Error Messages",
+        variant: "green" as BadgeVariant,
+      },
+      {
+        icon: <FileCode className="h-3 w-3 text-blue-600" />,
+        text: "Descriptions",
+        variant: "blue" as BadgeVariant,
+      },
+    ],
+    content: <SchemaSlideContent />,
+  },
+  {
+    filename: "UserRegistrationDto.ts",
+    label: {
+      icon: <Server className="h-3 w-3 text-purple-600" />,
+      text: "Generated DTO",
+    },
+    badges: [
+      { icon: <Check className="h-3 w-3 text-green-600" />, text: "Validation", variant: "green" as BadgeVariant },
+      { icon: <FileCode className="h-3 w-3 text-blue-600" />, text: "Types", variant: "blue" as BadgeVariant },
+    ],
+    content: <BackendSlideContent />,
+  },
+  {
+    filename: "SimpleForm.jsx",
+    label: {
+      icon: <Layout className="h-3 w-3 text-purple-600" />,
+      text: "Generated Form",
+    },
+    badges: [
+      { icon: <Layout className="h-3 w-3 text-blue-600" />, text: "React", variant: "blue" as BadgeVariant },
+      { icon: <Check className="h-3 w-3 text-green-600" />, text: "Validation", variant: "green" as BadgeVariant },
+    ],
+    content: <FrontendSlideContent />,
+  },
+];
 
-        <div className="pl-4">
-          <span className="text-purple-600">{"}"}</span>
+const CodeEditorCarousel = () => {
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const slide = CAROUSEL_SLIDES[index];
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      setDirection(1);
+      setIndex((i) => (i + 1) % CAROUSEL_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [paused]);
+
+  const goTo = (next: number) => {
+    setDirection(next > index ? 1 : -1);
+    setIndex(next);
+  };
+
+  const goPrev = () => {
+    setDirection(-1);
+    setIndex((i) => (i - 1 + CAROUSEL_SLIDES.length) % CAROUSEL_SLIDES.length);
+  };
+
+  const goNext = () => {
+    setDirection(1);
+    setIndex((i) => (i + 1) % CAROUSEL_SLIDES.length);
+  };
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <div className="relative flex items-center">
+        <button
+          type="button"
+          onClick={goPrev}
+          className="absolute left-1 z-10 h-8 w-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0 overflow-hidden px-10">
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <motion.div
+              key={index}
+              custom={direction}
+              initial={{ opacity: 0, x: direction * 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -24 }}
+              transition={{ duration: 0.05 }}
+              className="w-full"
+            >
+              <CodeEditorShell
+                filename={slide.filename}
+                label={slide.label}
+                badges={slide.badges}
+              >
+                {slide.content}
+              </CodeEditorShell>
+            </motion.div>
+          </AnimatePresence>
         </div>
-        <div>
-          <span className="text-purple-600">{"}"}</span>
-        </div>
+        <button
+          type="button"
+          onClick={goNext}
+          className="absolute right-1 z-10 h-8 w-8 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+          aria-label="Next slide"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
-
-      {/* AI Enhancement Highlights */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
-          <Sparkles className="h-3 w-3 text-purple-600" />
-          <span className="text-xs font-medium text-purple-700 dark:text-purple-400">
-            +6 Validations
-          </span>
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-          <Check className="h-3 w-3 text-green-600" />
-          <span className="text-xs font-medium text-green-700 dark:text-green-400">
-            Error Messages
-          </span>
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-          <FileCode className="h-3 w-3 text-blue-600" />
-          <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
-            Descriptions
-          </span>
-        </div>
+      <div className="flex justify-center gap-2 mt-3 pb-2">
+        {CAROUSEL_SLIDES.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => goTo(i)}
+            className={`h-2 rounded-full transition-all ${
+              i === index
+                ? "w-6 bg-purple-600 dark:bg-purple-500"
+                : "w-2 bg-neutral-300 dark:bg-neutral-600 hover:bg-neutral-400 dark:hover:bg-neutral-500"
+            }`}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
       </div>
     </div>
   );
