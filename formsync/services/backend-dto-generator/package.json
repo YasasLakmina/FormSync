@@ -9,6 +9,7 @@
         "copy-templates": "cpx \"src/templates/**/*.{hbs,xml}\" dist/apps/backend-dto-generator/src/templates",
         "start": "node dist/index.js",
         "dev": "ts-node src/index.ts",
+        "test": "jest",
         "lint": "eslint \"src/**/*.ts\" --fix",
         "format": "prettier --write \"src/**/*.ts\""
     },
@@ -34,8 +35,10 @@
         "@types/fs-extra": "^11.0.4",
         "@types/jest": "^30.0.0",
         "@types/node": "^20.10.5",
+        "@types/supertest": "^6.0.2",
         "@types/uuid": "^10.0.0",
         "jest": "^30.2.0",
+        "supertest": "^7.0.0",
         "ts-jest": "^29.4.6",
         "ts-node": "^10.9.2"
     }

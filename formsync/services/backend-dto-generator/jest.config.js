@@ -3,4 +3,6 @@ module.exports = {
     testEnvironment: 'node',
     roots: ['<rootDir>/src'],
     testMatch: ['**/*.spec.ts'],
+    watchman: false,
+    setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
 };
