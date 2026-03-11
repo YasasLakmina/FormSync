@@ -8,12 +8,10 @@ import { useBuilder } from "../context/BuilderContext";
 import { exportReactApp } from "./export-handler";
 import { generationService } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
-import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
-import { Button } from "../components/ui/button";
 
 export const BuilderLayout: React.FC = () => {
-  const { state, dispatch, canUndo } = useBuilder();
+  const { state } = useBuilder();
   const navigate = useNavigate();
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -121,7 +119,7 @@ export const BuilderLayout: React.FC = () => {
           <div className="canvas-toolbar">
             <WizardControls />
             <div className="canvas-toolbar-actions">
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => dispatch({ type: "UNDO" })}
@@ -131,7 +129,7 @@ export const BuilderLayout: React.FC = () => {
               >
                 <Undo2 className="h-3.5 w-3.5" />
                 Undo
-              </Button>
+              </Button> */}
             </div>
           </div>
 

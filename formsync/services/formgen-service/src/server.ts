@@ -45,7 +45,7 @@ app.use(express.json({ limit: "5mb" }));
  * Response: ZIP blob containing a complete standalone Vite + React app
  */
 app.post("/generate-react", async (req, res) => {
-  const { formModel }: { formModel: FormModel } = req.body;
+  const formModel: FormModel | undefined = req.body?.formModel;
 
   if (!formModel) {
     return res.status(400).json({ error: "formModel is required" });
@@ -106,7 +106,7 @@ app.post("/generate-react", async (req, res) => {
         .status(500)
         .json({ error: "Generation failed", message: error.message });
     }
-    fs.remove(tempDir).catch(() => {});
+    fs.remove(tempDir).catch(() => { });
   }
 });
 
