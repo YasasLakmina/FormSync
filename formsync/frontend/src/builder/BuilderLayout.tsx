@@ -7,6 +7,10 @@ import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
 import { exportReactApp } from "./export-handler";
 import { generationService } from "../services/generationService";
+import {
+  formModelToJsonSchema,
+  validateBuilderJsonSchema,
+} from "../types";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
@@ -61,6 +65,37 @@ export const BuilderLayout: React.FC = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
+      const synced = formModelToJsonSchema(
+        state.form,
+        state.baseJsonSchema ?? undefined,
+      );
+      const validation = validateBuilderJsonSchema(synced);
+      if (!validation.valid) {
+        alert(
+          `Cannot generate: schema validation failed.\n${validation.errors.join("\n")}`,
+        );
+        setStages((prev) =>
+          prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
+        );
+        return;
+      }
+
+      sessionStorage.setItem("formsync_schema_raw", JSON.stringify(synced));
+
+      if (state.schemaId) {
+        const putRes = await fetch(`/schema/${state.schemaId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: synced }),
+        });
+        if (!putRes.ok) {
+          const errBody = await putRes.text();
+          throw new Error(
+            `Failed to save schema (${putRes.status}): ${errBody || putRes.statusText}`,
+          );
+        }
+      }
+
       for (const name of ["Backend Generation", "DTO Generation"]) {
         markStage(name, "loading");
         await new Promise((r) => setTimeout(r, 600));
@@ -69,27 +104,28 @@ export const BuilderLayout: React.FC = () => {
       markStage("Frontend Generation", "complete");
 
       if (state.schemaId) {
-        // Schema is saved — GeneratedCodePage can fetch it by ID
-        window.location.href = `/generated?schemaId=${state.schemaId}`;
-      } else {
-        // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
-        const rawSchemaStr = sessionStorage.getItem("formsync_schema_raw");
-        if (rawSchemaStr) {
-          const schema = JSON.parse(rawSchemaStr);
-          const result = generationService.generateFromSchema(schema);
-          sessionStorage.removeItem("formsync_schema_raw");
-          if (result.success && result.data) {
-            navigate("/generated", {
-              state: { generatedCode: result.data, schema },
-            });
-            return;
-          }
-        }
-        // Final fallback — no schema context available
-        window.location.href = "/generated";
+        navigate(`/generated?schemaId=${state.schemaId}`, {
+          state: { schema: synced },
+        });
+        return;
       }
-    } catch {
-      alert("Generation failed. Please try again.");
+
+      const result = generationService.generateFromSchema(synced);
+      if (result.success && result.data) {
+        navigate("/generated", {
+          state: { generatedCode: result.data, schema: synced },
+        });
+        return;
+      }
+
+      navigate("/generated", { state: { schema: synced } });
+    } catch (e) {
+      console.error(e);
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Generation failed. Please try again.",
+      );
       setStages((prev) =>
         prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
       );
