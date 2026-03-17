@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { BuilderProvider, useBuilder } from "../context/BuilderContext";
 import { BuilderLayout } from "../builder/BuilderLayout";
-import { parseJsonSchemaToFormModel } from "../types";
+import { parseJsonSchemaToFormModel, type JsonSchema } from "../types";
 import { useAuth } from "../context/AuthContext";
 import "../builder/builder.css";
 
@@ -31,8 +31,10 @@ const SchemaLoader: React.FC = () => {
             );
 
           const schemaData = await response.json();
-          const formModel = parseJsonSchemaToFormModel(schemaData.content);
+          const rawContent = schemaData.content as JsonSchema;
+          const formModel = parseJsonSchemaToFormModel(rawContent);
 
+          dispatch({ type: "SET_BASE_SCHEMA", payload: rawContent });
           dispatch({ type: "UPDATE_FORM", payload: formModel });
           dispatch({ type: "SET_SCHEMA_ID", payload: schemaId });
 
@@ -69,6 +71,7 @@ const SchemaLoader: React.FC = () => {
             sessionStorage.setItem("formsync_schema_raw", pending);
             // Convert to FormModel and load into builder
             const formModel = parseJsonSchemaToFormModel(schema);
+            dispatch({ type: "SET_BASE_SCHEMA", payload: schema });
             dispatch({ type: "UPDATE_FORM", payload: formModel });
 
             // Auto-save to get a real schemaId so "Generate Code" works

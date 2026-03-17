@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useBuilder, createField } from '../context/BuilderContext';
+import { useBuilder, createField, collectAllFieldKeys } from '../context/BuilderContext';
 import { FieldModel, FieldType } from '../types';
 import { LucideIcon, Type, Mail, Lock, Hash, AlignLeft, Calendar, ChevronDown, CheckSquare, List, Upload, FileText, PenLine, Search, Calculator, Folder } from 'lucide-react';
 
@@ -152,7 +152,11 @@ export const LeftPanel: React.FC = () => {
 
     const handleAdd = (type: FieldType) => {
         const stepIndex = isWizardMode ? state.activeStep : undefined;
-        dispatch({ type: 'ADD_FIELD', payload: createField(type, stepIndex) });
+        const existingKeys = collectAllFieldKeys(state.form.fields);
+        dispatch({
+            type: 'ADD_FIELD',
+            payload: createField(type, stepIndex, existingKeys),
+        });
     };
 
     const handleRemove = (id: string) => {
