@@ -9,10 +9,6 @@ import {
   useBuilder,
 } from "../context/BuilderContext";
 import { generationService } from "../services/generationService";
-import {
-  formModelToJsonSchema,
-  validateBuilderJsonSchema,
-} from "../types";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
@@ -67,6 +63,7 @@ export const BuilderLayout: React.FC = () => {
           /* ignore */
         }
         window.location.href = `/generated?schemaId=${state.schemaId}`;
+        return;
       } else {
         // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
         const rawSchemaStr = sessionStorage.getItem("formsync_schema_raw");
@@ -87,17 +84,8 @@ export const BuilderLayout: React.FC = () => {
         }
         // Final fallback — no schema context available
         window.location.href = "/generated";
-      }
-
-      const result = generationService.generateFromSchema(synced);
-      if (result.success && result.data) {
-        navigate("/generated", {
-          state: { generatedCode: result.data, schema: synced },
-        });
         return;
       }
-
-      navigate("/generated", { state: { schema: synced } });
     } catch (e) {
       console.error(e);
       alert(
