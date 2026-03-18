@@ -9,7 +9,12 @@
  * - Caching with Redis
  */
 
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ParserService } from './parser.service';
 import { ValidatorService } from './validator.service';
@@ -45,39 +50,46 @@ export class SchemaService {
    * (UPDATED for suggestion-driven model)
    */
   async enhanceSchema(dto: EnhanceSchemaDto) {
-    // Use the SchemaEnhancerService which handles the new suggestion-driven workflow
-    const result = await this.enhancerService.enhanceSchema(dto.schema, {
-      focusAreas: dto.focusAreas,
-      preserveStructure: dto.preserveStructure,
-    });
+    try {
+      // Use the SchemaEnhancerService which handles the new suggestion-driven workflow
+      const result = await this.enhancerService.enhanceSchema(dto.schema, {
+        focusAreas: dto.focusAreas,
+        preserveStructure: dto.preserveStructure,
+      });
 
-    return {
-      // Base enhanced schema (with safe auto-fixes ONLY)
-      enhancedSchema: result.enhancedSchema,
+      return {
+        // Base enhanced schema (with safe auto-fixes ONLY)
+        enhancedSchema: result.enhancedSchema,
 
-      // Auto-applied safe changes
-      changes: result.changes,
+        // Auto-applied safe changes
+        changes: result.changes,
 
-      // NEW: AI suggestions (NOT auto-applied)
-      suggestions: result.suggestions,
+        // NEW: AI suggestions (NOT auto-applied)
+        suggestions: result.suggestions,
 
-      // Quality metrics for CURRENT state (before suggestions)
-      qualityScore: result.quality.score,
-      qualityBreakdown: result.quality.breakdown,
-      issues: result.quality.issues,
+        // Quality metrics for CURRENT state (before suggestions)
+        qualityScore: result.quality.score,
+        qualityBreakdown: result.quality.breakdown,
+        issues: result.quality.issues,
 
-      // Metadata
-      model: result.model,
-      tokensUsed: result.tokensUsed,
+        // Metadata
+        model: result.model,
+        tokensUsed: result.tokensUsed,
 
-      // Statistics
-      metrics: {
-        totalChanges: result.changes.length,
-        totalSuggestions: result.suggestions.length,
-        appliedSuggestions: 0, // None applied yet
-        accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
-      },
-    };
+        // Statistics
+        metrics: {
+          totalChanges: result.changes.length,
+          totalSuggestions: result.suggestions.length,
+          appliedSuggestions: 0, // None applied yet
+          accessibilityCoverage: this.calculateAccessibilityCoverage(result.enhancedSchema),
+        },
+      };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Schema enhancement failed';
+      // Surface LLM/config/limit failures as 400 with a clear body (not generic 500)
+      throw new BadRequestException(message);
+    }
   }
 
   /**
