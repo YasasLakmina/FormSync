@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, Dispatch, useEffect } from 'react';
-import { FormModel, FieldModel, FieldType } from '../types';
+import { FormModel, FieldModel, FieldType, JsonSchema } from '../types';
 
 export const FORMSYNC_BUILDER_DRAFT_KEY = 'formsync_builder_draft';
 export const FORMSYNC_BUILDER_SCHEMA_ID_KEY = 'formsync_builder_schema_id';
