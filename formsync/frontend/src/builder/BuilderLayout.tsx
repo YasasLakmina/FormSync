@@ -18,6 +18,7 @@ import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
 import { Button } from "../components/ui/button";
+import { toast } from "sonner";
 
 export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
@@ -54,9 +55,9 @@ export const BuilderLayout: React.FC = () => {
       );
       const validation = validateBuilderJsonSchema(synced);
       if (!validation.valid) {
-        alert(
-          `Cannot generate — schema validation failed:\n${validation.errors.join("\n")}`,
-        );
+        toast.error("Schema validation failed", {
+          description: validation.errors.join("\n"),
+        });
         setStages((prev) =>
           prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
         );
@@ -85,9 +86,9 @@ export const BuilderLayout: React.FC = () => {
         });
         if (!putRes.ok) {
           const errBody = await putRes.text();
-          alert(
-            `Failed to save schema (${putRes.status}): ${errBody || putRes.statusText}`,
-          );
+          toast.error("Failed to save schema", {
+            description: `${putRes.status}: ${errBody || putRes.statusText}`,
+          });
           setStages((prev) =>
             prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
           );
@@ -131,7 +132,7 @@ export const BuilderLayout: React.FC = () => {
       });
     } catch (e) {
       console.error(e);
-      alert(
+      toast.error(
         e instanceof Error
           ? e.message
           : "Generation failed. Please try again.",
