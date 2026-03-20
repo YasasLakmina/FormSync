@@ -20,7 +20,14 @@ import java.math.*;
 @Data
 @Builder
 @NoArgsConstructor
+{{!-- Omit @AllArgsConstructor when embeddable has no fields: Lombok would duplicate the no-arg ctor with @NoArgsConstructor. --}}
+{{#if isRoot}}
 @AllArgsConstructor
+{{else}}
+{{#if fields.length}}
+@AllArgsConstructor
+{{/if}}
+{{/if}}
 {{#if isRoot}}
 @Entity
 @Table(name = "{{toSnakeCase name}}")

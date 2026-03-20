@@ -23,12 +23,14 @@ import java.math.*;
 @Data
 @Builder
 @NoArgsConstructor
+{{#if fields.length}}
 @AllArgsConstructor
+{{/if}}
 public class {{name}}Request {
 
 {{#each fields}}
 {{#if ../includeSwagger}}
-    @Schema(description = "{{#if description}}{{description}}{{else}}{{name}} field{{/if}}"{{#if constraints.required}}, required = true{{/if}}{{#if constraints.example}}, example = "{{escapeSchemaExample constraints.example}}"{{/if}})
+    @Schema(description = "{{#if description}}{{description}}{{else}}{{name}} field{{/if}}"{{#if constraints.required}}, requiredMode = Schema.RequiredMode.REQUIRED{{/if}}{{#if constraints.example}}, example = "{{escapeSchemaExample constraints.example}}"{{/if}})
 {{/if}}
 {{#if description}}
     /**
