@@ -1,10 +1,12 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
+import { resolveFieldStyleOverrides } from './fieldPreviewStyles';
 
-const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
+const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field, theme }) => {
     const src = field.ui?.['x-ui']?.asyncSource;
     const hasUrl = src?.url && src.url.length > 0;
+    const { border, surface, hint, accent } = resolveFieldStyleOverrides(field, theme);
 
     return (
         <div
@@ -17,34 +19,33 @@ const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    border: '1px solid #d1d5db',
+                    border: `1px solid ${border}`,
                     borderRadius: 6,
-                    background: '#fff',
+                    background: surface,
                     padding: '0 0.75rem',
                     height: '38px',
                     gap: '0.5rem',
                 }}
             >
-                <Search size={16} strokeWidth={2} style={{ color: '#9ca3af', flexShrink: 0 }} aria-hidden />
+                <Search size={16} strokeWidth={2} style={{ color: hint, flexShrink: 0 }} aria-hidden />
                 <span
                     style={{
                         flex: 1,
                         fontSize: '0.875rem',
-                        color: '#9ca3af',
+                        color: hint,
                         fontStyle: 'italic',
                     }}
                 >
                     {field.ui?.placeholder ?? 'Type to search…'}
                 </span>
-                {/* Loading spinner indicator */}
                 {hasUrl && (
                     <span
                         title={`Fetches from: ${src?.url}`}
                         style={{
                             fontSize: '0.7rem',
                             padding: '2px 6px',
-                            background: '#dbeafe',
-                            color: '#1d4ed8',
+                            background: `color-mix(in srgb, ${accent} 15%, ${surface})`,
+                            color: accent,
                             borderRadius: 10,
                             fontWeight: 600,
                         }}
@@ -57,8 +58,8 @@ const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                         style={{
                             fontSize: '0.7rem',
                             padding: '2px 6px',
-                            background: '#fef3c7',
-                            color: '#b45309',
+                            background: `color-mix(in srgb, ${accent} 12%, ${surface})`,
+                            color: hint,
                             borderRadius: 10,
                             fontWeight: 600,
                         }}
@@ -67,16 +68,15 @@ const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                     </span>
                 )}
             </div>
-            {/* Dropdown hint */}
             <div
                 style={{
-                    border: '1px solid #e5e7eb',
+                    border: `1px solid ${border}`,
                     borderTop: 'none',
                     borderRadius: '0 0 6px 6px',
-                    background: '#fff',
+                    background: surface,
                     padding: '0.4rem 0.75rem',
                     fontSize: '0.78rem',
-                    color: '#9ca3af',
+                    color: hint,
                 }}
             >
                 Results appear below when you type.
