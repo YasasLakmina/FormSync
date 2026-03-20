@@ -277,6 +277,25 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <textarea className="control-input" style={{ height: '56px', resize: 'vertical', paddingTop: '0.5rem' }} value={selectedField.ui?.helpText ?? ''} onChange={(e) => handleUiUpdate('helpText', e.target.value)} placeholder="Describe this field…" />
                 </Group>
 
+                {selectedField.type === 'repeater' && (
+                    <>
+                        <Divider title="Repeater layout" />
+                        <Group label="Row layout">
+                            <select
+                                className="control-input"
+                                value={(selectedField.ui as { displayMode?: string } | undefined)?.displayMode === 'table' ? 'table' : 'cards'}
+                                onChange={(e) => handleUiUpdate('displayMode', e.target.value)}
+                            >
+                                <option value="cards">Stacked cards</option>
+                                <option value="table">Data table</option>
+                            </select>
+                            <p style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                                Use a data table for repeating rows such as qualifications. Generated React and static HTML match this layout. Submit payloads use JSON arrays (your API must accept them).
+                            </p>
+                        </Group>
+                    </>
+                )}
+
                 {/* Dropdown options — visible for select fields */}
                 {(selectedField.type === 'select') && (
                     <>
