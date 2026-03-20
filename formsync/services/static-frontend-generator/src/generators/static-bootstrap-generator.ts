@@ -492,6 +492,7 @@ function generateBootstrapField(
     }
     case "calculated": {
       const formula = field["x-calc"] ?? "";
+      const calcRep = ctx ? ` data-fs-calc-repeater="${escapeHtml(ctx.repeaterRoot)}"` : "";
       return wrapControl(
         label,
         required,
@@ -503,7 +504,7 @@ function generateBootstrapField(
           name="${nameAttr}"
           id="${domId}"
           readonly
-          data-fs-calculated="${escapeHtml(formula)}"
+          data-fs-calculated="${escapeHtml(formula)}"${calcRep}
           value=""
           ${ariaRequired}
           ${ariaDescribedBy}
@@ -708,6 +709,21 @@ body {
 .form-select:disabled {
   background-color: color-mix(in srgb, var(--fs-input-bg) 88%, var(--fs-muted));
 }
+
+.richtext-editable.form-control {
+  min-height: 6rem;
+  overflow-y: auto;
+}
+.richtext-editable[contenteditable="true"]:empty:before {
+  content: attr(data-placeholder);
+  color: color-mix(in srgb, var(--fs-muted) 85%, transparent);
+  pointer-events: none;
+}
+canvas.form-control.signature-pad-canvas {
+  display: block;
+  min-height: 10rem;
+  cursor: crosshair;
+}
 `;
 }
 
@@ -753,13 +769,68 @@ const STATIC_RUNTIME_HELPERS = `
     return out;
   }
 
+  function scopedRepeaterValues(form, repeaterRoot, rowIdx) {
+    var flat = formValuesStringMap(form);
+    var prefix = repeaterRoot + '.' + rowIdx + '.';
+    var out = {};
+    Object.keys(flat).forEach(function (k) {
+      out[k] = flat[k];
+    });
+    Object.keys(flat).forEach(function (k) {
+      if (k.indexOf(prefix) === 0) {
+        out[k.slice(prefix.length)] = flat[k];
+      }
+    });
+    return out;
+  }
+
   function updateCalculatedFields(form) {
-    var vals = formValuesStringMap(form);
     form.querySelectorAll('input[data-fs-calculated]').forEach(function (el) {
-      var f = el.getAttribute('data-fs-calculated') || '';
-      var r = evaluateCalcExpression(f, vals);
+      var formula = el.getAttribute('data-fs-calculated') || '';
+      var rep = el.getAttribute('data-fs-calc-repeater');
+      var vals;
+      if (rep) {
+        var row = el.closest('tr.repeater-row, .repeater-row');
+        var ri = row ? parseInt(row.getAttribute('data-row-index') || '0', 10) : 0;
+        vals = scopedRepeaterValues(form, rep, ri);
+      } else {
+        vals = formValuesStringMap(form);
+      }
+      var r = evaluateCalcExpression(formula, vals);
       el.value = typeof r === 'number' && isFinite(r) ? String(r) : String(r);
     });
+  }
+
+  function syncRichTextEditors(form) {
+    form.querySelectorAll('input[type="hidden"][data-fs-richtext]').forEach(function (hid) {
+      var wrap = hid.closest('.richtext-wrap');
+      var ed = wrap && wrap.querySelector('.richtext-editable');
+      if (ed) hid.value = ed.innerHTML;
+    });
+  }
+
+  function wireRichTextToolbar(form) {
+    form.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var btn = t.closest('.fs-richtext-cmd');
+      if (!btn || !form.contains(btn)) return;
+      e.preventDefault();
+      var cmd = btn.getAttribute('data-cmd');
+      var wrap = btn.closest('.richtext-wrap');
+      var ed = wrap && wrap.querySelector('.richtext-editable');
+      if (ed && cmd) {
+        ed.focus();
+        document.execCommand(cmd, false, undefined);
+      }
+    });
+    form.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains('richtext-editable')) return;
+      var wrap = t.closest('.richtext-wrap');
+      var hid = wrap && wrap.querySelector('input[data-fs-richtext]');
+      if (hid) hid.value = t.innerHTML;
+    }, true);
   }
 
   function syncSignaturePads(form) {
@@ -845,6 +916,7 @@ const STATIC_RUNTIME_HELPERS = `
         setRepeaterRowIndex(clone, root, n);
         rowsC.appendChild(clone);
         wireSignatureDrawing(clone);
+        updateCalculatedFields(form);
         refreshRemoveButtons();
       });
 
@@ -957,6 +1029,7 @@ ${buildVanillaClientValidationSource()}
   var FIELD_RULES = ${fieldRulesJson};
 
   wireSignatureDrawing(form);
+  wireRichTextToolbar(form);
   initRepeaters(form);
   initTypeaheads(form);
   form.addEventListener("input", function () {
@@ -970,6 +1043,7 @@ ${fieldMapLines}
 
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
+    syncRichTextEditors(form);
     syncSignaturePads(form);
 
     var errs = validateForm(form, FIELD_RULES);
