@@ -217,6 +217,17 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Visible summary when validation fails (supplements per-field .field-error text). */
+.form-validation-summary {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--border-radius);
+  border: 1px solid color-mix(in srgb, var(--color-error) 45%, transparent);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
 /* Field Styling */
 .field-item {
   margin-bottom: 1.5rem;
