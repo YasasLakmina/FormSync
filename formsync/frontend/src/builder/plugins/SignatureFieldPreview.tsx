@@ -1,4 +1,5 @@
 import React from 'react';
+import { PenLine } from 'lucide-react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
 
 const SignatureFieldPreview: React.FC<FieldPluginProps> = () => (
@@ -35,7 +36,7 @@ const SignatureFieldPreview: React.FC<FieldPluginProps> = () => (
                 gap: '0.25rem',
             }}
         >
-            <span style={{ fontSize: '1.5rem' }}>✍️</span>
+            <PenLine size={22} strokeWidth={1.75} color="#9ca3af" aria-hidden />
             <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Sign here</span>
         </div>
         {/* Clear button mock */}
