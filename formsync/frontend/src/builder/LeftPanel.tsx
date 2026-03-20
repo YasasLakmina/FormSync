@@ -16,7 +16,23 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useBuilder, createField, collectAllFieldKeys, type CreateFieldOptions } from '../context/BuilderContext';
+import {
+    useBuilder,
+    createField,
+    collectAllFieldKeys,
+    findFieldInTree,
+    type CreateFieldOptions,
+} from '../context/BuilderContext';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { FieldModel, FieldType } from '../types';
 import {
     LucideIcon,
@@ -249,6 +265,8 @@ const SortableRootFieldBlock: React.FC<{
 export const LeftPanel: React.FC = () => {
     const { state, dispatch, isWizardMode } = useBuilder();
     const [tab, setTab] = useState<'palette' | 'tree'>('palette');
+    const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+    const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -270,9 +288,12 @@ export const LeftPanel: React.FC = () => {
         });
     };
 
-    const handleRemove = (id: string) => {
-        if (window.confirm('Remove this field?')) dispatch({ type: 'REMOVE_FIELD', payload: id });
+    const requestRemove = (id: string) => {
+        setPendingRemoveId(id);
+        setRemoveDialogOpen(true);
     };
+
+    const pendingField = pendingRemoveId ? findFieldInTree(state.form.fields, pendingRemoveId) : undefined;
 
     const rootIds = displayFields.map((f) => f.id);
 
@@ -356,7 +377,7 @@ export const LeftPanel: React.FC = () => {
                                                 field={field}
                                                 selectedFieldId={state.selectedFieldId}
                                                 onSelect={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
-                                                onRemove={handleRemove}
+                                                onRemove={requestRemove}
                                             />
                                         ))}
                                     </SortableContext>
@@ -366,6 +387,38 @@ export const LeftPanel: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <AlertDialog
+                open={removeDialogOpen}
+                onOpenChange={(open) => {
+                    setRemoveDialogOpen(open);
+                    if (!open) setPendingRemoveId(null);
+                }}
+            >
+                <AlertDialogContent className="max-w-md rounded-xl border border-neutral-200 shadow-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove field?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {pendingField
+                                ? `“${pendingField.label}” will be removed from the form. You can undo afterward from the toolbar.`
+                                : 'This field will be removed from the form. You can undo afterward from the toolbar.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                            onClick={() => {
+                                if (pendingRemoveId) {
+                                    dispatch({ type: 'REMOVE_FIELD', payload: pendingRemoveId });
+                                }
+                            }}
+                        >
+                            Remove
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };
