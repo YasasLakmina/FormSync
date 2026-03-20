@@ -2,7 +2,7 @@
  * React Component Generator — FormModel → App.tsx (palette parity for ZIP exports).
  */
 
-import type { FieldModel, FormModel } from "../types";
+import type { FieldModel, FormModel, FormStep } from "../types";
 
 const AUTO_COMPLETE_MAP: Record<string, string> = {
   name: "name",
@@ -81,11 +81,11 @@ export function generateAppTsx(formModel: FormModel): string {
   const { fields, layout, meta, submit } = formModel;
 
   const orderedFields = layout.order
-    .map((id) => fields.find((f) => f.id === id))
+    .map((id: string) => fields.find((f: FieldModel) => f.id === id))
     .filter((f): f is FieldModel => !!f);
 
   const domIdByKey = new Map<string, string>();
-  collectAllFields(orderedFields).forEach((f, i) => {
+  collectAllFields(orderedFields).forEach((f: FieldModel, i: number) => {
     domIdByKey.set(f.key, `field_${i + 1}`);
   });
 
@@ -95,14 +95,14 @@ export function generateAppTsx(formModel: FormModel): string {
   const submitText = submit?.text || "Submit";
   const submitColor = submit?.color;
 
-  const repeaterStates = orderedFields.filter((f) => f.type === "repeater").map((f) => ({
+  const repeaterStates = orderedFields.filter((f: FieldModel) => f.type === "repeater").map((f: FieldModel) => ({
     field: f,
     stateVar: `repRowIds_${sanitizeIdent(f.key)}_${sanitizeIdent(f.id)}`,
   }));
 
   const repeaterStateDeclarations = repeaterStates
     .map(
-      ({ stateVar }) =>
+      ({ stateVar }: { stateVar: string }) =>
         `  const [${stateVar}, set${stateVar.charAt(0).toUpperCase() + stateVar.slice(1)}] = useState<string[]>(() => ['0']);`,
     )
     .join("\n");
@@ -110,12 +110,12 @@ export function generateAppTsx(formModel: FormModel): string {
   let formBody: string;
   if (hasFields && layout.steps && layout.steps.length > 0) {
     const sections = layout.steps
-      .map((step, stepIdx) => {
+      .map((step: FormStep, stepIdx: number) => {
         const stepFields = orderedFields.filter(
-          (f) => f.stepIndex === stepIdx || f.stepIndex === undefined,
+          (f: FieldModel) => f.stepIndex === stepIdx || f.stepIndex === undefined,
         );
         const fieldComponents = stepFields
-          .map((f) => generateFieldComponent(f, domIdByKey, undefined, repeaterStates))
+          .map((f: FieldModel) => generateFieldComponent(f, domIdByKey, undefined, repeaterStates))
           .join("\n\n");
         return `<section className="form-section">
           <h2 className="section-title">
@@ -135,7 +135,7 @@ export function generateAppTsx(formModel: FormModel): string {
       </form>`;
   } else if (hasFields) {
     const fieldComponents = orderedFields
-      .map((f) => generateFieldComponent(f, domIdByKey, undefined, repeaterStates))
+      .map((f: FieldModel) => generateFieldComponent(f, domIdByKey, undefined, repeaterStates))
       .join("\n\n");
     formBody = `<form ref={formRef} onInput={() => setFormTick((v) => v + 1)} onSubmit={handleSubmit} noValidate>
         ${fieldComponents}
@@ -147,7 +147,7 @@ export function generateAppTsx(formModel: FormModel): string {
 
   const allFields = collectAllFields(orderedFields);
   const fieldIdMapEntries = allFields
-    .map((f) => `  '${escapeJsSingleQuotedString(f.key)}': '${domIdByKey.get(f.key)}'`)
+    .map((f: FieldModel) => `  '${escapeJsSingleQuotedString(f.key)}': '${domIdByKey.get(f.key)}'`)
     .join(",\n");
 
   const calcHelpers = `function evaluateCalcExpression(formula: string, values: Record<string, string>): string | number {
@@ -328,7 +328,7 @@ function generateFieldComponent(
       return `<div className="field-item"><p className="field-help-text">Repeater configuration error.</p></div>`;
     }
     const children = field.children || [];
-    if (children.some((c) => c.type === "repeater")) {
+    if (children.some((c: FieldModel) => c.type === "repeater")) {
       return `<div className="field-item border rounded p-3 mb-3">
           <div className="field-label fw-semibold mb-2">${escapeHtml(label)}</div>
           <p className="text-muted small">Nested repeaters are not supported in this export.</p>
@@ -336,7 +336,7 @@ function generateFieldComponent(
     }
     const setterName = `set${spec.stateVar.charAt(0).toUpperCase()}${spec.stateVar.slice(1)}`;
     const innerRows = children
-      .map((child) =>
+      .map((child: FieldModel) =>
         generateFieldComponent(child, domIdByKey, { repeaterRoot: field.key }, repeaterStates),
       )
       .join("\n\n");
@@ -378,7 +378,7 @@ function generateFieldComponent(
   if (type === "group") {
     const children = field.children || [];
     const childComponents = children
-      .map((child) => generateFieldComponent(child, domIdByKey, ctx, repeaterStates))
+      .map((child: FieldModel) => generateFieldComponent(child, domIdByKey, ctx, repeaterStates))
       .join("\n");
     const groupExtra = [
       `border: '1px solid #e5e7eb'`,
@@ -436,7 +436,7 @@ function generateFieldComponent(
             ${autoCompleteAttr}
           >
             <option value="">${escapeHtml(placeholder) || "Select..."}</option>
-            ${options.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("\n            ")}
+            ${options.map((o: string) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("\n            ")}
           </select>`;
       return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
     }
