@@ -30,6 +30,33 @@ function escapeJsSingleQuotedString(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+/** Repeater chrome from field.ui.styleOverrides (matches builder preview + static HTML). */
+function repeaterChromeStyles(field: FieldModel): {
+  fieldsetStyle: string;
+  legendStyle: string;
+  theadTrStyle: string;
+  addButtonStyle: string;
+} {
+  const o = field.ui?.styleOverrides as Record<string, string> | undefined;
+  const border = o?.borderColor ?? "#e5e7eb";
+  const bg = o?.backgroundColor;
+  const lc = o?.labelColor;
+  const accent = o?.focusColor;
+  const fs: string[] = [`border: '1px solid ${border}'`, `borderRadius: '4px'`, `padding: '1rem'`];
+  if (bg) fs.push(`background: '${bg}'`);
+  const fieldsetStyle = fs.join(", ");
+  const legendParts = [`padding: '0 0.5rem'`, `fontWeight: 600`];
+  if (lc) legendParts.push(`color: '${lc}'`);
+  const legendStyle = legendParts.join(", ");
+  const theadBg =
+    lc && bg ? `color-mix(in srgb, ${lc} 12%, ${bg})` : bg ? `color-mix(in srgb, #64748b 8%, ${bg})` : "#f1f5f9";
+  const theadTrParts = [`background: '${theadBg}'`];
+  if (lc) theadTrParts.push(`color: '${lc}'`);
+  const theadTrStyle = theadTrParts.join(", ");
+  const addButtonStyle = accent ? `color: '${accent}', borderColor: '${accent}'` : "";
+  return { fieldsetStyle, legendStyle, theadTrStyle, addButtonStyle };
+}
+
 /** Rules for generated client-side validate() — keyed by semantic field key (matches indexed form names via template path). */
 function buildClientFieldRulesJson(formModel: FormModel): string {
   type Rule = {
@@ -339,6 +366,31 @@ function formValuesForCalc(form: HTMLFormElement | null): Record<string, string>
   return out;
 }
 
+function scopedRepeaterValuesForCalc(
+  form: HTMLFormElement | null,
+  repeaterRoot: string,
+  rowIdx: number,
+): Record<string, string> {
+  const flat = formValuesForCalc(form);
+  const prefix = repeaterRoot + "." + rowIdx + ".";
+  const out: Record<string, string> = { ...flat };
+  for (const [k, v] of Object.entries(flat)) {
+    if (k.startsWith(prefix)) {
+      out[k.slice(prefix.length)] = v;
+    }
+  }
+  return out;
+}
+
+function syncRichTextEditors(form: HTMLFormElement | null) {
+  if (!form) return;
+  form.querySelectorAll<HTMLInputElement>('input[type="hidden"][data-fs-richtext]').forEach((hid) => {
+    const wrap = hid.closest(".richtext-wrap");
+    const ed = wrap?.querySelector<HTMLElement>(".richtext-editable");
+    if (ed) hid.value = ed.innerHTML;
+  });
+}
+
 function syncSignaturePads(form: HTMLFormElement | null) {
   if (!form) return;
   form.querySelectorAll<HTMLCanvasElement>('canvas[data-fs-sig-target]').forEach((canvas) => {
@@ -416,6 +468,7 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    syncRichTextEditors(e.currentTarget);
     syncSignaturePads(e.currentTarget);
     const errs = validateForm(e.currentTarget, FIELD_RULES);
     setErrors(errs);
@@ -516,6 +569,19 @@ function generateFieldComponent(
           <p className="text-muted small">Nested repeaters are not supported in this export.</p>
         </div>`;
     }
+    if (children.length === 0) {
+      const emptyRc = repeaterChromeStyles(field);
+      const emptyAdd = emptyRc.addButtonStyle
+        ? `<button type="button" className="btn btn-sm btn-outline-primary" style={{ ${emptyRc.addButtonStyle} }} onClick={() => {}} disabled title="Add child fields in the builder first">Add row</button>`
+        : `<button type="button" className="btn btn-sm btn-outline-primary" disabled title="Add child fields in the builder first">Add row</button>`;
+      return `<fieldset className="field-group repeater-field mb-4" style={{ ${emptyRc.fieldsetStyle} }}>
+        <legend className="field-legend" style={{ ${emptyRc.legendStyle} }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
+        <p className="text-muted small mb-3" role="note">
+          This repeater has no column fields yet. In FormSync, select the repeater → add fields inside it (each becomes a table column or card row). Then re-export.
+        </p>
+        ${emptyAdd}
+      </fieldset>`;
+    }
     const setterName = `set${spec.stateVar.charAt(0).toUpperCase()}${spec.stateVar.slice(1)}`;
     const innerRows = children
       .map((child: FieldModel) =>
@@ -529,6 +595,10 @@ function generateFieldComponent(
         : "cards";
 
     if (displayMode === "table" && children.length > 0) {
+      const rc = repeaterChromeStyles(field);
+      const addTableBtn = rc.addButtonStyle
+        ? `<button type="button" className="btn btn-sm btn-outline-primary mt-2" style={{ ${rc.addButtonStyle} }} onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>`
+        : `<button type="button" className="btn btn-sm btn-outline-primary mt-2" onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>`;
       const thCells = children
         .map(
           (c: FieldModel) =>
@@ -550,12 +620,12 @@ function generateFieldComponent(
         )
         .join("");
 
-      return `<fieldset className="field-group repeater-field repeater-table mb-4" style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '1rem' }}>
-        <legend className="field-legend" style={{ padding: '0 0.5rem', fontWeight: 600 }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
+      return `<fieldset className="field-group repeater-field repeater-table mb-4" style={{ ${rc.fieldsetStyle} }}>
+        <legend className="field-legend" style={{ ${rc.legendStyle} }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
         <div style={{ overflowX: "auto" }}>
         <table className="repeater-data-table" style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.95rem" }}>
           <thead>
-            <tr style={{ background: "#f1f5f9" }}>
+            <tr style={{ ${rc.theadTrStyle} }}>
               ${thCells}
               <th scope="col" className="text-end repeater-table-actions" style={{ width: "6rem" }}>Actions</th>
             </tr>
@@ -572,19 +642,24 @@ function generateFieldComponent(
           </tbody>
         </table>
         </div>
-        <button type="button" className="btn btn-sm btn-outline-primary mt-2" onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>
+        ${addTableBtn}
       </fieldset>`;
     }
 
-    return `<fieldset className="field-group repeater-field mb-4" style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '1rem' }}>
-        <legend className="field-legend" style={{ padding: '0 0.5rem', fontWeight: 600 }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
+    const rcCards = repeaterChromeStyles(field);
+    const addCardBtn = rcCards.addButtonStyle
+      ? `<button type="button" className="btn btn-sm btn-outline-primary" style={{ ${rcCards.addButtonStyle} }} onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>`
+      : `<button type="button" className="btn btn-sm btn-outline-primary" onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>`;
+
+    return `<fieldset className="field-group repeater-field mb-4" style={{ ${rcCards.fieldsetStyle} }}>
+        <legend className="field-legend" style={{ ${rcCards.legendStyle} }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
         {${spec.stateVar}.map((rowId, rowIdx) => (
         <div key={rowId} className="repeater-row border rounded p-3 mb-3 bg-light">
           ${innerRows}
           <button type="button" className="btn btn-sm btn-outline-danger mt-2" onClick={() => ${setterName}((rows) => rows.length <= 1 ? rows : rows.filter((_, i) => i !== rowIdx))}>Remove row</button>
         </div>
         ))}
-        <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>
+        ${addCardBtn}
       </fieldset>`;
   }
 
@@ -641,8 +716,7 @@ function generateFieldComponent(
     : `<span id="${domBase}-error" className="field-error" role="alert" aria-live="polite">{${errExpr}}</span>`;
 
   switch (type) {
-    case "textarea":
-    case "richtext": {
+    case "textarea": {
       const input = `<textarea
             ${nameAttr}
             ${idAttr}
@@ -656,6 +730,35 @@ function generateFieldComponent(
             ${autoCompleteAttr}
           ></textarea>`;
       return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
+    }
+    case "richtext": {
+      const richInput = `<div className="richtext-wrap">
+            <div className="richtext-toolbar" role="toolbar" aria-label="Formatting">
+              <button type="button" className="richtext-tool" onClick={(e) => { const ed = e.currentTarget.closest('.richtext-wrap')?.querySelector<HTMLElement>('.richtext-editable'); ed?.focus(); document.execCommand('bold'); }} title="Bold"><strong>B</strong></button>
+              <button type="button" className="richtext-tool" onClick={(e) => { const ed = e.currentTarget.closest('.richtext-wrap')?.querySelector<HTMLElement>('.richtext-editable'); ed?.focus(); document.execCommand('italic'); }} title="Italic"><em>I</em></button>
+              <button type="button" className="richtext-tool" onClick={(e) => { const ed = e.currentTarget.closest('.richtext-wrap')?.querySelector<HTMLElement>('.richtext-editable'); ed?.focus(); document.execCommand('underline'); }} title="Underline"><span style={{ textDecoration: 'underline' }}>U</span></button>
+              <button type="button" className="richtext-tool" onClick={(e) => { const ed = e.currentTarget.closest('.richtext-wrap')?.querySelector<HTMLElement>('.richtext-editable'); ed?.focus(); document.execCommand('insertUnorderedList'); }} title="Bullets">•</button>
+              <button type="button" className="richtext-tool" onClick={(e) => { const ed = e.currentTarget.closest('.richtext-wrap')?.querySelector<HTMLElement>('.richtext-editable'); ed?.focus(); document.execCommand('insertOrderedList'); }} title="Numbered list">1.</button>
+            </div>
+            <div
+              ${idAttr}
+              className="field-input richtext-editable"
+              contentEditable
+              suppressContentEditableWarning
+              ${placeholder ? `data-placeholder="${escapeHtml(placeholder)}"` : ""}
+              ${ariaRequired}
+              ${ariaInvalid}
+              ${ariaErrMsg}
+              ${ariaDescribedBy}
+              onInput={(e) => {
+                const wrap = e.currentTarget.closest('.richtext-wrap');
+                const hid = wrap?.querySelector<HTMLInputElement>('input[data-fs-richtext]');
+                if (hid) hid.value = e.currentTarget.innerHTML;
+              }}
+            />
+            <input type="hidden" data-fs-richtext ${nameAttr} />
+          </div>`;
+      return wrapField(label, required, htmlForAttr, richInput, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "select": {
       const options = field.constraints?.enum || [];
@@ -739,7 +842,7 @@ function generateFieldComponent(
             id=${canvasIdExpr}
             width={400}
             height={160}
-            className="border rounded bg-white"
+            className="field-input signature-pad-canvas"
             ${sigTargetAttr}
             style={{ maxWidth: '100%', touchAction: 'none' }}
             onPointerDown={(e) => {
@@ -794,12 +897,15 @@ function generateFieldComponent(
     }
     case "calculated": {
       const formula = field["x-calc"] ?? "";
+      const calcValuesExpr = ctx
+        ? `scopedRepeaterValuesForCalc(formRef.current, '${escapeJsSingleQuotedString(ctx.repeaterRoot)}', rowIdx)`
+        : `formValuesForCalc(formRef.current)`;
       const input = `<input
             readOnly
             ${nameAttr}
             ${idAttr}
             className="field-input"
-            value={String(evaluateCalcExpression(${JSON.stringify(formula)}, formValuesForCalc(formRef.current)))}
+            value={String(evaluateCalcExpression(${JSON.stringify(formula)}, ${calcValuesExpr}))}
             ${ariaRequired}
             ${ariaInvalid}
             ${ariaErrMsg}
