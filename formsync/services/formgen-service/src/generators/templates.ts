@@ -197,10 +197,12 @@ body {
 .form-container {
   max-width: 600px;
   width: 100%;
-  background: var(--color-bg);
+  /* Card/surface — distinct from page background (--color-bg on body) */
+  background: var(--color-surface);
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
 }
 
 .form-title {
