@@ -1,15 +1,36 @@
 import React from 'react';
 import { ClipboardList } from 'lucide-react';
+import { FieldModel } from '../../types';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
 
+type Ov = Record<string, string>;
+
+function resolveRepeaterChrome(field: FieldModel, theme: Record<string, string | number>) {
+    const o = field.ui?.styleOverrides as Ov | undefined;
+    const t = theme as Record<string, string>;
+    const border = o?.borderColor ?? t['--color-border'] ?? '#e2e8f0';
+    const surface = o?.backgroundColor ?? t['--color-surface'] ?? '#f8fafc';
+    const label = o?.labelColor ?? t['--color-text'] ?? '#0f172a';
+    const hint = o?.inputTextColor ?? t['--color-muted'] ?? '#64748b';
+    const accent = o?.focusColor ?? t['--color-primary'] ?? '#6366f1';
+    return { border, surface, label, hint, accent, o };
+}
+
 // A small inner field preview row used inside the repeater section
-const InnerFieldRow: React.FC<{ label: string; type: string }> = ({ label, type }) => (
+const InnerFieldRow: React.FC<{ label: string; type: string; labelColor: string; borderColor: string; inputBg: string; hintColor: string }> = ({
+    label,
+    type,
+    labelColor,
+    borderColor,
+    inputBg,
+    hintColor,
+}) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <label
             style={{
                 minWidth: '80px',
                 fontSize: '0.78rem',
-                color: '#374151',
+                color: labelColor,
                 fontWeight: 500,
             }}
         >
@@ -19,14 +40,14 @@ const InnerFieldRow: React.FC<{ label: string; type: string }> = ({ label, type 
             style={{
                 flex: 1,
                 height: '30px',
-                border: '1px solid #d1d5db',
+                border: `1px solid ${borderColor}`,
                 borderRadius: 4,
-                background: '#fff',
+                background: inputBg,
                 padding: '0 0.5rem',
                 display: 'flex',
                 alignItems: 'center',
                 fontSize: '0.78rem',
-                color: '#9ca3af',
+                color: hintColor,
                 fontStyle: 'italic',
             }}
         >
@@ -35,48 +56,54 @@ const InnerFieldRow: React.FC<{ label: string; type: string }> = ({ label, type 
     </div>
 );
 
-const theadCellStyle: React.CSSProperties = {
-    border: '1px solid #c4b5fd',
-    padding: '0.45rem 0.65rem',
-    textAlign: 'left',
-    fontWeight: 700,
-    fontSize: '0.78rem',
-    letterSpacing: '0.02em',
-    color: '#1e1b4b',
-    background: '#e9e5ff',
-};
-
-const bodyCellStyle: React.CSSProperties = {
-    border: '1px solid #ddd6fe',
-    padding: '0.4rem 0.5rem',
-    color: '#64748b',
-    fontSize: '0.75rem',
-};
-
-const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
+const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field, theme }) => {
     const children = field.children ?? [];
     const isTable = (field.ui as { displayMode?: string } | undefined)?.displayMode === 'table';
+    const { border, surface, label, hint, accent } = resolveRepeaterChrome(field, theme);
+    const inputBg =
+        (field.ui?.styleOverrides as Ov | undefined)?.backgroundColor ??
+        (theme['--color-input-bg'] as string) ??
+        '#ffffff';
+    const errColor = (theme['--color-error'] as string) ?? '#dc2626';
+
+    const theadCellStyle: React.CSSProperties = {
+        border: `1px solid ${border}`,
+        padding: '0.45rem 0.65rem',
+        textAlign: 'left',
+        fontWeight: 700,
+        fontSize: '0.78rem',
+        letterSpacing: '0.02em',
+        color: label,
+        background: `color-mix(in srgb, ${label} 12%, ${surface})`,
+    };
+
+    const bodyCellStyle: React.CSSProperties = {
+        border: `1px solid ${border}`,
+        padding: '0.4rem 0.5rem',
+        color: hint,
+        fontSize: '0.75rem',
+    };
 
     if (isTable) {
         const colCount = Math.max(children.length, 1);
         return (
             <div
                 style={{
-                    border: '1px solid #c7d2fe',
+                    border: `1px solid ${border}`,
                     borderRadius: 8,
                     overflow: 'hidden',
-                    background: '#fafaff',
+                    background: surface,
                     pointerEvents: 'none',
                 }}
             >
                 <div
                     style={{
-                        background: '#ede9fe',
+                        background: `color-mix(in srgb, ${accent} 14%, ${surface})`,
                         padding: '0.5rem 0.75rem',
                         fontWeight: 600,
                         fontSize: '0.85rem',
-                        color: '#5b21b6',
-                        borderBottom: '1px solid #c4b5fd',
+                        color: label,
+                        borderBottom: `1px solid ${border}`,
                     }}
                 >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -91,8 +118,8 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                             width: '100%',
                             borderCollapse: 'collapse',
                             fontSize: '0.8125rem',
-                            background: '#fff',
-                            border: '1px solid #ddd6fe',
+                            background: inputBg,
+                            border: `1px solid ${border}`,
                             borderRadius: 6,
                             overflow: 'hidden',
                         }}
@@ -104,7 +131,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                                         <th key={c.id} scope="col" style={theadCellStyle}>
                                             {c.label}
                                             {c.required ? (
-                                                <span style={{ color: '#b91c1c', marginLeft: 2 }} aria-hidden="true">
+                                                <span style={{ color: errColor, marginLeft: 2 }} aria-hidden="true">
                                                     *
                                                 </span>
                                             ) : null}
@@ -122,7 +149,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                                         ...theadCellStyle,
                                         width: '5.5rem',
                                         textAlign: 'right',
-                                        background: '#f5f3ff',
+                                        background: `color-mix(in srgb, ${accent} 10%, ${surface})`,
                                     }}
                                 >
                                     Actions
@@ -142,7 +169,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                                             ...bodyCellStyle,
                                             textAlign: 'right',
                                             fontSize: '0.7rem',
-                                            color: '#7c3aed',
+                                            color: accent,
                                             fontWeight: 600,
                                             fontStyle: 'normal',
                                         }}
@@ -158,8 +185,8 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                                             ...bodyCellStyle,
                                             textAlign: 'center',
                                             padding: '0.85rem',
-                                            background: '#faf5ff',
-                                            color: '#5b21b6',
+                                            background: `color-mix(in srgb, ${accent} 8%, ${surface})`,
+                                            color: label,
                                             fontStyle: 'normal',
                                         }}
                                     >
@@ -174,11 +201,11 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 <div
                     style={{
                         padding: '0.5rem 0.75rem',
-                        borderTop: '1px dashed #c4b5fd',
+                        borderTop: `1px dashed ${border}`,
                         display: 'flex',
                         justifyContent: 'center',
                         fontSize: '0.8rem',
-                        color: '#7c3aed',
+                        color: accent,
                         fontWeight: 500,
                     }}
                 >
@@ -191,22 +218,22 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
     return (
         <div
             style={{
-                border: '1px solid #c7d2fe',
+                border: `1px solid ${border}`,
                 borderRadius: 8,
                 overflow: 'hidden',
-                background: '#f5f3ff',
+                background: surface,
                 pointerEvents: 'none',
             }}
         >
             {/* Section header */}
             <div
                 style={{
-                    background: '#ede9fe',
+                    background: `color-mix(in srgb, ${accent} 14%, ${surface})`,
                     padding: '0.5rem 0.75rem',
                     fontWeight: 600,
                     fontSize: '0.85rem',
-                    color: '#5b21b6',
-                    borderBottom: '1px solid #c4b5fd',
+                    color: label,
+                    borderBottom: `1px solid ${border}`,
                 }}
             >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -221,13 +248,21 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
             <div style={{ padding: '0.75rem' }}>
                 {children.length > 0 ? (
                     children.map((child) => (
-                        <InnerFieldRow key={child.id} label={child.label} type={child.type} />
+                        <InnerFieldRow
+                            key={child.id}
+                            label={child.label}
+                            type={child.type}
+                            labelColor={label}
+                            borderColor={border}
+                            inputBg={inputBg}
+                            hintColor={hint}
+                        />
                     ))
                 ) : (
                     <div
                         style={{
                             textAlign: 'center',
-                            color: '#8b5cf6',
+                            color: accent,
                             fontSize: '0.8rem',
                             padding: '0.5rem',
                         }}
@@ -241,7 +276,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
             <div
                 style={{
                     padding: '0.5rem 0.75rem',
-                    borderTop: '1px dashed #c4b5fd',
+                    borderTop: `1px dashed ${border}`,
                     display: 'flex',
                     justifyContent: 'center',
                 }}
@@ -249,7 +284,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 <span
                     style={{
                         fontSize: '0.8rem',
-                        color: '#7c3aed',
+                        color: accent,
                         cursor: 'default',
                         fontWeight: 500,
                     }}
