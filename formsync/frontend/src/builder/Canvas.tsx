@@ -189,8 +189,8 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
 
     return (
         <div style={wrapStyle} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
-            {/* Label row */}
-            {field.type !== 'checkbox' && (
+            {/* Label row — repeaters draw their own legend/title inside the plugin */}
+            {field.type !== 'checkbox' && field.type !== 'repeater' && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <label style={{ fontSize: '0.8rem', fontWeight: 600, color: overrides?.labelColor || 'var(--color-text)' }}>
                         {field.label}
