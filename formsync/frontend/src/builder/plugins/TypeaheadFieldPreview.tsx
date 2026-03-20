@@ -1,4 +1,5 @@
 import React from 'react';
+import { Search } from 'lucide-react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
 
 const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
@@ -24,8 +25,7 @@ const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                     gap: '0.5rem',
                 }}
             >
-                {/* Search icon */}
-                <span style={{ color: '#9ca3af', fontSize: '0.9rem' }}>🔍</span>
+                <Search size={16} strokeWidth={2} style={{ color: '#9ca3af', flexShrink: 0 }} aria-hidden />
                 <span
                     style={{
                         flex: 1,
@@ -79,7 +79,7 @@ const TypeaheadFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                     color: '#9ca3af',
                 }}
             >
-                ↳ Results will appear here after typing
+                Results appear below when you type.
             </div>
         </div>
     );
