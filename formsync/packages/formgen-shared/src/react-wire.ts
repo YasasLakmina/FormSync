@@ -168,10 +168,14 @@ export function buildReactWiredSubmitReplacement(
         throw new Error(\`Submission failed (\${response.status})\`);
       }
 
-      alert("Submitted successfully");
+      setStatusKind("success");
+      setStatusMessage(
+        "Submitted successfully. Your response was sent to the server.",
+      );
       console.log("Form submitted:", jsonBody !== undefined ? jsonBody : {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Submission failed";
+      setStatusKind("error");
       setStatusMessage(msg);
     }
     /* FORMSYNC_API_SUBMIT_END */`;
