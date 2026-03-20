@@ -334,9 +334,11 @@ input[type="checkbox"].field-input {
   vertical-align: middle;
 }
 .repeater-data-table thead th {
-  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-border));
-  font-weight: 600;
-  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--color-border));
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
 }
 .repeater-table-cell .field-item {
   margin-bottom: 0;
