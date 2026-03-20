@@ -30,6 +30,166 @@ function escapeJsSingleQuotedString(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+/** Rules for generated client-side validate() — keyed by semantic field key (matches indexed form names via template path). */
+function buildClientFieldRulesJson(formModel: FormModel): string {
+  type Rule = {
+    label: string;
+    type: string;
+    required: boolean;
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+  };
+  const rules: Record<string, Rule> = {};
+  const walk = (fields: FieldModel[]) => {
+    for (const f of fields) {
+      if (f.type === "group" || f.type === "repeater") {
+        if (f.children?.length) walk(f.children);
+      } else {
+        const r: Rule = {
+          label: f.label,
+          type: f.type,
+          required: f.required,
+        };
+        const c = f.constraints;
+        if (c?.min !== undefined) r.min = c.min;
+        if (c?.max !== undefined) r.max = c.max;
+        if (c?.minLength !== undefined) r.minLength = c.minLength;
+        if (c?.maxLength !== undefined) r.maxLength = c.maxLength;
+        if (c?.pattern !== undefined) r.pattern = c.pattern;
+        rules[f.key] = r;
+      }
+    }
+  };
+  walk(formModel.fields);
+  return JSON.stringify(rules);
+}
+
+/** Source appended to App.tsx: FIELD_RULES + validate helpers (strict TS). */
+function buildGeneratedClientValidationSource(): string {
+  return `type FieldRule = {
+  label: string;
+  type: string;
+  required: boolean;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+};
+
+function templatePathFromIndexedPath(path: string): string {
+  return path.split(".").filter((p) => !/^\\d+$/.test(p)).join(".");
+}
+
+function validateForm(form: HTMLFormElement, rules: Record<string, FieldRule>): Record<string, string> {
+  const errs: Record<string, string> = {};
+  const emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+
+  const applyTextRules = (rule: FieldRule, raw: string, path: string): void => {
+    const v = raw.trim();
+    if (rule.required && v === "") {
+      errs[path] = rule.label + " is required.";
+      return;
+    }
+    if (v === "") return;
+
+    if (rule.type === "number") {
+      const normalized = v.replace(/\\s/g, "");
+      if (/[eE]/.test(normalized)) {
+        errs[path] = rule.label + " must be a valid number.";
+        return;
+      }
+      if (!/^-?(?:\\d+\\.?\\d*|\\.\\d+)$/.test(normalized)) {
+        errs[path] = rule.label + " must be a valid number.";
+        return;
+      }
+      const num = Number(normalized);
+      if (Number.isNaN(num)) {
+        errs[path] = rule.label + " must be a valid number.";
+        return;
+      }
+      const disallowNegative = rule.min !== undefined && rule.min >= 0;
+      if (disallowNegative && num < 0) {
+        errs[path] = rule.label + " cannot be negative.";
+        return;
+      }
+      if (rule.min !== undefined && num < rule.min) {
+        errs[path] = rule.label + " must be at least " + rule.min + ".";
+        return;
+      }
+      if (rule.max !== undefined && num > rule.max) {
+        errs[path] = rule.label + " must be at most " + rule.max + ".";
+        return;
+      }
+    } else if (rule.type === "email") {
+      if (!emailRe.test(v)) errs[path] = "Enter a valid email address.";
+    }
+
+    if (!errs[path] && rule.minLength !== undefined && v.length < rule.minLength) {
+      errs[path] = rule.label + " is too short.";
+    }
+    if (!errs[path] && rule.maxLength !== undefined && v.length > rule.maxLength) {
+      errs[path] = rule.label + " is too long.";
+    }
+    if (!errs[path] && rule.pattern) {
+      try {
+        const re = new RegExp(rule.pattern);
+        if (!re.test(v)) errs[path] = rule.label + " format is invalid.";
+      } catch {
+        /* ignore bad pattern */
+      }
+    }
+  };
+
+  form.querySelectorAll<HTMLElement>("[name]").forEach((el) => {
+    const nm = (el as HTMLInputElement).name;
+    if (!nm) return;
+    const tk = templatePathFromIndexedPath(nm);
+    const rule = rules[tk];
+    if (!rule) return;
+
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "input") {
+      const inp = el as HTMLInputElement;
+      const ty = inp.type;
+      if (ty === "checkbox") {
+        if (rule.required && !inp.checked) errs[nm] = rule.label + " is required.";
+        return;
+      }
+      if (ty === "file") {
+        if (rule.required && (!inp.files || inp.files.length === 0)) errs[nm] = rule.label + " is required.";
+        return;
+      }
+      if (ty === "hidden") {
+        if (rule.required && !(inp.value || "").trim()) errs[nm] = rule.label + " is required.";
+        return;
+      }
+      if (inp.readOnly && rule.type === "calculated") return;
+      applyTextRules(rule, inp.value ?? "", nm);
+      return;
+    }
+
+    if (tag === "select") {
+      const sel = el as HTMLSelectElement;
+      const val = sel.value;
+      if (rule.required && (val === "" || val == null)) errs[nm] = rule.label + " is required.";
+      return;
+    }
+
+    if (tag === "textarea") {
+      applyTextRules(rule, (el as HTMLTextAreaElement).value ?? "", nm);
+    }
+  });
+
+  return errs;
+}
+`;
+}
+
 function sanitizeIdent(s: string): string {
   return s.replace(/[^a-zA-Z0-9]/g, "_");
 }
@@ -190,12 +350,17 @@ function syncSignaturePads(form: HTMLFormElement | null) {
 }
 `;
 
+  const fieldRulesJson = buildClientFieldRulesJson(formModel);
+
   return `import React, { FormEvent, useState, useRef, useEffect } from 'react';
 
 ${calcHelpers}
+${buildGeneratedClientValidationSource()}
 const FIELD_ID_MAP: Record<string, string> = {
 ${fieldIdMapEntries}
 };
+
+const FIELD_RULES = ${fieldRulesJson} as Record<string, FieldRule>;
 
 function App() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -249,17 +414,10 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
     return () => cleanups.forEach((c) => c());
   }, []);
 
-  const validate = (data: Record<string, FormDataEntryValue>): Record<string, string> => {
-    const errs: Record<string, string> = {};
-    return errs;
-  };
-
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     syncSignaturePads(e.currentTarget);
-    const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
-    const errs = validate(data);
+    const errs = validateForm(e.currentTarget, FIELD_RULES);
     setErrors(errs);
     const errorCount = Object.keys(errs).length;
     if (errorCount > 0) {
@@ -268,15 +426,31 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
           ? '1 error found. Please review the highlighted field.'
           : errorCount + ' errors found. Please review the highlighted fields.'
       );
-      const firstErrorKey = Object.keys(errs)[0];
-      const firstErrorId = FIELD_ID_MAP[firstErrorKey];
-      if (firstErrorId) {
-        const el = document.getElementById(firstErrorId) as HTMLElement | null;
+      const firstKey = Object.keys(errs)[0];
+      if (firstKey) {
+        let focusEl: HTMLElement | null = null;
+        const els = e.currentTarget.elements;
+        for (let i = 0; i < els.length; i++) {
+          const fe = els[i];
+          if (
+            fe instanceof HTMLElement &&
+            "name" in fe &&
+            (fe as HTMLInputElement).name === firstKey
+          ) {
+            focusEl = fe;
+            break;
+          }
+        }
+        const tk = templatePathFromIndexedPath(firstKey);
+        const fallbackId = FIELD_ID_MAP[tk];
+        const el = focusEl ?? (fallbackId ? (document.getElementById(fallbackId) as HTMLElement | null) : null);
         el?.focus();
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       return;
     }
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries());
     /* FORMSYNC_API_SUBMIT_START */
     setStatusMessage('');
     console.log('Form submitted:', data);
@@ -570,10 +744,31 @@ function generateFieldComponent(
           />`;
       return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
     }
+    case "number": {
+      const c = field.constraints;
+      const minAttr = c?.min !== undefined ? `min={${c.min}}` : "";
+      const maxAttr = c?.max !== undefined ? `max={${c.max}}` : "";
+      const input = `<input
+            type="number"
+            ${nameAttr}
+            ${idAttr}
+            className="field-input"
+            inputMode="decimal"
+            ${minAttr}
+            ${maxAttr}
+            step="any"
+            ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ""}
+            ${required ? "required" : ""}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+          />`;
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+    }
     case "text":
     case "email":
     case "password":
-    case "number":
     case "date": {
       const input = `<input
             type="${type}"
