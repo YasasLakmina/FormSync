@@ -490,6 +490,7 @@ function generateFieldComponent(
   domIdByKey: Map<string, string>,
   ctx: RepeaterCodegenCtx | undefined,
   repeaterStates: RepeaterStateSpec[],
+  asTableCell = false,
 ): string {
   const { type, label, required, ui } = field;
   const domBase = domIdByKey.get(field.key) ?? field.id;
@@ -518,9 +519,62 @@ function generateFieldComponent(
     const setterName = `set${spec.stateVar.charAt(0).toUpperCase()}${spec.stateVar.slice(1)}`;
     const innerRows = children
       .map((child: FieldModel) =>
-        generateFieldComponent(child, domIdByKey, { repeaterRoot: field.key }, repeaterStates),
+        generateFieldComponent(child, domIdByKey, { repeaterRoot: field.key }, repeaterStates, false),
       )
       .join("\n\n");
+
+    const displayMode =
+      field.ui && typeof field.ui === "object" && (field.ui as Record<string, unknown>)["displayMode"] === "table"
+        ? "table"
+        : "cards";
+
+    if (displayMode === "table" && children.length > 0) {
+      const thCells = children
+        .map(
+          (c: FieldModel) =>
+            `<th scope="col" className="align-middle">${escapeHtml(c.label)}${
+              c.required ? ' <span className="text-danger" aria-hidden="true">*</span>' : ""
+            }</th>`,
+        )
+        .join("");
+      const tdCells = children
+        .map(
+          (child: FieldModel) =>
+            `<td className="align-middle repeater-table-cell" style={{ minWidth: "8rem", verticalAlign: "middle" }}>${generateFieldComponent(
+              child,
+              domIdByKey,
+              { repeaterRoot: field.key },
+              repeaterStates,
+              true,
+            )}</td>`,
+        )
+        .join("");
+
+      return `<fieldset className="field-group repeater-field repeater-table mb-4" style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '1rem' }}>
+        <legend className="field-legend" style={{ padding: '0 0.5rem', fontWeight: 600 }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
+        <div style={{ overflowX: "auto" }}>
+        <table className="repeater-data-table" style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.95rem" }}>
+          <thead>
+            <tr>
+              ${thCells}
+              <th scope="col" className="text-end repeater-table-actions" style={{ width: "6rem" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {${spec.stateVar}.map((rowId, rowIdx) => (
+              <tr key={rowId} className="repeater-row">
+                ${tdCells}
+                <td className="text-end align-middle">
+                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => ${setterName}((rows) => rows.length <= 1 ? rows : rows.filter((_, i) => i !== rowIdx))}>Remove</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+        <button type="button" className="btn btn-sm btn-outline-primary mt-2" onClick={() => ${setterName}((rows) => [...rows, String(Date.now())])}>Add row</button>
+      </fieldset>`;
+    }
 
     return `<fieldset className="field-group repeater-field mb-4" style={{ border: '1px solid #e5e7eb', borderRadius: '4px', padding: '1rem' }}>
         <legend className="field-legend" style={{ padding: '0 0.5rem', fontWeight: 600 }}>${escapeHtml(label)}${required ? ' <span className="required" aria-hidden="true">*</span>' : ""}</legend>
@@ -601,7 +655,7 @@ function generateFieldComponent(
             ${ariaDescribedBy}
             ${autoCompleteAttr}
           ></textarea>`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "select": {
       const options = field.constraints?.enum || [];
@@ -619,7 +673,7 @@ function generateFieldComponent(
             <option value="">${escapeHtml(placeholder) || "Select..."}</option>
             ${options.map((o: string) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("\n            ")}
           </select>`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "checkbox": {
       const input = `<input
@@ -640,9 +694,11 @@ function generateFieldComponent(
       const cbHelp = helpText
         ? `<small ${cbHelpId} className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>`
         : "";
-      return `<div className="field-item checkbox-item" ${buildStyle(rowStyle)}>
+      const labelCls = asTableCell ? "field-label sr-only" : "field-label";
+      const itemCls = asTableCell ? "field-item checkbox-item mb-0" : "field-item checkbox-item";
+      return `<div className="${itemCls}" ${buildStyle(rowStyle)}>
           ${input}
-          <label ${htmlForAttr} className="field-label" style={{ marginBottom: 0 }}>
+          <label ${htmlForAttr} className="${labelCls}" style={{ marginBottom: 0 }}>
             ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ""}
           </label>
           ${cbHelp}
@@ -666,7 +722,7 @@ function generateFieldComponent(
             ${ariaErrMsg}
             ${ariaDescribedBy}
           />`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "signature": {
       const hidId = `${domBase}_sig`;
@@ -711,7 +767,7 @@ function generateFieldComponent(
             }}
           />
           <input type="hidden" ${nameAttr} id=${hidIdExpr} />`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "typeahead": {
       const url = ui?.["x-ui"]?.asyncSource?.url ?? "";
@@ -734,7 +790,7 @@ function generateFieldComponent(
             ${ariaDescribedBy}
           />
           <datalist id=${dlIdExpr}></datalist>`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "calculated": {
       const formula = field["x-calc"] ?? "";
@@ -749,7 +805,7 @@ function generateFieldComponent(
             ${ariaErrMsg}
             ${ariaDescribedBy}
           />`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "number": {
       const c = field.constraints;
@@ -771,7 +827,7 @@ function generateFieldComponent(
             ${ariaErrMsg}
             ${ariaDescribedBy}
           />`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "text":
     case "email":
@@ -790,7 +846,7 @@ function generateFieldComponent(
             ${ariaDescribedBy}
             ${autoCompleteAttr}
           />`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
     case "unknown":
     default: {
@@ -806,7 +862,7 @@ function generateFieldComponent(
             ${ariaErrMsg}
             ${ariaDescribedBy}
           />`;
-      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan);
+      return wrapField(label, required, htmlForAttr, input, buildStyle, helpSpan, errSpan, { tableCell: !!asTableCell });
     }
   }
 }
@@ -819,9 +875,13 @@ function wrapField(
   buildStyle: (e?: string[]) => string,
   helpSpan: string,
   errSpan: string,
+  opts?: { tableCell?: boolean },
 ): string {
-  return `<div className="field-item" ${buildStyle()}>
-          <label ${htmlForAttr} className="field-label">
+  const tc = opts?.tableCell;
+  const labelClass = tc ? "field-label sr-only" : "field-label";
+  const itemClass = tc ? "field-item mb-0" : "field-item";
+  return `<div className="${itemClass}" ${buildStyle()}>
+          <label ${htmlForAttr} className="${labelClass}">
             ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ""}
           </label>
           ${input}
