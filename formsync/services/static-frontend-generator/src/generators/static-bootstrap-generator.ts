@@ -1060,6 +1060,7 @@ ${fieldMapLines}
             : errorKeys.length +
                 " errors found. " +
                 (firstMsg || "Please review the highlighted fields.");
+        statusEl.className = "alert alert-danger mb-3";
       }
       var focusEl = null;
       var els = form.elements;
@@ -1082,7 +1083,10 @@ ${fieldMapLines}
 
     clearInlineFieldErrors(form);
     var statusClear = document.getElementById("form-status");
-    if (statusClear) statusClear.textContent = "";
+    if (statusClear) {
+      statusClear.textContent = "";
+      statusClear.className = "mb-3";
+    }
 
 ${submitIndented}
   });
@@ -1141,7 +1145,7 @@ export function generateStaticBootstrapFiles(
 <body>
   <main class="container py-4">
     <div class="fs-page-inner mx-auto">
-      <div id="form-status" class="text-danger mb-3" role="status" aria-live="polite"></div>
+      <div id="form-status" class="mb-3" role="status" aria-live="polite"></div>
       <h1 class="h3 mb-2">${escapeHtml(title)}</h1>
       ${description ? `<p class="text-muted mb-4">${escapeHtml(description)}</p>` : ""}
       ${bodyInner}
