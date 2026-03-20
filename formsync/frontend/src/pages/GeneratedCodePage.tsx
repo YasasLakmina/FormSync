@@ -147,8 +147,6 @@ export const GeneratedCodePage: React.FC = () => {
     return !rs?.generatedCode;
   });
   const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
-  const [isDownloadingStaticFrontend, setIsDownloadingStaticFrontend] =
-    React.useState(false);
   const backendLanguageFromSession = sessionStorage.getItem(
     "formsync_backend_language",
   ) as BackendLanguage | null;
@@ -407,25 +405,6 @@ export const GeneratedCodePage: React.FC = () => {
     }
   };
 
-  const handleDownloadStaticFrontendOnly = async () => {
-    if (!state.formModel) {
-      toast.error(
-        "Open this page from the Form Builder with your form to download the HTML frontend.",
-      );
-      return;
-    }
-    setIsDownloadingStaticFrontend(true);
-    try {
-      await generationService.downloadStaticFrontendZip(state.formModel);
-      toast.success("Static HTML frontend downloaded!");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Download failed";
-      toast.error(message);
-    } finally {
-      setIsDownloadingStaticFrontend(false);
-    }
-  };
-
   return (
     <PageTransition>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -481,19 +460,6 @@ export const GeneratedCodePage: React.FC = () => {
                     );
                   }}
                 />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isDownloadingStaticFrontend}
-                  onClick={() => void handleDownloadStaticFrontendOnly()}
-                >
-                  {isDownloadingStaticFrontend
-                    ? "Downloading…"
-                    : "Download HTML frontend only"}
-                </Button>
               </div>
             </div>
           </div>
