@@ -45,6 +45,157 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
+/** Mirrors react-generator: JSON for client-side FIELD_RULES. */
+function buildClientFieldRulesJson(formModel: FormModel): string {
+  type Rule = {
+    label: string;
+    type: string;
+    required: boolean;
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+  };
+  const rules: Record<string, Rule> = {};
+  const walk = (fields: FieldModel[]) => {
+    for (const f of fields) {
+      if (f.type === "group" || f.type === "repeater") {
+        if (f.children?.length) walk(f.children);
+      } else {
+        const r: Rule = {
+          label: f.label,
+          type: f.type,
+          required: f.required,
+        };
+        const c = f.constraints;
+        if (c?.min !== undefined) r.min = c.min;
+        if (c?.max !== undefined) r.max = c.max;
+        if (c?.minLength !== undefined) r.minLength = c.minLength;
+        if (c?.maxLength !== undefined) r.maxLength = c.maxLength;
+        if (c?.pattern !== undefined) r.pattern = c.pattern;
+        rules[f.key] = r;
+      }
+    }
+  };
+  walk(formModel.fields);
+  return JSON.stringify(rules);
+}
+
+/** Vanilla JS: templatePathFromIndexedPath + validateForm (parity with React export). */
+function buildVanillaClientValidationSource(): string {
+  return `
+  function templatePathFromIndexedPath(path) {
+    return path.split(".").filter(function (p) {
+      return !/^\\d+$/.test(p);
+    }).join(".");
+  }
+
+  function validateForm(form, rules) {
+    var errs = {};
+    var emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+
+    function applyTextRules(rule, raw, path) {
+      var v = String(raw || "").trim();
+      if (rule.required && v === "") {
+        errs[path] = rule.label + " is required.";
+        return;
+      }
+      if (v === "") return;
+
+      if (rule.type === "number") {
+        var normalized = v.replace(/\\s/g, "");
+        if (/[eE]/.test(normalized)) {
+          errs[path] = rule.label + " must be a valid number.";
+          return;
+        }
+        if (!/^-?(?:\\d+\\.?\\d*|\\.\\d+)$/.test(normalized)) {
+          errs[path] = rule.label + " must be a valid number.";
+          return;
+        }
+        var num = Number(normalized);
+        if (isNaN(num)) {
+          errs[path] = rule.label + " must be a valid number.";
+          return;
+        }
+        var disallowNegative = rule.min !== undefined && rule.min >= 0;
+        if (disallowNegative && num < 0) {
+          errs[path] = rule.label + " cannot be negative.";
+          return;
+        }
+        if (rule.min !== undefined && num < rule.min) {
+          errs[path] = rule.label + " must be at least " + rule.min + ".";
+          return;
+        }
+        if (rule.max !== undefined && num > rule.max) {
+          errs[path] = rule.label + " must be at most " + rule.max + ".";
+          return;
+        }
+      } else if (rule.type === "email") {
+        if (!emailRe.test(v)) errs[path] = "Enter a valid email address.";
+      }
+
+      if (!errs[path] && rule.minLength !== undefined && v.length < rule.minLength) {
+        errs[path] = rule.label + " is too short.";
+      }
+      if (!errs[path] && rule.maxLength !== undefined && v.length > rule.maxLength) {
+        errs[path] = rule.label + " is too long.";
+      }
+      if (!errs[path] && rule.pattern) {
+        try {
+          var re = new RegExp(rule.pattern);
+          if (!re.test(v)) errs[path] = rule.label + " format is invalid.";
+        } catch (e) {}
+      }
+    }
+
+    var named = form.querySelectorAll("[name]");
+    for (var i = 0; i < named.length; i++) {
+      var el = named[i];
+      var nm = el.name;
+      if (!nm) continue;
+      var tk = templatePathFromIndexedPath(nm);
+      var rule = rules[tk];
+      if (!rule) continue;
+
+      var tag = el.tagName.toLowerCase();
+
+      if (tag === "input") {
+        var inp = el;
+        var ty = inp.type;
+        if (ty === "checkbox") {
+          if (rule.required && !inp.checked) errs[nm] = rule.label + " is required.";
+          continue;
+        }
+        if (ty === "file") {
+          if (rule.required && (!inp.files || inp.files.length === 0)) errs[nm] = rule.label + " is required.";
+          continue;
+        }
+        if (ty === "hidden") {
+          if (rule.required && !(inp.value || "").trim()) errs[nm] = rule.label + " is required.";
+          continue;
+        }
+        if (inp.readOnly && rule.type === "calculated") continue;
+        applyTextRules(rule, inp.value || "", nm);
+        continue;
+      }
+
+      if (tag === "select") {
+        var val = el.value;
+        if (rule.required && (val === "" || val == null)) errs[nm] = rule.label + " is required.";
+        continue;
+      }
+
+      if (tag === "textarea") {
+        applyTextRules(rule, el.value || "", nm);
+      }
+    }
+
+    return errs;
+  }
+`;
+}
+
 function relativeUnderRepeater(repeaterRoot: string, fieldKey: string): string {
   if (fieldKey.startsWith(repeaterRoot + ".")) return fieldKey.slice(repeaterRoot.length + 1);
   return fieldKey;
@@ -249,10 +400,35 @@ function generateBootstrapField(field: FieldModel, domIdByKey: Map<string, strin
         />`,
       );
     }
+    case "number": {
+      const c = field.constraints;
+      const minAttr = c?.min !== undefined ? `min="${escapeHtml(String(c.min))}"` : "";
+      const maxAttr = c?.max !== undefined ? `max="${escapeHtml(String(c.max))}"` : "";
+      return wrapControl(
+        label,
+        required,
+        domId,
+        helpText,
+        `<input
+          class="form-control"
+          type="number"
+          name="${nameAttr}"
+          id="${domId}"
+          inputmode="decimal"
+          step="any"
+          ${minAttr}
+          ${maxAttr}
+          ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ""}
+          ${required ? "required" : ""}
+          ${ariaRequired}
+          ${ariaDescribedBy}
+          ${autoCompleteAttr}
+        />`,
+      );
+    }
     case "text":
     case "email":
     case "password":
-    case "number":
     case "date":
       return wrapControl(
         label,
@@ -338,17 +514,21 @@ function buildFormBody(formModel: FormModel, domIdByKey: Map<string, string>): s
   </div>
 </div>`;
     });
-    return `<form id="main-form" novalidate>
+    return `<div class="fs-form-panel rounded shadow-sm p-4 mb-4">
+<form id="main-form" novalidate>
   ${sections.join("\n")}
   <button type="submit" class="btn btn-primary"${btnStyle}>${escapeHtml(submitText)}</button>
-</form>`;
+</form>
+</div>`;
   }
 
   const fieldHtml = orderedFields.map((f) => generateBootstrapField(f, domIdByKey)).join("\n");
-  return `<form id="main-form" novalidate>
+  return `<div class="fs-form-panel rounded shadow-sm p-4 mb-4">
+<form id="main-form" novalidate>
   ${fieldHtml}
   <button type="submit" class="btn btn-primary"${btnStyle}>${escapeHtml(submitText)}</button>
-</form>`;
+</form>
+</div>`;
 }
 
 function generateThemeCss(formModel: FormModel): string {
@@ -359,6 +539,7 @@ function generateThemeCss(formModel: FormModel): string {
   --bs-body-bg: ${colors.background};
   --bs-body-color: ${colors.text};
   --bs-border-color: ${colors.border};
+  --fs-surface: ${colors.surface};
   --fs-form-radius: ${radius}px;
   --fs-font-family: ${typography.fontFamily};
   --fs-base-font-size: ${typography.baseFontSize}px;
@@ -369,6 +550,12 @@ body {
   font-size: var(--fs-base-font-size);
   background-color: var(--bs-body-bg);
   color: var(--bs-body-color);
+}
+
+.fs-form-panel {
+  background-color: var(--fs-surface);
+  border: 1px solid color-mix(in srgb, var(--bs-border-color) 65%, transparent);
+  border-radius: var(--fs-form-radius);
 }
 
 .form-control:focus {
@@ -560,6 +747,33 @@ const STATIC_RUNTIME_HELPERS = `
       });
     });
   }
+
+  function clearInlineFieldErrors(form) {
+    form.querySelectorAll(".is-invalid").forEach(function (el) {
+      el.classList.remove("is-invalid");
+    });
+    form.querySelectorAll(".invalid-feedback").forEach(function (node) {
+      node.textContent = "";
+    });
+  }
+
+  function applyInlineFieldErrors(form, errs) {
+    clearInlineFieldErrors(form);
+    Object.keys(errs).forEach(function (name) {
+      var found = null;
+      for (var i = 0; i < form.elements.length; i++) {
+        if (form.elements[i].name === name) {
+          found = form.elements[i];
+          break;
+        }
+      }
+      if (!found) return;
+      var wrap = found.closest && found.closest(".mb-3, .form-check");
+      var errNode = wrap ? wrap.querySelector(".invalid-feedback") : null;
+      if (found.classList) found.classList.add("is-invalid");
+      if (errNode) errNode.textContent = errs[name];
+    });
+  }
 `;
 
 function generateAppJs(
@@ -583,6 +797,8 @@ function generateAppJs(
     .map((line) => "    " + line)
     .join("\n");
 
+  const fieldRulesJson = buildClientFieldRulesJson(formModel);
+
   return `/**
  * Generated by FormSync static-frontend-generator — do not edit by hand.
  */
@@ -591,6 +807,8 @@ function generateAppJs(
   if (!form) return;
 
 ${STATIC_RUNTIME_HELPERS}
+${buildVanillaClientValidationSource()}
+  var FIELD_RULES = ${fieldRulesJson};
 
   wireSignatureDrawing(form);
   initRepeaters(form);
@@ -607,41 +825,47 @@ ${fieldMapLines}
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     syncSignaturePads(form);
-    var fd = new FormData(form);
-    var data = Object.fromEntries(fd.entries());
 
-    var errs = validate(data);
+    var errs = validateForm(form, FIELD_RULES);
     var errorKeys = Object.keys(errs);
     if (errorKeys.length > 0) {
+      applyInlineFieldErrors(form, errs);
       var statusEl = document.getElementById("form-status");
+      var firstKey = errorKeys[0];
+      var firstMsg = firstKey ? errs[firstKey] : "";
       if (statusEl) {
         statusEl.textContent =
           errorKeys.length === 1
-            ? "1 error found. Please review the highlighted field."
-            : errorKeys.length + " errors found. Please review the highlighted fields.";
+            ? firstMsg || "Please fix the highlighted field."
+            : errorKeys.length +
+                " errors found. " +
+                (firstMsg || "Please review the highlighted fields.");
       }
-      var firstKey = errorKeys[0];
-      var firstId = FIELD_ID_MAP[firstKey];
-      if (firstId) {
-        var el = document.getElementById(firstId);
-        if (el) {
-          el.focus();
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
+      var focusEl = null;
+      var els = form.elements;
+      for (var fi = 0; fi < els.length; fi++) {
+        var fe = els[fi];
+        if (fe.name === firstKey) {
+          focusEl = fe;
+          break;
         }
+      }
+      var tk = firstKey ? templatePathFromIndexedPath(firstKey) : "";
+      var fallbackId = tk ? FIELD_ID_MAP[tk] : "";
+      var el = focusEl || (fallbackId ? document.getElementById(fallbackId) : null);
+      if (el && el.focus) {
+        el.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       return;
     }
 
+    clearInlineFieldErrors(form);
     var statusClear = document.getElementById("form-status");
     if (statusClear) statusClear.textContent = "";
 
 ${submitIndented}
   });
-
-  function validate(data) {
-    var errs = {};
-    return errs;
-  }
 })();
 `;
 }
