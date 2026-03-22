@@ -22,7 +22,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { generationService } from "../services/generationService";
+import {
+  generationService,
+  type BackendLanguage,
+} from "../services/generationService";
 import { useAuth } from "../context/AuthContext";
 
 export interface GenerationStage {
@@ -39,6 +42,8 @@ export const EditorPage: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [schemaFromBuilder, setSchemaFromBuilder] = useState<string>(""); // Schema transferred from Template Builder
   const [activeTab, setActiveTab] = useState("technical"); // Control which tab is active
+  const [backendLanguage, setBackendLanguage] =
+    useState<BackendLanguage>("springBoot");
 
   // Tracks whether the schema was opened from a saved template (already enhanced)
   const [isLoadedFromTemplate, setIsLoadedFromTemplate] = useState(false);
@@ -180,10 +185,12 @@ export const EditorPage: React.FC = () => {
 
       if (result.success && result.data) {
         toast.success("Code generation complete!");
-        navigate("/generated", {
+        sessionStorage.setItem("formsync_backend_language", backendLanguage);
+        navigate(`/generated?backendLanguage=${backendLanguage}`, {
           state: {
             generatedCode: result.data,
             schema: currentSchema,
+            backendLanguage,
           },
         });
       } else {
@@ -304,6 +311,27 @@ export const EditorPage: React.FC = () => {
                 Define your data structure, validate and enhance it with AI,
                 then generate complete application code in one click.
               </p>
+              <div className="mt-4 inline-flex items-center gap-2">
+                <label
+                  htmlFor="backendLanguage"
+                  className="text-sm text-neutral-600 dark:text-neutral-300"
+                >
+                  Backend language
+                </label>
+                <select
+                  id="backendLanguage"
+                  value={backendLanguage}
+                  onChange={(e) => {
+                    const selected = e.target.value as BackendLanguage;
+                    setBackendLanguage(selected);
+                    sessionStorage.setItem("formsync_backend_language", selected);
+                  }}
+                  className="text-sm px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
+                >
+                  <option value="springBoot">Spring Boot (Java)</option>
+                  <option value="nodeExpress">Node.js (Express)</option>
+                </select>
+              </div>
             </motion.div>
 
             {/* Pipeline Progress */}
