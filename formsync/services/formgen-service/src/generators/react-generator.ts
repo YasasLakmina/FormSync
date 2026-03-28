@@ -30,6 +30,31 @@ function escapeJsSingleQuotedString(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+/** Wizard step slice: nested group/repeater children honor stepIndex ?? 0. */
+function pruneFieldsForWizardStep(fields: FieldModel[], stepIdx: number): FieldModel[] {
+  const out: FieldModel[] = [];
+  for (const f of fields) {
+    if (f.type === "group" && f.children?.length) {
+      const children = pruneFieldsForWizardStep(f.children, stepIdx);
+      if (children.length > 0) {
+        out.push({ ...f, children });
+      }
+      continue;
+    }
+    if (f.type === "repeater" && f.children?.length) {
+      const children = pruneFieldsForWizardStep(f.children, stepIdx);
+      if (children.length > 0) {
+        out.push({ ...f, children });
+      }
+      continue;
+    }
+    if ((f.stepIndex ?? 0) === stepIdx) {
+      out.push(f);
+    }
+  }
+  return out;
+}
+
 /** Repeater chrome from field.ui.styleOverrides (matches builder preview + static HTML). */
 function repeaterChromeStyles(field: FieldModel): {
   fieldsetStyle: string;
@@ -111,7 +136,7 @@ function templatePathFromIndexedPath(path: string): string {
   return path.split(".").filter((p) => !/^\\d+$/.test(p)).join(".");
 }
 
-function validateForm(form: HTMLFormElement, rules: Record<string, FieldRule>): Record<string, string> {
+function collectNamedFieldErrors(root: Element, rules: Record<string, FieldRule>): Record<string, string> {
   const errs: Record<string, string> = {};
   const emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 
@@ -171,7 +196,7 @@ function validateForm(form: HTMLFormElement, rules: Record<string, FieldRule>): 
     }
   };
 
-  form.querySelectorAll<HTMLElement>("[name]").forEach((el) => {
+  root.querySelectorAll<HTMLElement>("[name]").forEach((el) => {
     const nm = (el as HTMLInputElement).name;
     if (!nm) return;
     const tk = templatePathFromIndexedPath(nm);
@@ -213,6 +238,19 @@ function validateForm(form: HTMLFormElement, rules: Record<string, FieldRule>): 
   });
 
   return errs;
+}
+
+function validateForm(form: HTMLFormElement, rules: Record<string, FieldRule>): Record<string, string> {
+  return collectNamedFieldErrors(form, rules);
+}
+
+function validateFormScoped(
+  _form: HTMLFormElement,
+  rules: Record<string, FieldRule>,
+  scope: Element | null,
+): Record<string, string> {
+  if (!scope) return {};
+  return collectNamedFieldErrors(scope, rules);
 }
 `;
 }
@@ -294,17 +332,24 @@ export function generateAppTsx(formModel: FormModel): string {
     )
     .join("\n");
 
+  const wizardStepCount = layout.steps?.length ?? 0;
+  const isWizardLayout = !!(layout.steps && layout.steps.length > 0);
+  const multiStepWizard = !!(layout.steps && layout.steps.length > 1);
+
   let formBody: string;
-  if (hasFields && layout.steps && layout.steps.length > 0) {
+  if (hasFields && isWizardLayout && layout.steps && multiStepWizard) {
     const sections = layout.steps
       .map((step: FormStep, stepIdx: number) => {
-        const stepFields = orderedFields.filter(
-          (f: FieldModel) => f.stepIndex === stepIdx || f.stepIndex === undefined,
-        );
+        const stepFields = pruneFieldsForWizardStep(orderedFields, stepIdx);
         const fieldComponents = stepFields
           .map((f: FieldModel) => generateFieldComponent(f, domIdByKey, undefined, repeaterStates))
           .join("\n\n");
-        return `<section className="form-section">
+        return `<section
+          className="form-section wizard-panel"
+          data-wizard-step={${stepIdx}}
+          hidden={wizardStep !== ${stepIdx}}
+          aria-hidden={wizardStep !== ${stepIdx}}
+        >
           <h2 className="section-title">
             <span className="section-number">${stepIdx + 1}</span>
             ${escapeHtml(step.title)}
@@ -316,8 +361,55 @@ export function generateAppTsx(formModel: FormModel): string {
       })
       .join("\n\n        ");
 
+    const submitBtnStyle = submitColor
+      ? `style={{ '--submit-bg-color': '${submitColor}' } as React.CSSProperties}`
+      : "";
+
     formBody = `<form ref={formRef} onInput={() => setFormTick((v) => v + 1)} onSubmit={handleSubmit} noValidate>
         ${sections}
+        <div className="wizard-footer">
+          {wizardStep > 0 ? (
+            <button
+              type="button"
+              className="wizard-btn wizard-btn-secondary"
+              onClick={() => {
+                setStatusMessage("");
+                setWizardStep((s) => Math.max(0, s - 1));
+              }}
+            >
+              Previous
+            </button>
+          ) : (
+            <span className="wizard-footer-spacer" aria-hidden />
+          )}
+          <div className="wizard-footer-actions">
+            {wizardStep < ${wizardStepCount - 1} ? (
+              <button type="button" className="wizard-btn wizard-btn-primary" onClick={handleWizardNext}>
+                Next
+              </button>
+            ) : null}
+            {wizardStep === ${wizardStepCount - 1} ? (
+              <button type="submit" className="submit-button" ${submitBtnStyle}>${escapeHtml(submitText)}</button>
+            ) : null}
+          </div>
+        </div>
+      </form>`;
+  } else if (hasFields && isWizardLayout && layout.steps?.length === 1) {
+    const soleStep = layout.steps[0]!;
+    const stepFields = pruneFieldsForWizardStep(orderedFields, 0);
+    const fieldComponents = stepFields
+      .map((f: FieldModel) => generateFieldComponent(f, domIdByKey, undefined, repeaterStates))
+      .join("\n\n");
+    formBody = `<form ref={formRef} onInput={() => setFormTick((v) => v + 1)} onSubmit={handleSubmit} noValidate>
+        <section className="form-section">
+          <h2 className="section-title">
+            <span className="section-number">1</span>
+            ${escapeHtml(soleStep.title)}
+          </h2>
+          <div className="section-fields">
+            ${fieldComponents}
+          </div>
+        </section>
         <button type="submit" className="submit-button" ${submitColor ? `style={{ '--submit-bg-color': '${submitColor}' } as React.CSSProperties}` : ""}>${escapeHtml(submitText)}</button>
       </form>`;
   } else if (hasFields) {
@@ -402,6 +494,90 @@ function syncSignaturePads(form: HTMLFormElement | null) {
 }
 `;
 
+  const wizardStepStateLine =
+    hasFields && multiStepWizard
+      ? `  const [wizardStep, setWizardStep] = useState(0);\n`
+      : "";
+
+  const wizardFocusEffect =
+    hasFields && multiStepWizard
+      ? `
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const panel = form.querySelector(\`[data-wizard-step="\${wizardStep}"]\`);
+    if (!panel) return;
+    const focusable = panel.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus({ preventScroll: true });
+  }, [wizardStep]);
+`
+      : "";
+
+  const wizardSubmitGate =
+    hasFields && isWizardLayout && wizardStepCount > 1
+      ? `
+    if (wizardStep < ${wizardStepCount - 1}) {
+      handleWizardNext();
+      return;
+    }
+`
+      : "";
+
+  const handleWizardNextBlock =
+    hasFields && isWizardLayout && wizardStepCount > 1
+      ? `
+  const handleWizardNext = () => {
+    const form = formRef.current;
+    if (!form) return;
+    syncRichTextEditors(form);
+    syncSignaturePads(form);
+    const scope = form.querySelector(\`[data-wizard-step="\${wizardStep}"]\`);
+    const stepErrs = validateFormScoped(form, FIELD_RULES, scope);
+    setErrors(stepErrs);
+    const errorKeys = Object.keys(stepErrs);
+    if (errorKeys.length > 0) {
+      const firstKey = errorKeys[0];
+      const firstDetail = firstKey ? stepErrs[firstKey] : "";
+      setStatusKind("error");
+      setStatusMessage(
+        errorKeys.length === 1
+          ? firstDetail || "Please fix the highlighted field."
+          : errorKeys.length +
+              " errors found. " +
+              (firstDetail || "Please review the highlighted fields."),
+      );
+      if (firstKey) {
+        let focusEl: HTMLElement | null = null;
+        const els = form.elements;
+        for (let i = 0; i < els.length; i++) {
+          const fe = els[i];
+          if (
+            fe instanceof HTMLElement &&
+            "name" in fe &&
+            (fe as HTMLInputElement).name === firstKey
+          ) {
+            focusEl = fe;
+            break;
+          }
+        }
+        const tk = templatePathFromIndexedPath(firstKey);
+        const fallbackId = FIELD_ID_MAP[tk];
+        const el = focusEl ?? (fallbackId ? (document.getElementById(fallbackId) as HTMLElement | null) : null);
+        el?.focus();
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+    setErrors({});
+    setStatusMessage("");
+    setWizardStep((s) => s + 1);
+  };
+
+`
+      : "";
+
   const fieldRulesJson = buildClientFieldRulesJson(formModel);
 
   return `import React, { FormEvent, useState, useRef, useEffect } from 'react';
@@ -420,7 +596,7 @@ function App() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [statusKind, setStatusKind] = useState<'error' | 'success'>('error');
-${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
+${wizardStepStateLine}${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
 
   useEffect(() => {
     const form = formRef.current;
@@ -466,11 +642,11 @@ ${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
     });
     return () => cleanups.forEach((c) => c());
   }, []);
-
+${wizardFocusEffect}${handleWizardNextBlock}
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     syncRichTextEditors(e.currentTarget);
-    syncSignaturePads(e.currentTarget);
+    syncSignaturePads(e.currentTarget);${wizardSubmitGate}
     const errs = validateForm(e.currentTarget, FIELD_RULES);
     setErrors(errs);
     const errorKeys = Object.keys(errs);
