@@ -60,10 +60,11 @@
 
 .builder-body {
   display: grid;
-  grid-template-columns: 232px 1fr 256px;
+  grid-template-columns: 232px minmax(0, 1fr) 256px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  width: 100%;
 }
 
 /* ── Sidebars ─────────────────────────────────────────────── */
@@ -94,41 +95,45 @@
   background: var(--canvas-bg);
 }
 
-/* Canvas stepper — stays below navbar; keep above wizard overflow in paint order */
-.canvas-stepper {
+/* Pipeline + wizard: one header band under the global navbar */
+.builder-canvas-header {
   flex-shrink: 0;
-  padding: 0.6rem 1rem;
+  display: flex;
+  flex-direction: column;
   background: var(--toolbar-bg);
   border-bottom: 1px solid var(--toolbar-border);
+}
+
+/* Canvas stepper — horizontal scroll on small screens */
+.canvas-stepper {
+  flex-shrink: 0;
+  padding: 0.35rem 1rem 0.45rem;
+  background: transparent;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
   overflow-x: auto;
   scrollbar-width: none;
-  position: relative;
-  z-index: 2;
 }
 
 .canvas-stepper::-webkit-scrollbar {
   display: none;
 }
 
-/* Canvas toolbar — grows with wizard panel (fixed height caused overflow to paint over the stepper) */
+/* Wizard + Undo — sits below pipeline in the same chrome strip */
 .canvas-toolbar {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   flex-shrink: 0;
   min-height: 40px;
-  padding: 0.35rem 0.5rem 0.35rem 0;
+  padding: 0.3rem 1rem 0.4rem 0.5rem;
   gap: 0.5rem;
-  background: var(--toolbar-bg);
-  border-bottom: 1px solid var(--toolbar-border);
-  position: relative;
-  z-index: 1;
+  background: transparent;
 }
 
 .canvas-toolbar-actions {
   flex-shrink: 0;
   align-self: center;
-  padding-right: 0.35rem;
+  padding-right: 0.25rem;
 }
 
 .canvas-wrapper {
