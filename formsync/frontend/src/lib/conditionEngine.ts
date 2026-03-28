@@ -11,6 +11,54 @@
 
 import type { FieldModel, ConditionRule, ConditionOperator } from '../types';
 
+/**
+ * Top-level field list for one wizard step. Groups/repeaters are kept only if they
+ * contain at least one leaf whose effective step matches; nested leaves use stepIndex ?? 0.
+ */
+export function pruneFieldsForWizardStep(fields: FieldModel[], stepIdx: number): FieldModel[] {
+    const out: FieldModel[] = [];
+    for (const f of fields) {
+        if (f.type === 'group' && f.children?.length) {
+            const children = pruneFieldsForWizardStep(f.children, stepIdx);
+            if (children.length > 0) {
+                out.push({ ...f, children });
+            }
+            continue;
+        }
+        if (f.type === 'repeater' && f.children?.length) {
+            const children = pruneFieldsForWizardStep(f.children, stepIdx);
+            if (children.length > 0) {
+                out.push({ ...f, children });
+            }
+            continue;
+        }
+        if ((f.stepIndex ?? 0) === stepIdx) {
+            out.push(f);
+        }
+    }
+    return out;
+}
+
+function filterFieldTreeByCondition(field: FieldModel, values: FormValues): FieldModel | null {
+    if (field.type === 'group' && field.children?.length) {
+        const children = field.children
+            .map((c) => filterFieldTreeByCondition(c, values))
+            .filter((c): c is FieldModel => c !== null);
+        if (children.length === 0) return null;
+        if (!evaluateCondition(field, values)) return null;
+        return { ...field, children };
+    }
+    if (field.type === 'repeater' && field.children?.length) {
+        const children = field.children
+            .map((c) => filterFieldTreeByCondition(c, values))
+            .filter((c): c is FieldModel => c !== null);
+        if (children.length === 0) return null;
+        if (!evaluateCondition(field, values)) return null;
+        return { ...field, children };
+    }
+    return evaluateCondition(field, values) ? field : null;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /** A snapshot of all current form values, keyed by fieldKey */
@@ -149,11 +197,9 @@ export function filterVisibleFields(
     values: FormValues,
     activeStep?: number,
 ): FieldModel[] {
-    return fields.filter((field) => {
-        // Step filter: if a step is active and field has a stepIndex, only show matching
-        if (activeStep !== undefined && field.stepIndex !== undefined) {
-            if (field.stepIndex !== activeStep) return false;
-        }
-        return evaluateCondition(field, values);
-    });
+    const afterStep =
+        activeStep === undefined ? fields : pruneFieldsForWizardStep(fields, activeStep);
+    return afterStep
+        .map((f) => filterFieldTreeByCondition(f, values))
+        .filter((f): f is FieldModel => f !== null);
 }
