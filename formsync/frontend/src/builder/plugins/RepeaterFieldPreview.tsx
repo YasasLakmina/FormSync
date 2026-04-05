@@ -139,8 +139,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field, theme }) => {
                                     ))
                                 ) : (
                                     <th scope="col" style={theadCellStyle}>
-                                        {/* Placeholder until user adds Year, Experience, etc. as child fields */}
-                                        Columns — add child fields (e.g. Year, Experience)
+                                        Columns — use the right sidebar → Repeater columns
                                     </th>
                                 )}
                                 <th
@@ -190,8 +189,9 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field, theme }) => {
                                             fontStyle: 'normal',
                                         }}
                                     >
-                                        Select this repeater → <strong>Properties</strong> → add each column as a
-                                        child field. Labels become the table headings.
+                                        Select this repeater, then use the <strong>right sidebar</strong> →{' '}
+                                        <strong>Repeater columns</strong> to add fields. Labels become the table
+                                        headings.
                                     </td>
                                 </tr>
                             )}
@@ -267,7 +267,7 @@ const RepeaterFieldPreview: React.FC<FieldPluginProps> = ({ field, theme }) => {
                             padding: '0.5rem',
                         }}
                     >
-                        No child fields yet — add fields in the properties panel
+                        No child fields yet — use the right sidebar → Repeater columns to add fields
                     </div>
                 )}
             </div>
