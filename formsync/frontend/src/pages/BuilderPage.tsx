@@ -10,6 +10,7 @@ import {
 import { BuilderLayout } from "../builder/BuilderLayout";
 import { FormModel, parseJsonSchemaToFormModel, type JsonSchema } from "../types";
 import { useAuth } from "../context/AuthContext";
+import { warnIfNestedRepeaterInForm } from "../lib/nestedRepeaterGuard";
 import "../builder/builder.css";
 
 function setSchemaIdInUrl(schemaId: string) {
@@ -52,6 +53,7 @@ const SchemaLoader: React.FC = () => {
         clearBuilderDraft();
         dispatch({ type: "SET_BASE_SCHEMA", payload: rawContent });
         dispatch({ type: "UPDATE_FORM", payload: formModel });
+        warnIfNestedRepeaterInForm(formModel.fields);
         dispatch({ type: "SET_SCHEMA_ID", payload: schemaId });
         setSchemaIdInUrl(schemaId);
         toast.dismiss();
@@ -82,6 +84,7 @@ const SchemaLoader: React.FC = () => {
             clearBuilderDraft();
             dispatch({ type: "SET_BASE_SCHEMA", payload: schema });
             dispatch({ type: "UPDATE_FORM", payload: formModel });
+            warnIfNestedRepeaterInForm(formModel.fields);
 
             if (user?.id) {
               try {
@@ -133,10 +136,12 @@ const SchemaLoader: React.FC = () => {
             schemaId?: string | null;
           };
           if (draft.form && typeof draft.form === "object") {
+            const restored = draft.form as FormModel;
             dispatch({
               type: "UPDATE_FORM",
-              payload: draft.form as FormModel,
+              payload: restored,
             });
+            warnIfNestedRepeaterInForm(restored.fields);
             if (typeof draft.activeStep === "number") {
               dispatch({ type: "SET_STEP", payload: draft.activeStep });
             }
@@ -163,6 +168,7 @@ const SchemaLoader: React.FC = () => {
           clearBuilderDraft();
           dispatch({ type: "SET_BASE_SCHEMA", payload: schema });
           dispatch({ type: "UPDATE_FORM", payload: formModel });
+          warnIfNestedRepeaterInForm(formModel.fields);
           toast.success("Schema loaded successfully");
           return;
         } catch {
