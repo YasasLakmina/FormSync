@@ -118,7 +118,7 @@ export class SchemaMapper {
             case 'object':
                 type = DataType.OBJECT;
                 {
-                    const entityName = this.capitalize(name);
+                    const entityName = this.toJavaClassName(name);
                     this.parseEntity(entityName, schema, entities, enums);
                     referenceType = entityName;
                 }
@@ -187,10 +187,31 @@ export class SchemaMapper {
         return map[type] || 'String';
     }
 
+    /**
+     * PascalCase for enum names and simple tokens (split on spaces/dashes/underscores only).
+     */
     private capitalize(s: string): string {
         return s
             .split(/[\s_-]+/)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('');
+    }
+
+    /**
+     * Java class name from a JSON property key or synthetic name (handles camelCase like repeatingTableItem).
+     */
+    private toJavaClassName(identifier: string): string {
+        const s = identifier.trim();
+        if (!s) return 'Generated';
+        const words = s
+            .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+            .replace(/[_\s-]+/g, ' ')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+        if (words.length === 0) return 'Generated';
+        return words
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
             .join('');
     }
 }
