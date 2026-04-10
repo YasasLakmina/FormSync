@@ -16,6 +16,7 @@ export function buildReactWiredSubmitReplacement(
   const apiPathEscaped = opts.apiPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   return `/* FORMSYNC_API_SUBMIT_START */
     setStatusMessage('');
+    setSuccessModalOpen(false);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:${opts.backendPort}";
       const API_PATH = import.meta.env.VITE_API_PATH || "${apiPathEscaped}";
@@ -168,13 +169,14 @@ export function buildReactWiredSubmitReplacement(
         throw new Error(\`Submission failed (\${response.status})\`);
       }
 
-      setStatusKind("success");
-      setStatusMessage(
+      setSuccessModalMessage(
         "Submitted successfully. Your response was sent to the server.",
       );
+      setSuccessModalOpen(true);
       console.log("Form submitted:", jsonBody !== undefined ? jsonBody : {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Submission failed";
+      setSuccessModalOpen(false);
       setStatusKind("error");
       setStatusMessage(msg);
     }
