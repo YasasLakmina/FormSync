@@ -280,19 +280,19 @@ function jsxRepeaterNameAttr(repeaterRoot: string, field: FieldModel): string {
   const rel = relativeUnderRepeater(repeaterRoot, field.key);
   const rootLit = repeaterRoot.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
   const relLit = rel.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
-  return `name={\\\`${rootLit}.\\\${rowIdx}.${relLit}\\\`}`;
+  return `name={\`${rootLit}.\${rowIdx}.${relLit}\`}`;
 }
 
 function jsxIdAttr(domBase: string, ctx?: RepeaterCodegenCtx): string {
   if (!ctx) return `id="${escapeHtml(domBase)}"`;
   const base = domBase.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
-  return `id={\\\`${base}_\\\${rowIdx}\\\`}`;
+  return `id={\`${base}_\${rowIdx}\`}`;
 }
 
 function jsxHtmlForAttr(domBase: string, ctx?: RepeaterCodegenCtx): string {
   if (!ctx) return `htmlFor="${escapeHtml(domBase)}"`;
   const base = domBase.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
-  return `htmlFor={\\\`${base}_\\\${rowIdx}\\\`}`;
+  return `htmlFor={\`${base}_\${rowIdx}\`}`;
 }
 
 function jsxErrorsLookup(repeaterRoot: string | undefined, field: FieldModel): string {
@@ -300,13 +300,13 @@ function jsxErrorsLookup(repeaterRoot: string | undefined, field: FieldModel): s
   const rel = relativeUnderRepeater(repeaterRoot, field.key);
   const rootLit = repeaterRoot.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
   const relLit = rel.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
-  return `errors[\\\`${rootLit}.\\\${rowIdx}.${relLit}\\\`]`;
+  return `errors[\`${rootLit}.\${rowIdx}.${relLit}\`]`;
 }
 
 function jsxAriaDescribedBy(domBase: string, ctx?: RepeaterCodegenCtx): string {
   if (!ctx) return `aria-describedby="${domBase}-help ${domBase}-error"`;
   const b = domBase.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
-  return `aria-describedby={\\\`${b}_\\\${rowIdx}-help ${b}_\\\${rowIdx}-error\\\`}`;
+  return `aria-describedby={\`${b}_\${rowIdx}-help ${b}_\${rowIdx}-error\`}`;
 }
 
 export function generateAppTsx(formModel: FormModel): string {
@@ -749,7 +749,7 @@ function generateFieldComponent(
   const ariaDescribedBy = jsxAriaDescribedBy(domBase, ctx);
   const ariaInvalid = `aria-invalid={${errExpr} ? 'true' : 'false'}`;
   const ariaErrMsg = ctx
-    ? `aria-errormessage={\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}-error\\\`}`
+    ? `aria-errormessage={\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}-error\`}`
     : `aria-errormessage="${domBase}-error"`;
 
   if (type === "repeater") {
@@ -902,12 +902,12 @@ function generateFieldComponent(
 
   const helpSpan = helpText
     ? ctx
-      ? `<small id={\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}-help\\\`} className="field-help-text">${escapeHtml(helpText)}</small>`
+      ? `<small id={\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}-help\`} className="field-help-text">${escapeHtml(helpText)}</small>`
       : `<small id="${domBase}-help" className="field-help-text">${escapeHtml(helpText)}</small>`
     : "";
 
   const errSpan = ctx
-    ? `<span id={\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}-error\\\`} className="field-error" role="alert" aria-live="polite">{${errExpr}}</span>`
+    ? `<span id={\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}-error\`} className="field-error" role="alert" aria-live="polite">{${errExpr}}</span>`
     : `<span id="${domBase}-error" className="field-error" role="alert" aria-live="polite">{${errExpr}}</span>`;
 
   switch (type) {
@@ -987,7 +987,7 @@ function generateFieldComponent(
       const rowStyle = [`display: 'flex'`, `alignItems: 'center'`, `flexWrap: 'wrap'`];
       const cbHelpId =
         ctx ?
-          `id={\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}-help\\\`}`
+          `id={\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}-help\`}`
         : `id="${domBase}-help"`;
       const cbHelp = helpText
         ? `<small ${cbHelpId} className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>`
@@ -1025,13 +1025,13 @@ function generateFieldComponent(
     case "signature": {
       const hidId = `${domBase}_sig`;
       const hidIdExpr = ctx
-        ? `{\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}_sig\\\`}`
+        ? `{\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}_sig\`}`
         : `"${escapeHtml(hidId)}"`;
       const canvasIdExpr = ctx
-        ? `{\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}_canvas\\\`}`
+        ? `{\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}_canvas\`}`
         : `"${escapeHtml(domBase)}_canvas"`;
       const sigTargetAttr = ctx
-        ? `data-fs-sig-target={\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}_sig\\\`}`
+        ? `data-fs-sig-target={\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}_sig\`}`
         : `data-fs-sig-target="${escapeHtml(hidId)}"`;
       const input = `<canvas
             id=${canvasIdExpr}
@@ -1071,7 +1071,7 @@ function generateFieldComponent(
       const url = ui?.["x-ui"]?.asyncSource?.url ?? "";
       const dlId = `${domBase}_dl`;
       const dlIdExpr = ctx
-        ? `{\\\`${domBase.replace(/`/g, "\\`")}_\\\${rowIdx}_dl\\\`}`
+        ? `{\`${domBase.replace(/`/g, "\\`")}_\${rowIdx}_dl\`}`
         : `"${escapeHtml(dlId)}"`;
       const input = `<input
             type="text"
