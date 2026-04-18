@@ -96,6 +96,9 @@ export class SchemaMapper {
         let itemType: DataType | undefined;
         let itemReferenceType: string | undefined;
 
+        const xFieldType =
+            typeof schema['x-field-type'] === 'string' ? (schema['x-field-type'] as string).toLowerCase() : '';
+
         switch (schema.type) {
             case 'integer':
                 type = DataType.INTEGER;
@@ -145,6 +148,10 @@ export class SchemaMapper {
                 type = DataType.STRING;
         }
 
+        const persistAsLob =
+            type === DataType.STRING &&
+            (xFieldType === 'signature' || xFieldType === 'file' || xFieldType === 'richtext');
+
         return {
             name: this.jsonPropertyKeyToJavaIdentifier(name),
             type,
@@ -152,7 +159,8 @@ export class SchemaMapper {
             itemType,
             itemReferenceType,
             description: schema.description,
-            constraints
+            constraints,
+            ...(persistAsLob ? { persistAsLob: true } : {}),
         };
     }
 

@@ -44,6 +44,8 @@ export interface SchemaField {
     itemReferenceType?: string;
     description?: string;
     constraints: ValidationConstraints;
+    /** When true, JPA entity template emits @Lob (TEXT/CLOB) for large string payloads. */
+    persistAsLob?: boolean;
     relation?: {
         type: 'OneToOne' | 'OneToMany' | 'ManyToOne' | 'ManyToMany';
         targetEntity: string;

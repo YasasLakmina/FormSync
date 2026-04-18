@@ -49,6 +49,28 @@ describe('SchemaMapper', () => {
         expect(ageField?.constraints.max).toBe(150);
     });
 
+    it('should set persistAsLob for x-field-type signature, file, and richtext', () => {
+        const payload: SchemaPayload = {
+            name: 'Jobs',
+            content: {
+                type: 'object',
+                properties: {
+                    signaturePad: { type: 'string', 'x-field-type': 'signature' },
+                    attachment: { type: 'string', 'x-field-type': 'file' },
+                    notes: { type: 'string', 'x-field-type': 'richtext' },
+                    title: { type: 'string', 'x-field-type': 'typeahead' },
+                },
+            },
+        };
+
+        const result = mapper.map(payload);
+        const fields = result.entities[0].fields;
+        expect(fields.find((f) => f.name === 'signaturePad')?.persistAsLob).toBe(true);
+        expect(fields.find((f) => f.name === 'attachment')?.persistAsLob).toBe(true);
+        expect(fields.find((f) => f.name === 'notes')?.persistAsLob).toBe(true);
+        expect(fields.find((f) => f.name === 'title')?.persistAsLob).toBeFalsy();
+    });
+
     it('should map email format to email constraint', () => {
         const payload: SchemaPayload = {
             name: 'User',

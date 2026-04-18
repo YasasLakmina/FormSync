@@ -545,6 +545,7 @@ function syncSignaturePads(form: HTMLFormElement | null) {
     setErrors(stepErrs);
     const errorKeys = Object.keys(stepErrs);
     if (errorKeys.length > 0) {
+      setSuccessModalOpen(false);
       const firstKey = errorKeys[0];
       const firstDetail = firstKey ? stepErrs[firstKey] : "";
       setStatusKind("error");
@@ -603,6 +604,8 @@ function App() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [statusKind, setStatusKind] = useState<'error' | 'success'>('error');
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successModalMessage, setSuccessModalMessage] = useState('');
 ${wizardStepStateLine}${repeaterStateDeclarations ? `\n${repeaterStateDeclarations}\n` : ""}
 
   useEffect(() => {
@@ -659,6 +662,7 @@ ${wizardFocusEffect}${handleWizardNextBlock}
     const errorKeys = Object.keys(errs);
     const errorCount = errorKeys.length;
     if (errorCount > 0) {
+      setSuccessModalOpen(false);
       const firstKey = errorKeys[0];
       const firstDetail = firstKey ? errs[firstKey] : "";
       setStatusKind("error");
@@ -695,26 +699,59 @@ ${wizardFocusEffect}${handleWizardNextBlock}
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     /* FORMSYNC_API_SUBMIT_START */
-    setStatusKind("success");
-    setStatusMessage("Submitted successfully. Thanks — your response was recorded.");
+    setSuccessModalMessage("Thanks — your response was recorded.");
+    setSuccessModalOpen(true);
     console.log('Form submitted:', data);
     /* FORMSYNC_API_SUBMIT_END */
   };
 
   return (
     <div className="form-container">
-      {statusMessage ? (
+      {statusKind === "error" && statusMessage ? (
         <div
-          className={
-            statusKind === "success"
-              ? "form-validation-summary form-submit-success"
-              : "form-validation-summary"
-          }
+          className="form-validation-summary"
           role="alert"
           aria-live="polite"
           aria-atomic="true"
         >
           {statusMessage}
+        </div>
+      ) : null}
+      {successModalOpen ? (
+        <div
+          className="fs-success-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="fs-success-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSuccessModalOpen(false);
+              setSuccessModalMessage("");
+            }
+          }}
+        >
+          <div className="fs-success-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="fs-success-modal-icon-wrap" aria-hidden="true">
+              <svg className="fs-success-modal-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2 id="fs-success-title" className="fs-success-modal-title">
+              Success
+            </h2>
+            <p className="fs-success-modal-text">{successModalMessage}</p>
+            <button
+              type="button"
+              className="fs-success-modal-btn"
+              onClick={() => {
+                setSuccessModalOpen(false);
+                setSuccessModalMessage("");
+              }}
+            >
+              OK
+            </button>
+          </div>
         </div>
       ) : null}
       <h1 className="form-title">${escapeHtml(title)}</h1>

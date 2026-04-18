@@ -103,6 +103,11 @@ export class TemplateService {
             return (arg1 === arg2) ? options.fn(this) : options.inverse(this);
         });
 
+        handlebars.registerHelper('endsWith', (str: string, suffix: string) => {
+            if (str == null || suffix == null) return false;
+            return String(str).endsWith(String(suffix));
+        });
+
         handlebars.registerHelper('toPackagePath', (pkg: string) => {
             return pkg ? pkg.replace(/\./g, '/') : '';
         });
@@ -286,6 +291,23 @@ export class TemplateService {
         });
 
         // ── Type mapping helper ─────────────────────────────────
+
+        /** True when List&lt;T&gt; uses a nested @Embeddable type (vs String, Integer, …). */
+        const LIST_ELEMENT_BASIC_TYPES = new Set([
+            'String',
+            'Integer',
+            'Long',
+            'Double',
+            'Boolean',
+            'BigDecimal',
+            'LocalDate',
+            'LocalDateTime',
+        ]);
+
+        handlebars.registerHelper('listElementIsEmbeddable', (referenceType?: string) => {
+            const rt = referenceType ?? 'String';
+            return !LIST_ELEMENT_BASIC_TYPES.has(rt);
+        });
 
         handlebars.registerHelper('toJavaType', (type: DataType, referenceType?: string) => {
             let result: string;

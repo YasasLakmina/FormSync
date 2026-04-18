@@ -55,7 +55,9 @@ describe('entity template — repeater / ElementCollection', () => {
             description: internal.description,
         });
 
-        expect(rootJava).toContain('joinColumns = @JoinColumn(name = "new_form_id")');
+        expect(rootJava).toContain(
+            'joinColumns = @JoinColumn(name = "new_form_id", referencedColumnName = "id")',
+        );
         expect(rootJava).toContain('List<RepeatingTableItem>');
         expect(rootJava).toContain('name = "new_form_repeating_table"');
 
@@ -105,8 +107,44 @@ describe('entity template — repeater / ElementCollection', () => {
             description: internal.description,
         });
 
-        expect(java).toContain('joinColumns = @JoinColumn(name = "tag_holder_id")');
+        expect(java).toContain(
+            'joinColumns = @JoinColumn(name = "tag_holder_id", referencedColumnName = "id")',
+        );
         expect(java).toContain('@Column(name = "tags_val")');
         expect(java).toContain('List<String>');
+    });
+
+    it('empty repeater row embeddable gets a placeholder column for Hibernate', () => {
+        const payload: SchemaPayload = {
+            name: 'JobApplication',
+            content: {
+                type: 'object',
+                properties: {
+                    repeatingTable: {
+                        type: 'array',
+                        items: { type: 'object', properties: {} },
+                    },
+                },
+            },
+        };
+
+        const mapper = new SchemaMapper();
+        const internal = mapper.map(payload);
+        const itemEntity = internal.entities.find((e) => e.name === 'RepeatingTableItem');
+        expect(itemEntity?.fields.length).toBe(0);
+
+        const templates = new TemplateService();
+        const itemJava = templates.render('entity', {
+            ...itemEntity!,
+            basePackage: 'com.example',
+            nameLower: 'repeatingTableItem',
+            includeSwagger: false,
+            appName: internal.appName,
+            version: internal.version,
+            description: itemEntity!.description,
+        });
+
+        expect(itemJava).toContain('formsyncRowPlaceholder');
+        expect(itemJava).toContain('formsync_row_placeholder');
     });
 });
