@@ -112,12 +112,14 @@ export const generationService = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download =
-      backendLanguage === "nodeExpress"
-        ? "fullstack-node-express.zip"
-        : backendLanguage === "dotnetWebApi"
-          ? "fullstack-dotnet-webapi.zip"
-          : "fullstack-springboot.zip";
+    const rawSchema = schema?.content || schema;
+    const schemaTitle =
+      (rawSchema?.title as string) || schema?.name || "Generated Form";
+    const schemaSlug = String(schemaTitle)
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    const frontendSlug = "react";
+    a.download = `${schemaSlug}_fullstack-${frontendSlug}_${backendLanguage}.zip`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
