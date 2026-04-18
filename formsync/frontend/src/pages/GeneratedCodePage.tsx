@@ -17,6 +17,7 @@ import {
   type BackendLanguage,
 } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
+import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
 
 interface GeneratedCode {
   frontend: string;
@@ -252,27 +253,20 @@ export const GeneratedCodePage: React.FC = () => {
               Your complete application code is ready! Review, copy, or
               download.
             </p>
-            <div className="mt-3 inline-flex items-center gap-2">
-              <label
-                htmlFor="generatedBackendLanguage"
-                className="text-sm text-neutral-600 dark:text-neutral-300"
-              >
-                Backend language
+            <div className="mt-4 max-w-3xl">
+              <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                Backend Language
               </label>
-              <select
-                id="generatedBackendLanguage"
-                value={backendLanguage}
-                onChange={(e) => {
-                  const selected = e.target.value as BackendLanguage;
+              <BackendLanguageSelector
+                selected={backendLanguage}
+                onChange={(selected) => {
                   setBackendLanguage(selected);
-                  sessionStorage.setItem("formsync_backend_language", selected);
+                  sessionStorage.setItem(
+                    "formsync_backend_language",
+                    selected,
+                  );
                 }}
-                className="text-sm px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
-              >
-                <option value="springBoot">Spring Boot (Java)</option>
-                <option value="nodeExpress">Node.js (Express)</option>
-                <option value="dotnetWebApi">.NET Web API (C#)</option>
-              </select>
+              />
             </div>
           </div>
 
