@@ -27,6 +27,7 @@ import {
   type BackendLanguage,
 } from "../services/generationService";
 import { useAuth } from "../context/AuthContext";
+import { FORMSYNC_BUILDER_SCHEMA_ID_KEY } from "../context/BuilderContext";
 import { projectApi } from "../api/projectApi";
 import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
 
@@ -324,6 +325,11 @@ export const EditorPage: React.FC = () => {
     setShowSaveDialog(false);
     // Persist the current schema so BuilderPage can pick it up without a saved ID
     if (currentSchema) {
+      try {
+        sessionStorage.removeItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY);
+      } catch {
+        /* ignore */
+      }
       sessionStorage.setItem(
         "formsync_pending_schema",
         JSON.stringify(currentSchema),
