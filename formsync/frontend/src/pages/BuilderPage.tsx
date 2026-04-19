@@ -1,14 +1,43 @@
 import React, { useEffect, useRef } from "react";
-import { BuilderProvider, useBuilder } from "../context/BuilderContext";
+import {
+  BuilderProvider,
+  useBuilder,
+  clearBuilderDraft,
+  FORMSYNC_BUILDER_DRAFT_KEY,
+  FORMSYNC_BUILDER_SCHEMA_ID_KEY,
+} from "../context/BuilderContext";
 import { BuilderLayout } from "../builder/BuilderLayout";
-import { parseJsonSchemaToFormModel } from "../types";
+import { FormModel, parseJsonSchemaToFormModel } from "../types";
 import { useAuth } from "../context/AuthContext";
 import "../builder/builder.css";
 
+function showLoadedToast() {
+  const n = document.createElement("div");
+  n.textContent = "✅ Schema loaded";
+  n.style.cssText =
+    "position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);";
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3000);
+}
+
+function showErrorToast(message: string) {
+  const n = document.createElement("div");
+  n.textContent = message;
+  n.style.cssText =
+    "position:fixed;top:20px;right:20px;background:#ef4444;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;";
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 4000);
+}
+
+function setSchemaIdInUrl(schemaId: string) {
+  const u = new URL(window.location.href);
+  u.searchParams.set("schemaId", schemaId);
+  window.history.replaceState({}, "", `${u.pathname}${u.search}`);
+}
+
 /**
- * Schema Loader — reads ?schemaId from the URL, fetches from schema-api,
- * converts to FormModel, and dispatches to BuilderContext.
- * Falls back to a demo form if no schemaId is present.
+ * Schema Loader — reads ?schemaId from the URL or session backup, fetches from schema-api,
+ * or restores pending / draft / raw JSON. Falls back to a demo form only when nothing applies.
  */
 const SchemaLoader: React.FC = () => {
   const { dispatch } = useBuilder();
@@ -18,60 +47,53 @@ const SchemaLoader: React.FC = () => {
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
+
     const urlParams = new URLSearchParams(window.location.search);
-    const schemaId = urlParams.get("schemaId");
+    const urlSchemaId = urlParams.get("schemaId");
+    const storedSchemaId = sessionStorage.getItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY);
 
-    if (schemaId) {
-      const fetchSchema = async () => {
-        try {
-          const response = await fetch(`/schema/${schemaId}`);
-          if (!response.ok)
-            throw new Error(
-              `API returned ${response.status}: ${response.statusText}`,
-            );
-
-          const schemaData = await response.json();
-          const formModel = parseJsonSchemaToFormModel(schemaData.content);
-
-          dispatch({ type: "UPDATE_FORM", payload: formModel });
-          dispatch({ type: "SET_SCHEMA_ID", payload: schemaId });
-
-          // Clean up URL param
-          window.history.replaceState({}, "", window.location.pathname);
-
-          // Toast-style notification
-          const n = document.createElement("div");
-          n.textContent = "✅ Schema loaded";
-          n.style.cssText =
-            "position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);";
-          document.body.appendChild(n);
-          setTimeout(() => n.remove(), 3000);
-        } catch (error) {
-          console.error("Failed to load schema:", error);
-          const n = document.createElement("div");
-          n.textContent = `❌ Failed to load schema: ${error instanceof Error ? error.message : "API Error"}`;
-          n.style.cssText =
-            "position:fixed;top:20px;right:20px;background:#ef4444;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;";
-          document.body.appendChild(n);
-          setTimeout(() => n.remove(), 4000);
-          loadDemoForm(dispatch);
+    const loadFromApi = async (schemaId: string) => {
+      try {
+        const response = await fetch(`/schema/${schemaId}`);
+        if (!response.ok) {
+          throw new Error(
+            `API returned ${response.status}: ${response.statusText}`,
+          );
         }
-      };
-      fetchSchema();
-    } else {
-      // No saved schemaId — check for a schema passed via sessionStorage (skip-save path)
+
+        const schemaData = await response.json();
+        const formModel = parseJsonSchemaToFormModel(schemaData.content);
+
+        clearBuilderDraft();
+        dispatch({ type: "UPDATE_FORM", payload: formModel });
+        dispatch({ type: "SET_SCHEMA_ID", payload: schemaId });
+        setSchemaIdInUrl(schemaId);
+        showLoadedToast();
+      } catch (error) {
+        console.error("Failed to load schema:", error);
+        try {
+          sessionStorage.removeItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY);
+        } catch {
+          /* ignore */
+        }
+        showErrorToast(
+          `❌ Failed to load schema: ${error instanceof Error ? error.message : "API Error"}`,
+        );
+        runSyncFallbacks();
+      }
+    };
+
+    const runSyncFallbacks = () => {
       const pending = sessionStorage.getItem("formsync_pending_schema");
       if (pending) {
         const loadAndSave = async () => {
           try {
             const schema = JSON.parse(pending);
-            // Keep raw schema accessible for GeneratedCodePage (separate key, not removed here)
             sessionStorage.setItem("formsync_schema_raw", pending);
-            // Convert to FormModel and load into builder
             const formModel = parseJsonSchemaToFormModel(schema);
+            clearBuilderDraft();
             dispatch({ type: "UPDATE_FORM", payload: formModel });
 
-            // Auto-save to get a real schemaId so "Generate Code" works
             if (user?.id) {
               try {
                 const saveResponse = await fetch("/schema", {
@@ -91,30 +113,87 @@ const SchemaLoader: React.FC = () => {
                 if (saveResponse.ok) {
                   const saved = await saveResponse.json();
                   dispatch({ type: "SET_SCHEMA_ID", payload: saved.id });
+                  setSchemaIdInUrl(saved.id);
                 }
               } catch {
-                // Auto-save failed — proceed without schemaId; Generate Code will still work via fallback
+                /* auto-save failed */
               }
             }
 
             sessionStorage.removeItem("formsync_pending_schema");
-
-            const n = document.createElement("div");
-            n.textContent = "✅ Schema loaded";
-            n.style.cssText =
-              "position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);";
-            document.body.appendChild(n);
-            setTimeout(() => n.remove(), 3000);
+            showLoadedToast();
           } catch {
             sessionStorage.removeItem("formsync_pending_schema");
-            loadDemoForm(dispatch);
+            tryHydrateDraftOrRawOrDemo();
           }
         };
-        loadAndSave();
-      } else {
-        loadDemoForm(dispatch);
+        void loadAndSave();
+        return;
       }
+
+      tryHydrateDraftOrRawOrDemo();
+    };
+
+    const tryHydrateDraftOrRawOrDemo = () => {
+      const draftStr = sessionStorage.getItem(FORMSYNC_BUILDER_DRAFT_KEY);
+      if (draftStr) {
+        try {
+          const draft = JSON.parse(draftStr) as {
+            form?: unknown;
+            activeStep?: number;
+            schemaId?: string | null;
+          };
+          if (draft.form && typeof draft.form === "object") {
+            dispatch({
+              type: "UPDATE_FORM",
+              payload: draft.form as FormModel,
+            });
+            if (typeof draft.activeStep === "number") {
+              dispatch({ type: "SET_STEP", payload: draft.activeStep });
+            }
+            if (draft.schemaId) {
+              dispatch({ type: "SET_SCHEMA_ID", payload: draft.schemaId });
+            }
+            showLoadedToast();
+            return;
+          }
+        } catch {
+          try {
+            sessionStorage.removeItem(FORMSYNC_BUILDER_DRAFT_KEY);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
+      const raw = sessionStorage.getItem("formsync_schema_raw");
+      if (raw) {
+        try {
+          const schema = JSON.parse(raw);
+          const formModel = parseJsonSchemaToFormModel(schema);
+          clearBuilderDraft();
+          dispatch({ type: "UPDATE_FORM", payload: formModel });
+          showLoadedToast();
+          return;
+        } catch {
+          /* fall through */
+        }
+      }
+
+      loadDemoForm(dispatch);
+    };
+
+    if (urlSchemaId) {
+      void loadFromApi(urlSchemaId);
+      return;
     }
+
+    if (storedSchemaId) {
+      void loadFromApi(storedSchemaId);
+      return;
+    }
+
+    runSyncFallbacks();
   }, [dispatch, user]);
 
   return null;
