@@ -1,35 +1,34 @@
 # ── Build stage ────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-WORKDIR /workspace
+WORKDIR /workspace/services
 
-# Shared tsconfig — services extend ../../config/tsconfig.base.json
-COPY config/ config/
+COPY config/ /workspace/config/
 
-# Install dependencies first (cache layer)
-COPY services/runtime-binding-engine/package*.json services/runtime-binding-engine/
+COPY services/schema-openapi ./schema-openapi
+WORKDIR /workspace/services/schema-openapi
+RUN npm install && npm run build
+
 WORKDIR /workspace/services/runtime-binding-engine
+COPY services/runtime-binding-engine/package*.json ./
 RUN npm install
 
-# Copy source and build
-# postbuild automatically copies Handlebars templates:
-#   src/templates/**/*.{hbs,yml} → dist/apps/runtime-binding-engine/src/templates/
 COPY services/runtime-binding-engine/ .
 RUN npm run build
-# cpx postbuild copies to a wrong nested path; copy templates to the correct location
 RUN cp -r src/templates dist/templates
 
 # ── Runtime stage ──────────────────────────────────────────────
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /workspace/services
 
-# Compiled output + embedded Handlebars templates (from postbuild cpx step)
-COPY --from=builder /workspace/services/runtime-binding-engine/dist ./dist
+COPY --from=builder /workspace/services/schema-openapi ./schema-openapi
 
-# Production dependencies only
+WORKDIR /workspace/services/runtime-binding-engine
 COPY services/runtime-binding-engine/package*.json ./
 RUN npm install --omit=dev
+
+COPY --from=builder /workspace/services/runtime-binding-engine/dist ./dist
 
 EXPOSE 3013
 
