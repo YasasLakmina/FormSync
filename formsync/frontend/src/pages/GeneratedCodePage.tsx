@@ -190,7 +190,6 @@ export const GeneratedCodePage: React.FC = () => {
           } catch {
             /* ignore */
           }
-          const result = await generationService.generateAll(syncedFromBuilder);
           if (result.success && result.data) {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
@@ -222,7 +221,10 @@ export const GeneratedCodePage: React.FC = () => {
         if (stash.syncedSchema) {
           setIsLoading(true);
           try {
-            const result = await generationService.generateAll(stash.syncedSchema);
+            const result = await generationService.generateAll(
+              stash.syncedSchema,
+              backendLanguage,
+            );
             if (result.success && result.data) {
               setLocalState({
                 generatedCode: { ...MOCK_CODE, ...result.data },
@@ -263,7 +265,7 @@ export const GeneratedCodePage: React.FC = () => {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
               schema: schemaData,
-              ...(formModelFromExport && { formModel: formModelFromExport }),
+              ...(stash.form && { formModel: stash.form }),
             });
             toast.success("Code generated successfully");
           } else {
