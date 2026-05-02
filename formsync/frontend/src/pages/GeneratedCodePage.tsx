@@ -18,6 +18,8 @@ import {
 } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
+import type { FormModel } from "../types";
+import { FORMSYNC_BUILDER_EXPORT_FORM_KEY } from "../context/BuilderContext";
 
 interface GeneratedCode {
   frontend: string;
@@ -31,6 +33,24 @@ interface LocationState {
   /** Fresh JSON Schema from Form Builder (preferred over re-fetch by schemaId). */
   schema?: any;
   backendLanguage?: BackendLanguage;
+  /** Present when arriving from Form Builder so fullstack ZIP matches canvas customizations */
+  formModel?: FormModel;
+}
+
+function consumeBuilderExportForm(
+  id: string | null,
+): FormModel | undefined {
+  if (!id) return undefined;
+  try {
+    const raw = sessionStorage.getItem(FORMSYNC_BUILDER_EXPORT_FORM_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { schemaId?: string; form?: FormModel };
+    if (parsed.schemaId !== id || !parsed.form) return undefined;
+    sessionStorage.removeItem(FORMSYNC_BUILDER_EXPORT_FORM_KEY);
+    return parsed.form;
+  } catch {
+    return undefined;
+  }
 }
 
 const MOCK_CODE = {
@@ -183,9 +203,11 @@ export const GeneratedCodePage: React.FC = () => {
           const result = await generationService.generateAll(schema);
 
           if (result.success && result.data) {
+            const formModelFromExport = consumeBuilderExportForm(schemaId);
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
-              schema,
+              schema: schema,
+              ...(formModelFromExport && { formModel: formModelFromExport }),
             });
             toast.success("Code generated successfully");
           } else {
@@ -244,7 +266,7 @@ export const GeneratedCodePage: React.FC = () => {
     try {
       sessionStorage.setItem("formsync_backend_language", backendLanguage);
       await generationService.downloadFullstackZip(
-        undefined,
+        state.formModel,
         state.schema,
         backendLanguage,
       );

@@ -18,7 +18,7 @@ const options: {
   id: BackendLanguage;
   label: string;
   description: string;
-  icon: typeof Coffee;
+  icon: typeof Coffee | typeof Brackets | typeof Server;
   color: string;
   bgColor: string;
   borderColor: string;
@@ -50,8 +50,8 @@ const options: {
   },
   {
     id: "dotnetWebApi",
-    label: ".NET Web API",
-    description: "C# · ASP.NET Core · REST API",
+    label: ".NET",
+    description: "ASP.NET Core · Web API · C#",
     icon: Server,
     color: "from-sky-500 to-blue-600",
     bgColor: "bg-sky-50 dark:bg-sky-950/30",
@@ -66,7 +66,10 @@ export const BackendLanguageSelector: React.FC<
 > = ({ selected, onChange, className }) => {
   return (
     <div
-      className={cn("flex gap-3 flex-wrap", className)}
+      className={cn(
+        "grid w-full grid-cols-3 gap-2 sm:gap-3",
+        className,
+      )}
       role="radiogroup"
       aria-label="Backend generation language"
     >
@@ -82,8 +85,8 @@ export const BackendLanguageSelector: React.FC<
             aria-checked={isSelected}
             onClick={() => onChange(opt.id)}
             className={cn(
-              "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-              "border-2 cursor-pointer group min-w-[min(100%,220px)] flex-1 sm:flex-none sm:min-w-[240px]",
+              "relative flex min-w-0 w-full items-center gap-2 sm:gap-3 px-2 py-3 sm:px-4 rounded-xl transition-all duration-200",
+              "border-2 cursor-pointer group",
               isSelected
                 ? `${opt.borderColor} shadow-lg scale-[1.02]`
                 : `border-neutral-200 dark:border-neutral-700 ${opt.hoverBorderColor}`,

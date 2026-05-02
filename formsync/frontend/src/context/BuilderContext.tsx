@@ -1,5 +1,18 @@
-import React, { createContext, useContext, useReducer, Dispatch } from 'react';
+import React, { createContext, useContext, useReducer, Dispatch, useEffect } from 'react';
 import { FormModel, FieldModel, FieldType, JsonSchema } from '../types';
+
+export const FORMSYNC_BUILDER_DRAFT_KEY = 'formsync_builder_draft';
+export const FORMSYNC_BUILDER_SCHEMA_ID_KEY = 'formsync_builder_schema_id';
+/** One-shot payload so GeneratedCodePage can pass Form Builder customizations after a full-page redirect to `/generated?schemaId=…`. */
+export const FORMSYNC_BUILDER_EXPORT_FORM_KEY = 'formsync_builder_export_form';
+
+export function clearBuilderDraft(): void {
+    try {
+        sessionStorage.removeItem(FORMSYNC_BUILDER_DRAFT_KEY);
+    } catch {
+        /* ignore */
+    }
+}
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -275,6 +288,47 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const canUndo = state.historyIndex >= 0;
     const isWizardMode = !!state.form.layout.steps && state.form.layout.steps.length > 0;
     const stepCount = state.form.layout.steps?.length ?? 0;
+
+    useEffect(() => {
+        if (state.schemaId) {
+            try {
+                sessionStorage.setItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY, state.schemaId);
+            } catch {
+                /* ignore */
+            }
+        } else {
+            try {
+                sessionStorage.removeItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY);
+            } catch {
+                /* ignore */
+            }
+        }
+    }, [state.schemaId]);
+
+    useEffect(() => {
+        const isBlankInitial =
+            state.form.id === 'default' &&
+            state.form.name === 'Loading...' &&
+            state.form.fields.length === 0;
+        if (isBlankInitial) return;
+
+        const t = window.setTimeout(() => {
+            try {
+                sessionStorage.setItem(
+                    FORMSYNC_BUILDER_DRAFT_KEY,
+                    JSON.stringify({
+                        form: state.form,
+                        activeStep: state.activeStep,
+                        schemaId: state.schemaId,
+                        updatedAt: Date.now(),
+                    }),
+                );
+            } catch {
+                /* quota or disabled storage */
+            }
+        }, 400);
+        return () => window.clearTimeout(t);
+    }, [state.form, state.activeStep, state.schemaId]);
 
     return (
         <BuilderContext.Provider value={{ state, dispatch, canUndo, isWizardMode, stepCount }}>
