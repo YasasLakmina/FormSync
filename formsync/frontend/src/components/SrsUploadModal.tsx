@@ -12,8 +12,10 @@ import {
   Loader2,
   Eye,
   FileJson2,
+  Pencil,
+  Trash2,
 } from "lucide-react";
-import { schemaApi, ParseSrsResponse } from "../api/schemaApi";
+import { schemaApi, ParseSrsResponse, ExtractedUserStory } from "../api/schemaApi";
 
 /* ─── Types ─────────────────────────────────────────────── */
 type Step = "upload" | "processing" | "preview" | "done";
@@ -44,6 +46,7 @@ export const SrsUploadModal: React.FC<Props> = ({ onClose, onStoriesExtracted })
   const [projectName, setProjectName] = useState("");
   const [pipelineStage, setPipelineStage] = useState(0);
   const [result, setResult] = useState<ParseSrsResponse | null>(null);
+  const [editableStories, setEditableStories] = useState<ExtractedUserStory[]>([]);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -117,6 +120,7 @@ export const SrsUploadModal: React.FC<Props> = ({ onClose, onStoriesExtracted })
       setPipelineStage(3);
       await new Promise((r) => setTimeout(r, 400));
       setResult(res.data);
+      setEditableStories(res.data.userStories);
       setProjectName((prev) => prev || res.data.projectName);
       setStep("preview");
     } catch (e: any) {
@@ -128,7 +132,20 @@ export const SrsUploadModal: React.FC<Props> = ({ onClose, onStoriesExtracted })
 
   const handleConfirm = () => {
     if (!result) return;
-    onStoriesExtracted(result, projectName || result.projectName);
+    onStoriesExtracted(
+      { ...result, userStories: editableStories, totalFound: editableStories.length },
+      projectName || result.projectName,
+    );
+  };
+
+  const handleStoryRename = (id: string, newTitle: string) => {
+    setEditableStories((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, title: newTitle } : s)),
+    );
+  };
+
+  const handleStoryDelete = (id: string) => {
+    setEditableStories((prev) => prev.filter((s) => s.id !== id));
   };
 
   return (
@@ -196,8 +213,11 @@ export const SrsUploadModal: React.FC<Props> = ({ onClose, onStoriesExtracted })
               <PreviewStep
                 key="preview"
                 result={result}
+                stories={editableStories}
                 projectName={projectName}
                 onProjectNameChange={setProjectName}
+                onStoryRename={handleStoryRename}
+                onStoryDelete={handleStoryDelete}
                 onConfirm={handleConfirm}
                 onBack={() => setStep("upload")}
               />
@@ -498,12 +518,17 @@ const ProcessingStep: React.FC<{ stage: number }> = ({ stage }) => (
 /* ─── Step: Preview ──────────────────────────────────────── */
 const PreviewStep: React.FC<{
   result: ParseSrsResponse;
+  stories: ExtractedUserStory[];
   projectName: string;
   onProjectNameChange: (v: string) => void;
+  onStoryRename: (id: string, title: string) => void;
+  onStoryDelete: (id: string) => void;
   onConfirm: () => void;
   onBack: () => void;
-}> = ({ result, projectName, onProjectNameChange, onConfirm, onBack }) => {
+}> = ({ result, stories, projectName, onProjectNameChange, onStoryRename, onStoryDelete, onConfirm, onBack }) => {
   const [showPreview, setShowPreview] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const areaColors: Record<string, string> = {
     Authentication: "bg-blue-100 text-blue-700 border-blue-200",
@@ -520,6 +545,16 @@ const PreviewStep: React.FC<{
   const confidenceColor = (c: number) =>
     c >= 0.85 ? "text-emerald-600" : c >= 0.6 ? "text-amber-600" : "text-red-500";
 
+  const startEdit = (story: ExtractedUserStory) => {
+    setEditingId(story.id);
+    setEditValue(story.title);
+  };
+
+  const commitEdit = (id: string) => {
+    if (editValue.trim()) onStoryRename(id, editValue.trim());
+    setEditingId(null);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -532,9 +567,9 @@ const PreviewStep: React.FC<{
         <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
         <div>
           <p className="text-sm font-semibold text-emerald-800">
-            {result.totalFound} user {result.totalFound === 1 ? "story" : "stories"} found
+            {stories.length} user {stories.length === 1 ? "story" : "stories"} ready
           </p>
-          <p className="text-xs text-emerald-600 mt-0.5">Review below, then save to your project</p>
+          <p className="text-xs text-emerald-600 mt-0.5">Rename or remove stories, then save to your project</p>
         </div>
       </div>
 
@@ -549,35 +584,74 @@ const PreviewStep: React.FC<{
         />
       </div>
 
-      {/* Stories list */}
-      <div className="max-h-56 overflow-y-auto space-y-2 pr-0.5">
-        {result.userStories.map((story, i) => (
-          <motion.div
-            key={story.id}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="flex items-start gap-3 px-3 py-2.5 bg-neutral-50 border border-neutral-200/70 rounded-xl hover:border-purple-200 hover:bg-white transition-all"
-          >
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <FileJson2 className="w-3 h-3 text-indigo-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-neutral-900 truncate">{story.title}</p>
-              <p className="text-xs text-neutral-400 truncate">
-                {story.suggestedFields.length} field{story.suggestedFields.length !== 1 ? "s" : ""} · As a {story.role}…
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-1 flex-shrink-0">
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${areaColor(story.featureArea)}`}>
-                {story.featureArea}
-              </span>
-              <span className={`text-[10px] font-bold ${confidenceColor(story.confidence)}`}>
-                {Math.round(story.confidence * 100)}%
-              </span>
-            </div>
-          </motion.div>
-        ))}
+      {/* Stories list with edit/delete */}
+      <div className="max-h-56 overflow-y-auto space-y-1.5 pr-0.5">
+        <AnimatePresence initial={false}>
+          {stories.map((story, i) => (
+            <motion.div
+              key={story.id}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 6, height: 0, marginBottom: 0 }}
+              transition={{ delay: editingId ? 0 : i * 0.04 }}
+              className="group flex items-start gap-2.5 px-3 py-2.5 bg-neutral-50 border border-neutral-200/70 rounded-xl hover:border-purple-200 hover:bg-white transition-all"
+            >
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <FileJson2 className="w-3 h-3 text-indigo-500" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                {editingId === story.id ? (
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => commitEdit(story.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit(story.id);
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    className="w-full px-2 py-0.5 text-sm rounded-lg border border-indigo-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-neutral-900"
+                  />
+                ) : (
+                  <p className="text-sm font-semibold text-neutral-900 truncate">{story.title}</p>
+                )}
+                <p className="text-xs text-neutral-400 truncate mt-0.5">
+                  {story.suggestedFields.length} field{story.suggestedFields.length !== 1 ? "s" : ""} · As a {story.role}…
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${areaColor(story.featureArea)}`}>
+                  {story.featureArea}
+                </span>
+                <span className={`text-[10px] font-bold w-7 text-right ${confidenceColor(story.confidence)}`}>
+                  {Math.round(story.confidence * 100)}%
+                </span>
+                <button
+                  onClick={() => startEdit(story)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-neutral-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
+                  title="Rename"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => onStoryDelete(story.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                  title="Remove"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {stories.length === 0 && (
+          <div className="text-center py-6 text-sm text-neutral-400">
+            All stories removed. Go back to re-parse.
+          </div>
+        )}
       </div>
 
       {/* Text preview toggle */}
@@ -623,7 +697,7 @@ const PreviewStep: React.FC<{
         </button>
         <button
           onClick={onConfirm}
-          disabled={result.totalFound === 0}
+          disabled={stories.length === 0}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold hover:shadow-lg hover:shadow-purple-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <CheckCircle2 className="w-4 h-4" />
