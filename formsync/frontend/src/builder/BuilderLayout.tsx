@@ -6,10 +6,7 @@ import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
 import { generationService } from "../services/generationService";
-import {
-  formModelToJsonSchema,
-  validateBuilderJsonSchema,
-} from "../types";
+import { formModelToJsonSchema } from "../types";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
@@ -19,6 +16,7 @@ export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
   const navigate = useNavigate();
   const [isGenerating, setIsGenerating] = useState(false);
+  const synced = formModelToJsonSchema(state.form);
 
   type Stage = {
     name: string;

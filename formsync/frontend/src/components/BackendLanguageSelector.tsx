@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import { Coffee, Brackets } from "lucide-react";
+import { Coffee, Brackets, Server } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { BackendLanguage } from "@/services/generationService";
@@ -47,6 +47,17 @@ const options: {
     borderColor: "border-violet-500",
     hoverBorderColor: "hover:border-violet-300 dark:hover:border-violet-600",
     textColor: "text-violet-800 dark:text-violet-300",
+  },
+  {
+    id: "dotnetWebApi",
+    label: ".NET Web API",
+    description: "C# · ASP.NET Core · REST API",
+    icon: Server,
+    color: "from-sky-500 to-blue-600",
+    bgColor: "bg-sky-50 dark:bg-sky-950/30",
+    borderColor: "border-sky-500",
+    hoverBorderColor: "hover:border-sky-300 dark:hover:border-sky-600",
+    textColor: "text-sky-800 dark:text-sky-300",
   },
 ];
 
