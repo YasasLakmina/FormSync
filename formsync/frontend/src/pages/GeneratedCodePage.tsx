@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { PageTransition } from "../components/layout/PageTransition";
 import { PipelineViewer } from "../components/editor/PipelineViewer";
 import { Button } from "../components/ui/button";
@@ -29,8 +29,9 @@ interface GeneratedCode {
 }
 
 interface LocationState {
-  generatedCode: GeneratedCode;
-  schema: any;
+  generatedCode?: GeneratedCode;
+  /** Fresh JSON Schema from Form Builder (preferred over re-fetch by schemaId). */
+  schema?: any;
   backendLanguage?: BackendLanguage;
   /** Present when arriving from Form Builder so fullstack ZIP matches canvas customizations */
   formModel?: FormModel;
@@ -116,7 +117,6 @@ export class CreateUserDto {
 
 export const GeneratedCodePage: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
   const schemaId = query.get("schemaId");
   const backendLanguageFromQuery = query.get(
@@ -126,7 +126,10 @@ export const GeneratedCodePage: React.FC = () => {
   const [localState, setLocalState] = React.useState<LocationState | null>(
     (location.state as LocationState | null) ?? null,
   );
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(() => {
+    const rs = location.state as LocationState | null;
+    return !rs?.generatedCode;
+  });
   const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
   const backendLanguageFromSession = sessionStorage.getItem(
     "formsync_backend_language",
@@ -152,24 +155,51 @@ export const GeneratedCodePage: React.FC = () => {
   ];
 
   React.useEffect(() => {
-    const fetchAndGenerate = async () => {
-      if (!localState && schemaId) {
+    if (localState?.generatedCode) {
+      setIsLoading(false);
+      return;
+    }
+
+    const routeState = location.state as LocationState | null;
+    const syncedFromBuilder = routeState?.schema;
+
+    const hydrate = async () => {
+      if (schemaId && syncedFromBuilder) {
         setIsLoading(true);
         try {
-          // Fetch schema
+          const result = await generationService.generateAll(syncedFromBuilder);
+          if (result.success && result.data) {
+            setLocalState({
+              generatedCode: { ...MOCK_CODE, ...result.data },
+              schema: syncedFromBuilder,
+              backendLanguage: routeState?.backendLanguage,
+            });
+            toast.success("Code generated successfully");
+          } else {
+            throw new Error(result.error || "Generation failed");
+          }
+        } catch (error) {
+          console.error("Error in GeneratedCodePage:", error);
+          setLocalState({
+            generatedCode: MOCK_CODE,
+            schema: syncedFromBuilder,
+          });
+          toast.info("Using demo data (Generation failed)");
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (schemaId) {
+        setIsLoading(true);
+        try {
           const response = await fetch(`/schema/${schemaId}`);
           if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
-          // Ideally schemaData is the schema object or has content.
-          // Based on EditorPage: "content: currentSchema", so the API likely returns the DB record.
-          // Let's assume schemaData.content is the actual schema or schemaData itself if it IS the schema.
-          // EditorPage saves: { name, description, content, ... }
-          // So we likely need schemaData.content
-
           const schema = schemaData.content || schemaData;
 
-          // Generate code
           const result = await generationService.generateAll(schema);
 
           if (result.success && result.data) {
@@ -185,7 +215,6 @@ export const GeneratedCodePage: React.FC = () => {
           }
         } catch (error) {
           console.error("Error in GeneratedCodePage:", error);
-          // Fallback to mock logic
           setLocalState({
             generatedCode: MOCK_CODE,
             schema: { name: "Demo Schema", content: {} },
@@ -194,16 +223,18 @@ export const GeneratedCodePage: React.FC = () => {
         } finally {
           setIsLoading(false);
         }
-      } else if (!localState && !schemaId) {
-        setLocalState({
-          generatedCode: MOCK_CODE,
-          schema: { name: "Demo Schema", content: {} },
-        });
+        return;
       }
+
+      setLocalState({
+        generatedCode: MOCK_CODE,
+        schema: { name: "Demo Schema", content: {} },
+      });
+      setIsLoading(false);
     };
 
-    fetchAndGenerate();
-  }, [localState, schemaId, navigate]);
+    void hydrate();
+  }, [localState?.generatedCode, schemaId, location.state]);
 
   if (isLoading) {
     return (
@@ -223,6 +254,7 @@ export const GeneratedCodePage: React.FC = () => {
 
   // Use localState instead of state from here on
   const state = localState;
+  const generatedCode = state.generatedCode!;
 
   /** Download a fullstack ZIP with frontend + selected backend. */
   const handleDownloadAll = async () => {
@@ -331,7 +363,7 @@ export const GeneratedCodePage: React.FC = () => {
           <div className="min-h-[600px]">
             <PipelineViewer
               isGenerating={false}
-              generatedCode={state.generatedCode}
+              generatedCode={generatedCode}
               stages={completionStages}
               onDownloadAll={handleDownloadAll}
               isDownloading={isDownloadingBackend}

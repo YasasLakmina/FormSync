@@ -18,6 +18,12 @@ export function generateAppTsx(formModel: FormModel): string {
     .map(id => fields.find(f => f.id === id))
     .filter((f): f is FieldModel => !!f);
 
+  // Stable DOM ids from semantic field keys (field_1, field_2, …) — not internal uuid ids
+  const domIdByKey = new Map<string, string>();
+  collectAllFields(orderedFields).forEach((f, i) => {
+    domIdByKey.set(f.key, `field_${i + 1}`);
+  });
+
   const hasFields = orderedFields.length > 0;
   const title = meta?.title || formModel.name;
   const description = meta?.description;
@@ -34,7 +40,7 @@ export function generateAppTsx(formModel: FormModel): string {
         f => f.stepIndex === stepIdx || f.stepIndex === undefined
       );
       const fieldComponents = stepFields
-        .map(f => generateFieldComponent(f, theme))
+        .map(f => generateFieldComponent(f, theme, domIdByKey))
         .join('\n\n');
       return `<section className="form-section">
           <h2 className="section-title">
@@ -61,7 +67,7 @@ export function generateAppTsx(formModel: FormModel): string {
   } else if (hasFields) {
     // Flat form — no wizard steps
     const fieldComponents = orderedFields
-      .map(f => generateFieldComponent(f, theme))
+      .map(f => generateFieldComponent(f, theme, domIdByKey))
       .join('\n\n');
     formBody = `<form onSubmit={handleSubmit} noValidate>
         ${fieldComponents}
@@ -82,7 +88,10 @@ export function generateAppTsx(formModel: FormModel): string {
   // the first invalid field without needing React refs.
   const allFields = collectAllFields(orderedFields);
   const fieldIdMapEntries = allFields
-    .map((f: FieldModel) => `  '${f.key}': '${f.id}'`)
+    .map(
+      (f: FieldModel) =>
+        `  '${escapeJsSingleQuotedString(f.key)}': '${domIdByKey.get(f.key)}'`,
+    )
     .join(',\n');
 
   return `import React, { FormEvent, useState } from 'react';
@@ -181,8 +190,17 @@ const AUTO_COMPLETE_MAP: Record<string, string> = {
   organisation: 'organization', company: 'organization',
 };
 
-function generateFieldComponent(field: FieldModel, theme: any): string {
+function escapeJsSingleQuotedString(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function generateFieldComponent(
+  field: FieldModel,
+  theme: any,
+  domIdByKey: Map<string, string>,
+): string {
   const { id, key, type, label, required, ui } = field;
+  const domId = domIdByKey.get(key) ?? id;
   // date/number inputs don't benefit from placeholder — omit it to keep markup clean.
   const explicitPlaceholder = ui?.placeholder;
   const computedPlaceholder = explicitPlaceholder ?? `Enter ${label.toLowerCase()}...`;
@@ -220,7 +238,7 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
   if (type === 'group') {
     const children = field.children || [];
     const childComponents = children
-      .map(child => generateFieldComponent(child, theme))
+      .map(child => generateFieldComponent(child, theme, domIdByKey))
       .join('\n');
     const groupExtra = [
       `border: '1px solid #e5e7eb'`,
@@ -242,12 +260,12 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
   // - aria-invalid: evaluated at runtime via {errors['key'] ? 'true' : 'false'}
   // - aria-errormessage: points to the error span when invalid
   const describedByParts: string[] = [];
-  if (helpText) describedByParts.push(`${id}-help`);
-  describedByParts.push(`${id}-error`);
+  if (helpText) describedByParts.push(`${domId}-help`);
+  describedByParts.push(`${domId}-error`);
   const ariaDescribedBy = `aria-describedby="${describedByParts.join(' ')}"`;
   const ariaRequired = required ? `aria-required="true"` : '';
   const ariaInvalid = `aria-invalid={errors['${key}'] ? 'true' : 'false'}`;
-  const ariaErrMsg = `aria-errormessage="${id}-error"`;
+  const ariaErrMsg = `aria-errormessage="${domId}-error"`;
 
   const autoCompleteAttr = autoComplete ? `autoComplete="${autoComplete}"` : '';
 
@@ -255,7 +273,7 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
     case 'textarea':
       inputElement = `<textarea
             name="${key}"
-            id="${id}"
+            id="${domId}"
             className="field-input"
             ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
             ${required ? 'required' : ''}
@@ -270,7 +288,7 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
       const options = field.constraints?.enum || [];
       inputElement = `<select
             name="${key}"
-            id="${id}"
+            id="${domId}"
             className="field-input"
             ${required ? 'required' : ''}
             ${ariaRequired}
@@ -290,7 +308,7 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
       inputElement = `<input
             type="checkbox"
             name="${key}"
-            id="${id}"
+            id="${domId}"
             className="field-input"
             ${ariaRequired}
             ${ariaInvalid}
@@ -303,7 +321,7 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
       inputElement = `<input
             type="${type}"
             name="${key}"
-            id="${id}"
+            id="${domId}"
             className="field-input"
             ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
             ${required ? 'required' : ''}
@@ -321,12 +339,12 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
     const checkboxExtra = [`display: 'flex'`, `alignItems: 'center'`, `flexWrap: 'wrap'`];
     return `<div className="field-item checkbox-item" ${buildStyle(checkboxExtra)}>
           ${inputElement}
-          <label htmlFor="${id}" className="field-label" style={{ marginBottom: 0 }}>
+          <label htmlFor="${domId}" className="field-label" style={{ marginBottom: 0 }}>
             ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ''}
           </label>
-          ${helpText ? `<small id="${id}-help" className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
+          ${helpText ? `<small id="${domId}-help" className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
           <span
-            id="${id}-error"
+            id="${domId}-error"
             className="field-error"
             role="alert"
             aria-live="polite"
@@ -338,13 +356,13 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
 
   // ── standard field wrapper ───────────────────────────────────────────────
   return `<div className="field-item" ${buildStyle()}>
-          <label htmlFor="${id}" className="field-label">
+          <label htmlFor="${domId}" className="field-label">
             ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ''}
           </label>
           ${inputElement}
-          ${helpText ? `<small id="${id}-help" className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
+          ${helpText ? `<small id="${domId}-help" className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
           <span
-            id="${id}-error"
+            id="${domId}-error"
             className="field-error"
             role="alert"
             aria-live="polite"

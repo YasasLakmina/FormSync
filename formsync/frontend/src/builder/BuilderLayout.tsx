@@ -9,6 +9,10 @@ import {
   useBuilder,
 } from "../context/BuilderContext";
 import { generationService } from "../services/generationService";
+import {
+  formModelToJsonSchema,
+  validateBuilderJsonSchema,
+} from "../types";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
@@ -84,8 +88,23 @@ export const BuilderLayout: React.FC = () => {
         // Final fallback — no schema context available
         window.location.href = "/generated";
       }
-    } catch {
-      alert("Generation failed. Please try again.");
+
+      const result = generationService.generateFromSchema(synced);
+      if (result.success && result.data) {
+        navigate("/generated", {
+          state: { generatedCode: result.data, schema: synced },
+        });
+        return;
+      }
+
+      navigate("/generated", { state: { schema: synced } });
+    } catch (e) {
+      console.error(e);
+      alert(
+        e instanceof Error
+          ? e.message
+          : "Generation failed. Please try again.",
+      );
       setStages((prev) =>
         prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
       );
