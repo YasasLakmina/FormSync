@@ -16,6 +16,8 @@ import { HealthModule } from './health/health.module';
         AuthModule,
         UserModule,
         TemplateModule,
+        ProjectModule,
+        HealthModule,
     ],
     providers: [PrismaService],
     exports: [PrismaService],
