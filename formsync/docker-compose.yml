@@ -36,6 +36,7 @@ x-common-env: &common-env
   DTO_GENERATOR_PORT: 3012
   RUNTIME_ENGINE_PORT: 3013
   FORMGEN_SERVICE_PORT: 3014
+  NODE_BACKEND_GENERATOR_PORT: 3015
   # ── Internal URLs (Docker service names, not localhost) ───
   SCHEMA_ENGINE_URL: http://schema-enhancement-engine:3010
   USER_SERVICE_URL: http://user-management-service:3011
@@ -44,9 +45,9 @@ x-common-env: &common-env
   FORMGEN_SERVICE_URL: http://formgen-service:3014
   SCHEMA_API_URL: http://schema-enhancement-engine:3010/schema
   FRONTEND_URL: http://localhost
+  NODE_BACKEND_GENERATOR_URL: http://node-backend-generator:3015
 
 services:
-
   # ── PostgreSQL ──────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
@@ -86,7 +87,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3010/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3010/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -110,7 +115,11 @@ services:
       schema-enhancement-engine:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3011/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3011/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -132,7 +141,11 @@ services:
     depends_on:
       - schema-enhancement-engine
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3012/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3012/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -154,7 +167,11 @@ services:
     depends_on:
       - schema-enhancement-engine
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3013/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3013/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -174,7 +191,37 @@ services:
     ports:
       - "3014:3014"
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3014/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3014/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - formsync-net
+
+  # ── Node Backend Generator (Express) ────────────────────────
+  node-backend-generator:
+    build:
+      context: .
+      dockerfile: services/node-backend-generator/Dockerfile
+    container_name: formsync-node-backend
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3015:3015"
+    depends_on:
+      - schema-enhancement-engine
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3015/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -204,8 +251,14 @@ services:
         condition: service_started
       formgen-service:
         condition: service_started
+      node-backend-generator:
+        condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on('error', () => process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3000/health'', r => { (r.statusCode === 200 || r.statusCode === 207) ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -221,7 +274,7 @@ services:
     container_name: formsync-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "5173:80"
     depends_on:
       api-gateway:
         condition: service_healthy
