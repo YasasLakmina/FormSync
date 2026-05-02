@@ -271,6 +271,7 @@ export const GeneratedCodePage: React.FC = () => {
               >
                 <option value="springBoot">Spring Boot (Java)</option>
                 <option value="nodeExpress">Node.js (Express)</option>
+                <option value="dotnetWebApi">.NET Web API (C#)</option>
               </select>
             </div>
           </div>

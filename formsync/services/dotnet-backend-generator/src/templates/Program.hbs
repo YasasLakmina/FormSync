@@ -1,0 +1,28 @@
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+{{#if includeSwagger}}
+builder.Services.AddSwaggerGen(c =>
+    c.SwaggerDoc("v1", new() { Title = "{{appName}} API", Version = "v1" }));
+{{/if}}
+
+{{#each entities}}
+builder.Services.AddScoped<{{namespace}}.Repositories.I{{name}}Repository, {{namespace}}.Repositories.{{name}}Repository>();
+builder.Services.AddScoped<{{namespace}}.Services.I{{name}}Service, {{namespace}}.Services.{{name}}Service>();
+{{/each}}
+
+var app = builder.Build();
+
+{{#if includeSwagger}}
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+{{/if}}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();

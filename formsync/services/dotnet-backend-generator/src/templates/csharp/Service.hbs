@@ -1,0 +1,71 @@
+using {{namespace}}.DTOs;
+using {{namespace}}.Exceptions;
+using {{namespace}}.Models;
+using {{namespace}}.Repositories;
+
+namespace {{namespace}}.Services;
+
+public class {{name}}Service : I{{name}}Service
+{
+    private readonly I{{name}}Repository _repository;
+
+    public {{name}}Service(I{{name}}Repository repository)
+    {
+        _repository = repository;
+    }
+
+    public IEnumerable<{{name}}Response> GetAll() =>
+        _repository.GetAll().Select(MapToResponse);
+
+    public {{name}}Response GetById(int id)
+    {
+        var entity = _repository.GetById(id)
+            ?? throw new NotFoundException($"{{name}} with id {id} not found");
+        return MapToResponse(entity);
+    }
+
+    public {{name}}Response Create({{name}}Request request)
+    {
+        var entity = MapToEntity(request);
+        _repository.Add(entity);
+        return MapToResponse(entity);
+    }
+
+    public {{name}}Response Update(int id, {{name}}Request request)
+    {
+        var existing = _repository.GetById(id)
+            ?? throw new NotFoundException($"{{name}} with id {id} not found");
+        ApplyUpdate(existing, request);
+        _repository.Update(existing);
+        return MapToResponse(existing);
+    }
+
+    public void Delete(int id)
+    {
+        _ = _repository.GetById(id)
+            ?? throw new NotFoundException($"{{name}} with id {id} not found");
+        _repository.Delete(id);
+    }
+
+    private static {{name}}Response MapToResponse({{name}} e) => new()
+    {
+        Id = e.Id,
+{{#each fields}}
+        {{namePascal}} = e.{{namePascal}},
+{{/each}}
+    };
+
+    private static {{name}} MapToEntity({{name}}Request r) => new()
+    {
+{{#each fields}}
+        {{namePascal}} = r.{{namePascal}},
+{{/each}}
+    };
+
+    private static void ApplyUpdate({{name}} e, {{name}}Request r)
+    {
+{{#each fields}}
+        e.{{namePascal}} = r.{{namePascal}};
+{{/each}}
+    }
+}

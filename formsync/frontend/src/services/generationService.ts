@@ -4,7 +4,7 @@
 
 // const API_BASE_URL = 'http://localhost:3000/api';
 
-export type BackendLanguage = "nodeExpress" | "springBoot";
+export type BackendLanguage = "nodeExpress" | "springBoot" | "dotnetWebApi";
 
 export interface GenerateRequest {
   schema: any;
@@ -47,7 +47,12 @@ export const generationService = {
     // Extract content if the schema is a DB record wrapper
     const actualSchema = schema.content || schema;
 
-    const response = await fetch(`${API_GATEWAY_URL}/runtime/generate`, {
+    const endpoint =
+      backendLanguage === "dotnetWebApi"
+        ? `${API_GATEWAY_URL}/dotnet-backend/generate`
+        : `${API_GATEWAY_URL}/runtime/generate`;
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ schema: actualSchema }),
@@ -69,7 +74,9 @@ export const generationService = {
       filename ||
       (backendLanguage === "nodeExpress"
         ? "node-express-backend.zip"
-        : "springboot-server.zip");
+        : backendLanguage === "dotnetWebApi"
+          ? "dotnet-webapi-server.zip"
+          : "springboot-server.zip");
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
@@ -108,7 +115,9 @@ export const generationService = {
     a.download =
       backendLanguage === "nodeExpress"
         ? "fullstack-node-express.zip"
-        : "fullstack-springboot.zip";
+        : backendLanguage === "dotnetWebApi"
+          ? "fullstack-dotnet-webapi.zip"
+          : "fullstack-springboot.zip";
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
