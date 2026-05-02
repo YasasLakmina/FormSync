@@ -1,4 +1,5 @@
 import * as path from "path";
+import * as fs from "fs";
 import { FileWriter } from "../service/FileWriter";
 import { TemplateService, computeJsLiteral } from "../service/TemplateService";
 import { ContextualTestGenerator } from "../service/ContextualTestGenerator";
@@ -33,6 +34,7 @@ export class NodeBackendGenerator {
 
   async generate(schema: any, config?: GeneratorConfig): Promise<void> {
     const outputDir = config?.outputDir || "./generated-node-backend";
+    this.cleanOutputDir(outputDir);
     const normalized = this.normalizeSchema(schema);
     const entities = this.extractEntities(normalized.content, normalized.name);
 
@@ -161,6 +163,16 @@ export class NodeBackendGenerator {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  // Wipe stale files from a previous generation so old entity routes/tests
+  // don't linger and produce 404s when server.js no longer mounts them.
+  private cleanOutputDir(outputDir: string): void {
+    if (!fs.existsSync(outputDir)) return;
+    for (const entry of fs.readdirSync(outputDir)) {
+      if (entry === "node_modules" || entry === "package-lock.json") continue;
+      fs.rmSync(path.join(outputDir, entry), { recursive: true, force: true });
+    }
+  }
 
   private safeName(value: string): string {
     return (value || "Resource").replace(/[^\w\s-]/g, "").trim() || "Resource";
