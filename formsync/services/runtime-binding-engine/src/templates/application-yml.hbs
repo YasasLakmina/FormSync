@@ -37,6 +37,15 @@ spring:
 
 server:
   port: {{serverPort}}
+{{#if includeSwagger}}
+
+# SpringDoc / OpenAPI
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+{{/if}}
 
 logging:
   level:

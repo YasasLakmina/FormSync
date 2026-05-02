@@ -1,0 +1,21 @@
+const express = require("express");
+const cors = require("cors");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
+{{#each entities}}
+const {{toCamelCase name}}Routes = require("./routes/{{routeName}}.routes");
+app.use("/api/{{routeName}}", {{toCamelCase name}}Routes);
+{{/each}}
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", service: "{{toKebabCase appName}}" });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

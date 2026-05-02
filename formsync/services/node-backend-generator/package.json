@@ -1,0 +1,35 @@
+{
+  "name": "node-backend-generator",
+  "version": "1.0.0",
+  "description": "Generates Express JavaScript backend from JSON Schema",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "npm run copy-templates",
+    "copy-templates": "cpx \"src/templates/**/*.hbs\" dist/templates",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "axios": "^1.13.2",
+    "axios-retry": "^4.5.0",
+    "cors": "^2.8.5",
+    "cpx": "^1.5.0",
+    "dotenv": "^16.3.1",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.3",
+    "handlebars": "^4.7.8",
+    "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.5",
+    "ts-node": "^10.9.2"
+  }
+}
