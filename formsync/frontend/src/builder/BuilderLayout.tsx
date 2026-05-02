@@ -146,10 +146,6 @@ export const BuilderLayout: React.FC = () => {
         window.location.href = "/generated";
         return;
       }
-
-      navigate("/generated", {
-        state: { schema: synced, formModel: state.form },
-      });
     } catch (e) {
       console.error(e);
       toast.error(
