@@ -21,6 +21,7 @@ export interface GenerateResponse {
 }
 
 const API_GATEWAY_URL = "http://localhost:3000";
+export type BackendLanguage = "springBoot" | "nodeExpress";
 
 export const generationService = {
   /**
@@ -37,9 +38,15 @@ export const generationService = {
    */
   async downloadBackendZip(
     schema: any,
-    filename: string = "springboot-server.zip",
+    filename?: string,
+    backendLanguage: BackendLanguage = "springBoot",
   ): Promise<void> {
-    const response = await fetch(`${API_GATEWAY_URL}/runtime/generate`, {
+    const endpoint =
+      backendLanguage === "nodeExpress"
+        ? `${API_GATEWAY_URL}/node-backend/generate`
+        : `${API_GATEWAY_URL}/runtime/generate`;
+
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ schema }),
@@ -57,7 +64,46 @@ export const generationService = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename;
+    a.download =
+      filename ||
+      (backendLanguage === "nodeExpress"
+        ? "node-express-backend.zip"
+        : "springboot-server.zip");
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  /**
+   * Download a fullstack ZIP containing generated frontend + selected backend.
+   */
+  async downloadFullstackZip(
+    formModel: any | undefined,
+    schema: any,
+    backendLanguage: BackendLanguage = "springBoot",
+  ): Promise<void> {
+    const response = await fetch(`${API_GATEWAY_URL}/bundle/generate-fullstack`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formModel, schema, backendLanguage }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(
+        errorBody?.error || `Fullstack bundle generation failed (${response.status})`,
+      );
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download =
+      backendLanguage === "nodeExpress"
+        ? "fullstack-node-express.zip"
+        : "fullstack-springboot.zip";
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);

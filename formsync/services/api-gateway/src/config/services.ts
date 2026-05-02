@@ -43,4 +43,10 @@ export const SERVICES: Record<string, ServiceConfig> = {
     description: 'Generates standalone React app from FormModel',
     healthPath: '/health',
   },
+  nodeBackendGenerator: {
+    name: 'node-backend-generator',
+    url: process.env.NODE_BACKEND_GENERATOR_URL || 'http://localhost:3015',
+    description: 'Generates Express JavaScript backend from JSON Schema',
+    healthPath: '/health',
+  },
 };

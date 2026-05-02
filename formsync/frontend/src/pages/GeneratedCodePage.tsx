@@ -12,7 +12,10 @@ import { Button } from "../components/ui/button";
 import { ArrowLeft, Home } from "lucide-react";
 
 import { toast } from "sonner";
-import { generationService } from "../services/generationService";
+import {
+  generationService,
+  type BackendLanguage,
+} from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 
 interface GeneratedCode {
@@ -25,6 +28,7 @@ interface GeneratedCode {
 interface LocationState {
   generatedCode: GeneratedCode;
   schema: any;
+  backendLanguage?: BackendLanguage;
 }
 
 const MOCK_CODE = {
@@ -94,12 +98,25 @@ export const GeneratedCodePage: React.FC = () => {
   const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
   const schemaId = query.get("schemaId");
+  const backendLanguageFromQuery = query.get(
+    "backendLanguage",
+  ) as BackendLanguage | null;
 
   const [localState, setLocalState] = React.useState<LocationState | null>(
     location.state as LocationState,
   );
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
+  const backendLanguageFromSession = sessionStorage.getItem(
+    "formsync_backend_language",
+  ) as BackendLanguage | null;
+  const initialBackendLanguage: BackendLanguage =
+    backendLanguageFromQuery ||
+    (location.state as LocationState | null)?.backendLanguage ||
+    backendLanguageFromSession ||
+    "springBoot";
+  const [backendLanguage, setBackendLanguage] =
+    React.useState<BackendLanguage>(initialBackendLanguage);
 
   // Define stages for the progress bar
   const completionStages: any[] = [
@@ -187,22 +204,24 @@ export const GeneratedCodePage: React.FC = () => {
   // Use localState instead of state from here on
   const state = localState;
 
-  /** Download the complete Spring Boot backend (with tests) as a ZIP via the runtime-binding-engine */
+  /** Download a fullstack ZIP with frontend + selected backend. */
   const handleDownloadAll = async () => {
     if (!state?.schema) {
-      toast.error("No schema available for backend generation");
+      toast.error("No schema available for bundle generation");
       return;
     }
     setIsDownloadingBackend(true);
     try {
-      await generationService.downloadBackendZip(
+      sessionStorage.setItem("formsync_backend_language", backendLanguage);
+      await generationService.downloadFullstackZip(
+        undefined,
         state.schema,
-        "springboot-server.zip",
+        backendLanguage,
       );
-      toast.success("Backend project downloaded successfully!");
+      toast.success("Fullstack project downloaded successfully!");
     } catch (error: any) {
-      console.error("Backend download failed:", error);
-      toast.error(error.message || "Failed to download backend project");
+      console.error("Fullstack download failed:", error);
+      toast.error(error.message || "Failed to download fullstack project");
     } finally {
       setIsDownloadingBackend(false);
     }
@@ -236,6 +255,27 @@ export const GeneratedCodePage: React.FC = () => {
               Your complete application code is ready! Review, copy, or
               download.
             </p>
+            <div className="mt-3 inline-flex items-center gap-2">
+              <label
+                htmlFor="generatedBackendLanguage"
+                className="text-sm text-neutral-600 dark:text-neutral-300"
+              >
+                Backend language
+              </label>
+              <select
+                id="generatedBackendLanguage"
+                value={backendLanguage}
+                onChange={(e) => {
+                  const selected = e.target.value as BackendLanguage;
+                  setBackendLanguage(selected);
+                  sessionStorage.setItem("formsync_backend_language", selected);
+                }}
+                className="text-sm px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
+              >
+                <option value="springBoot">Spring Boot (Java)</option>
+                <option value="nodeExpress">Node.js (Express)</option>
+              </select>
+            </div>
           </div>
 
           {/* Success Message */}

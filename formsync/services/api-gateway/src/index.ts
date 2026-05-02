@@ -11,6 +11,8 @@
  *   /dto/*             → backend-dto-generator        (3012)  rewrite → /
  *   /runtime/*         → runtime-binding-engine       (3013)  rewrite → /
  *   /formgen/*         → formgen-service              (3014)  rewrite → /
+ *   /bundle/*          → formgen-service              (3014)  rewrite → /
+ *   /node-backend/*    → node-backend-generator       (3015)  rewrite → /
  *   GET /health        → aggregate health of all services
  *   GET /              → gateway info
  */
@@ -68,6 +70,8 @@ app.get("/", (_req, res) => {
       "/dto/*": `${SERVICES.backendDtoGenerator.url} — ${SERVICES.backendDtoGenerator.description}`,
       "/runtime/*": `${SERVICES.runtimeBindingEngine.url} — ${SERVICES.runtimeBindingEngine.description}`,
       "/formgen/*": `${SERVICES.formgenService.url} — ${SERVICES.formgenService.description}`,
+      "/bundle/*": `${SERVICES.formgenService.url} — fullstack bundle generation`,
+      "/node-backend/*": `${SERVICES.nodeBackendGenerator.url} — ${SERVICES.nodeBackendGenerator.description}`,
     },
     docs: {
       "schema-enhancement-engine": `${SERVICES.schemaEnhancementEngine.url}/api/docs`,
@@ -156,6 +160,22 @@ app.use(
   }),
 );
 
+// Fullstack bundle endpoint  →  /bundle/*  rewrite to /
+app.use(
+  "/bundle",
+  proxy(SERVICES.formgenService.url, {
+    pathRewrite: { "^/bundle": "" },
+  }),
+);
+
+// Node Backend Generator  →  /node-backend/*  rewrite to /
+app.use(
+  "/node-backend",
+  proxy(SERVICES.nodeBackendGenerator.url, {
+    pathRewrite: { "^/node-backend": "" },
+  }),
+);
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
@@ -170,6 +190,8 @@ app.listen(PORT, () => {
   console.log(`│  /dto/*      →  backend-dto-generator       :3012   │`);
   console.log(`│  /runtime/*  →  runtime-binding-engine      :3013   │`);
   console.log(`│  /formgen/*  →  formgen-service             :3014   │`);
+  console.log(`│  /bundle/*   →  formgen-service             :3014   │`);
+  console.log(`│  /node-backend/* → node-backend-generator   :3015   │`);
   console.log(`│  /health     →  aggregate health check              │`);
   console.log("└─────────────────────────────────────────────────────┘");
   console.log("");
