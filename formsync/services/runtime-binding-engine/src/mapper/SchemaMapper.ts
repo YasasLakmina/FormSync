@@ -147,7 +147,7 @@ export class SchemaMapper {
         }
 
         return {
-            name,
+            name: this.jsonPropertyKeyToJavaIdentifier(name),
             type,
             referenceType,
             itemType,
@@ -155,6 +155,27 @@ export class SchemaMapper {
             description: schema.description,
             constraints
         };
+    }
+
+    /**
+     * Converts a JSON Schema property name into a valid Java field identifier
+     * (camelCase, no hyphens) so generated entities compile.
+     */
+    private jsonPropertyKeyToJavaIdentifier(jsonKey: string): string {
+        const cleaned = jsonKey.trim();
+        if (!cleaned) return 'field';
+        if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleaned)) {
+            return cleaned.charAt(0).toLowerCase() + cleaned.slice(1);
+        }
+        const parts = cleaned.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+        if (parts.length === 0) return 'field';
+        let camel =
+            parts[0]!.toLowerCase() +
+            parts.slice(1).map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join('');
+        if (/^[0-9]/.test(camel)) {
+            camel = 'field' + camel.charAt(0).toUpperCase() + camel.slice(1);
+        }
+        return camel;
     }
 
     private getJavaTypeName(type: DataType): string {

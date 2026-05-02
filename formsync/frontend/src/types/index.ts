@@ -317,3 +317,225 @@ export function parseJsonSchemaToFormModel(schema: JsonSchema): FormModel {
     submit: { text: 'Submit' },
   };
 }
+
+// ─── FormModel → JSON Schema ─────────────────────────────────────────────────
+
+/** Top-level JSON Schema property name for a root field key (first segment only). */
+function topLevelPropertyKey(field: FieldModel): string {
+  if (!field.key.includes('.')) return field.key;
+  return field.key.split('.')[0]!;
+}
+
+function leafFieldToJsonSchema(field: FieldModel): JsonSchema {
+  const prop: JsonSchema = { title: field.label };
+
+  if (field.ui?.helpText) {
+    prop.description = field.ui.helpText;
+  }
+
+  switch (field.type) {
+    case 'checkbox':
+      prop.type = 'boolean';
+      break;
+    case 'number':
+      prop.type = 'number';
+      if (field.constraints?.min !== undefined) prop.minimum = field.constraints.min;
+      if (field.constraints?.max !== undefined) prop.maximum = field.constraints.max;
+      break;
+    case 'select':
+      prop.type = 'string';
+      if (field.constraints?.enum?.length) {
+        prop.enum = field.constraints.enum.map((e) => e as string | number);
+      }
+      break;
+    case 'date':
+      prop.type = 'string';
+      prop.format = 'date';
+      break;
+    case 'email':
+      prop.type = 'string';
+      prop.format = 'email';
+      break;
+    case 'password':
+      prop.type = 'string';
+      prop.format = 'password';
+      break;
+    case 'textarea':
+      prop.type = 'string';
+      break;
+    case 'file':
+    case 'richtext':
+    case 'signature':
+    case 'typeahead':
+    case 'calculated':
+    case 'repeater':
+    case 'unknown':
+      prop.type = 'string';
+      prop['x-field-type'] = field.type;
+      break;
+    default:
+      prop.type = 'string';
+  }
+
+  if (field.constraints?.minLength !== undefined) prop.minLength = field.constraints.minLength;
+  if (field.constraints?.maxLength !== undefined) prop.maxLength = field.constraints.maxLength;
+  if (field.constraints?.pattern !== undefined) prop.pattern = field.constraints.pattern;
+
+  if (
+    field.defaultValue !== undefined &&
+    (typeof field.defaultValue === 'string' ||
+      typeof field.defaultValue === 'number' ||
+      typeof field.defaultValue === 'boolean')
+  ) {
+    prop.default = field.defaultValue;
+  }
+
+  const ui = field.ui;
+  if (ui?.['x-conditions']) prop['x-conditions'] = ui['x-conditions'];
+  if (ui?.['x-ui']) prop['x-ui'] = ui['x-ui'];
+  if (field['x-calc']) prop['x-calc'] = field['x-calc'];
+
+  return prop;
+}
+
+function groupFieldToJsonSchema(field: FieldModel): JsonSchema {
+  const parentKey = field.key;
+  const properties: Record<string, JsonSchema> = {};
+  const required: string[] = [];
+
+  for (const child of field.children ?? []) {
+    const rel = child.key.startsWith(parentKey + '.')
+      ? child.key.slice(parentKey.length + 1)
+      : child.key;
+    const propName = rel.includes('.') ? rel.split('.')[0]! : rel;
+
+    if (properties[propName]) continue;
+
+    if (child.type === 'group') {
+      properties[propName] = groupFieldToJsonSchema(child);
+    } else {
+      properties[propName] = leafFieldToJsonSchema(child);
+    }
+
+    if (child.required) {
+      required.push(propName);
+    }
+  }
+
+  const schema: JsonSchema = {
+    type: 'object',
+    title: field.label,
+    properties,
+  };
+
+  const uniq = [...new Set(required)];
+  if (uniq.length > 0) {
+    schema.required = uniq;
+  }
+
+  return schema;
+}
+
+/**
+ * Serializes the builder FormModel to JSON Schema, optionally merging onto a loaded base
+ * so extensions like `$schema` and `x-formsync-metadata` are preserved.
+ */
+export function formModelToJsonSchema(form: FormModel, base?: JsonSchema): JsonSchema {
+  const merged: JsonSchema = base
+    ? ({ ...base } as JsonSchema)
+    : { $schema: 'http://json-schema.org/draft-07/schema#' };
+
+  const properties: Record<string, JsonSchema> = {};
+  const required: string[] = [];
+  const byId = new Map(form.fields.map((f) => [f.id, f] as const));
+
+  for (const fieldId of form.layout.order) {
+    const field = byId.get(fieldId);
+    if (!field) continue;
+
+    const propKey = topLevelPropertyKey(field);
+    if (properties[propKey]) continue;
+
+    if (field.type === 'group') {
+      properties[propKey] = groupFieldToJsonSchema(field);
+    } else {
+      properties[propKey] = leafFieldToJsonSchema(field);
+    }
+
+    if (field.required) {
+      required.push(propKey);
+    }
+  }
+
+  merged.type = 'object';
+  merged.title = form.meta?.title ?? form.name;
+  if (form.meta?.description !== undefined) {
+    merged.description = form.meta.description;
+  }
+  merged.properties = properties;
+  const uniqReq = [...new Set(required)];
+  merged.required = uniqReq.length > 0 ? uniqReq : undefined;
+
+  return merged;
+}
+
+export interface BuilderJsonSchemaValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Structural validation for builder-produced object schemas (root + nested groups).
+ * Does not guarantee full JSON Schema draft compliance.
+ */
+export function validateBuilderJsonSchema(schema: unknown): BuilderJsonSchemaValidationResult {
+  const errors: string[] = [];
+
+  function checkObjectSchema(obj: Record<string, unknown>, path: string): void {
+    if (obj.type !== undefined && obj.type !== 'object') {
+      errors.push(`${path}: object schemas must have type "object"`);
+    }
+
+    const props = obj.properties;
+    if (!props || typeof props !== 'object' || Array.isArray(props)) {
+      errors.push(`${path}.properties must be an object`);
+      return;
+    }
+
+    const req = obj.required;
+    if (req !== undefined) {
+      if (!Array.isArray(req)) {
+        errors.push(`${path}.required must be an array`);
+      } else {
+        const keys = Object.keys(props as Record<string, unknown>);
+        for (const entry of req) {
+          if (typeof entry !== 'string') {
+            errors.push(`${path}.required entries must be strings`);
+          } else if (!keys.includes(entry)) {
+            errors.push(`${path}.required references unknown property "${entry}"`);
+          }
+        }
+      }
+    }
+
+    for (const [key, val] of Object.entries(props)) {
+      if (!val || typeof val !== 'object' || Array.isArray(val)) {
+        errors.push(`${path}.properties["${key}"] must be an object`);
+        continue;
+      }
+      const sub = val as Record<string, unknown>;
+      if (sub.type === 'object' && sub.properties) {
+        checkObjectSchema(sub as Record<string, unknown>, `${path}.properties["${key}"]`);
+      }
+    }
+  }
+
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+    errors.push('$: schema must be an object');
+    return { valid: false, errors };
+  }
+
+  checkObjectSchema(schema as Record<string, unknown>, '$');
+
+  return { valid: errors.length === 0, errors };
+}

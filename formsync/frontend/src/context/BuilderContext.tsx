@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useReducer, Dispatch } from 'react';
-import { FormModel, FieldModel, FieldType } from '../types';
+import { FormModel, FieldModel, FieldType, JsonSchema } from '../types';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface BuilderState {
     form: FormModel;
+    /** Original JSON Schema when the form was loaded (merge base for serialization). */
+    baseJsonSchema: JsonSchema | null;
     selectedFieldId: string | null;
     schemaId: string | null;
     /** Currently active wizard step (0-based). Ignored when layout.steps is undefined. */
@@ -24,6 +26,7 @@ type BuilderAction =
     | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FieldModel> } }
     | { type: 'UPDATE_THEME'; payload: Partial<FormModel['theme']> }
     | { type: 'SET_SCHEMA_ID'; payload: string | null }
+    | { type: 'SET_BASE_SCHEMA'; payload: JsonSchema | null }
     // ── new actions ──────────────────────────────────────────────────────────
     | { type: 'ADD_FIELD'; payload: FieldModel }
     | { type: 'REMOVE_FIELD'; payload: string }
@@ -62,6 +65,7 @@ const BLANK_FORM: FormModel = {
 
 const initialState: BuilderState = {
     form: BLANK_FORM,
+    baseJsonSchema: null,
     selectedFieldId: null,
     schemaId: null,
     activeStep: 0,
@@ -156,6 +160,9 @@ function builderReducer(state: BuilderState, action: BuilderAction): BuilderStat
 
         case 'SET_SCHEMA_ID':
             return { ...state, schemaId: action.payload };
+
+        case 'SET_BASE_SCHEMA':
+            return { ...state, baseJsonSchema: action.payload };
 
         // ── Field management ──────────────────────────────────────────────────
 
@@ -280,13 +287,58 @@ export const useBuilder = () => useContext(BuilderContext);
 
 // ─── Field Factory ────────────────────────────────────────────────────────────
 
+/** Collect every field key in the tree (for avoiding duplicate semantic keys). */
+export function collectAllFieldKeys(fields: FieldModel[]): string[] {
+    const keys: string[] = [];
+    const walk = (fs: FieldModel[]) => {
+        for (const f of fs) {
+            keys.push(f.key);
+            if (f.children?.length) walk(f.children);
+        }
+    };
+    walk(fields);
+    return keys;
+}
+
+/** "Date Picker" / "Text Field" → datePicker / text (camelCase, stable API names). */
+function labelStemToCamelCase(label: string): string {
+    const trimmed = label.replace(/\s+Field$/i, '').trim();
+    const parts = trimmed.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    return (
+        parts[0]!.toLowerCase() +
+        parts.slice(1).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')
+    );
+}
+
+function uniqueSemanticFieldKey(
+    baseLabel: string,
+    type: FieldType,
+    taken: Set<string>,
+): string {
+    let stem = labelStemToCamelCase(baseLabel);
+    if (!stem) stem = type.replace(/[^a-zA-Z0-9]/g, '') || 'field';
+    if (!/^[a-zA-Z_$]/.test(stem)) stem = `field_${stem}`;
+    let candidate = stem;
+    if (!taken.has(candidate)) return candidate;
+    let n = 2;
+    while (taken.has(`${stem}${n}`)) n += 1;
+    return `${stem}${n}`;
+}
+
 /** Creates a new FieldModel with sensible defaults for a given type */
-export function createField(type: FieldType, stepIndex?: number): FieldModel {
+export function createField(
+    type: FieldType,
+    stepIndex?: number,
+    existingKeys?: Iterable<string>,
+): FieldModel {
+    const taken = new Set(existingKeys ?? []);
     const id = `field-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
     const baseLabel = labelForType(type);
+    const key = uniqueSemanticFieldKey(baseLabel, type, taken);
     const base: FieldModel = {
         id,
-        key: id,
+        key,
         type,
         label: baseLabel,
         required: false,
