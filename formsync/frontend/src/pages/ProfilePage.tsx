@@ -8,6 +8,7 @@ import { projectApi, SrsProject } from "../api/projectApi";
 import { ParseSrsResponse } from "../api/schemaApi";
 import { SrsUploadModal } from "../components/SrsUploadModal";
 import { UserStorySelectorModal } from "../components/UserStorySelectorModal";
+import { FormPreviewModal } from "../components/FormPreviewModal";
 import { toast } from "sonner";
 import {
   FileJson2,
@@ -88,6 +89,9 @@ export const ProfilePage: React.FC = () => {
   const [showSrsUpload, setShowSrsUpload] = useState(false);
   const [srsResult, setSrsResult] = useState<ParseSrsResponse | null>(null);
   const [srsProjName, setSrsProjName] = useState("");
+
+  // Form preview state
+  const [formPreview, setFormPreview] = useState<{ schemaJson: string; title: string } | null>(null);
 
   /* ── redirect ─────────────────────────────────────────── */
   useEffect(() => {
@@ -492,6 +496,7 @@ export const ProfilePage: React.FC = () => {
                               <ProjectCard
                                 project={proj}
                                 onDelete={() => handleDeleteProject(proj.id)}
+                                onPreviewSchema={(schemaJson, title) => setFormPreview({ schemaJson, title })}
                               />
                             </motion.div>
                           ))}
@@ -601,6 +606,13 @@ export const ProfilePage: React.FC = () => {
             token={token}
             onClose={() => setSrsResult(null)}
             onProjectSaved={handleProjectSaved}
+          />
+        )}
+        {formPreview && (
+          <FormPreviewModal
+            schemaJson={formPreview.schemaJson}
+            storyTitle={formPreview.title}
+            onClose={() => setFormPreview(null)}
           />
         )}
       </AnimatePresence>
@@ -1058,6 +1070,34 @@ const TemplateCard: React.FC<{ template: any; onDelete: () => void }> = ({
   );
 };
 
+/* ─── Shared schema builder (used by Wand2 + Eye buttons) ── */
+function buildStorySchema(story: any): string {
+  const properties: Record<string, any> = {};
+  const required: string[] = [];
+  (story.suggestedFields ?? []).forEach((f: any) => {
+    const prop: any = { type: f.type };
+    if (f.format) prop.format = f.format;
+    if (f.label) prop["x-accessibility"] = { label: f.label, hint: f.placeholder ?? "" };
+    if (f.placeholder) prop.examples = [f.placeholder];
+    if (f.validationHint) prop.description = f.validationHint;
+    properties[f.name] = prop;
+    if (f.required) required.push(f.name);
+  });
+  return JSON.stringify({
+    $schema: "http://json-schema.org/draft-07/schema#",
+    title: story.title,
+    description: `As a ${story.role}, I want to ${story.action}, so that ${story.benefit}.`,
+    type: "object",
+    properties,
+    ...(required.length ? { required } : {}),
+    "x-formsync-metadata": {
+      source: "srs-import",
+      featureArea: story.featureArea,
+      acceptanceCriteria: story.acceptanceCriteria,
+    },
+  }, null, 2);
+}
+
 /* ─── Project Card ───────────────────────────────────────── */
 const STORY_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   generated: { label: "Generated", cls: "bg-emerald-100 text-emerald-700" },
@@ -1074,9 +1114,14 @@ const AREA_DOT_COLORS: Record<string, string> = {
   Dashboard:      "bg-violet-400",
 };
 
-const ProjectCard: React.FC<{ project: SrsProject; onDelete: () => void }> = ({
+const ProjectCard: React.FC<{
+  project: SrsProject;
+  onDelete: () => void;
+  onPreviewSchema: (schemaJson: string, title: string) => void;
+}> = ({
   project,
   onDelete,
+  onPreviewSchema,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const stories = project.userStories ?? [];
@@ -1177,35 +1222,22 @@ const ProjectCard: React.FC<{ project: SrsProject; onDelete: () => void }> = ({
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${sc.cls}`}>
                         {sc.label}
                       </span>
-                      {story.status !== "generated" && (
+                      {story.status === "generated" ? (
                         <button
                           onClick={() => {
-                            // Build JSON Schema Draft-07 from the stored suggested fields
-                            const properties: Record<string, any> = {};
-                            const required: string[] = [];
-                            (story.suggestedFields ?? []).forEach((f: any) => {
-                              const prop: any = { type: f.type };
-                              if (f.format) prop.format = f.format;
-                              if (f.label) prop["x-accessibility"] = { label: f.label, hint: f.placeholder ?? "" };
-                              if (f.placeholder) prop.examples = [f.placeholder];
-                              if (f.validationHint) prop.description = f.validationHint;
-                              properties[f.name] = prop;
-                              if (f.required) required.push(f.name);
-                            });
-                            const schema = {
-                              $schema: "http://json-schema.org/draft-07/schema#",
-                              title: story.title,
-                              description: `As a ${story.role}, I want to ${story.action}, so that ${story.benefit}.`,
-                              type: "object",
-                              properties,
-                              ...(required.length ? { required } : {}),
-                              "x-formsync-metadata": {
-                                source: "srs-import",
-                                featureArea: story.featureArea,
-                                acceptanceCriteria: story.acceptanceCriteria,
-                              },
-                            };
-                            sessionStorage.setItem("srs_preload_schema", JSON.stringify(schema, null, 2));
+                            const schemaJson = buildStorySchema(story);
+                            onPreviewSchema(schemaJson, story.title);
+                          }}
+                          className="p-1 rounded-lg text-neutral-300 hover:text-purple-500 hover:bg-purple-50 transition-all"
+                          title="Preview form"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            const schemaJson = buildStorySchema(story);
+                            sessionStorage.setItem("srs_preload_schema", schemaJson);
                             sessionStorage.setItem("srs_story_id", story.id);
                             sessionStorage.setItem("srs_project_id", project.id);
                             window.location.href = "/editor?fromSrs=1";
