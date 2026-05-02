@@ -9,7 +9,10 @@ import {
   useBuilder,
   type BuilderExportPayload,
 } from "../context/BuilderContext";
-import { generationService } from "../services/generationService";
+import {
+  generationService,
+  type BackendLanguage,
+} from "../services/generationService";
 import {
   formModelToJsonSchema,
   validateBuilderJsonSchema,
@@ -113,17 +116,34 @@ export const BuilderLayout: React.FC = () => {
           state: { schema: synced, formModel: state.form },
         });
         return;
-      }
-
-      const result = generationService.generateFromSchema(synced);
-      if (result.success && result.data) {
-        navigate("/generated", {
-          state: {
-            generatedCode: result.data,
-            schema: synced,
-            formModel: state.form,
-          },
-        });
+      } else {
+        // No saved schemaId — read the raw JSON schema stored by BuilderPage's SchemaLoader
+        const rawSchemaStr = sessionStorage.getItem("formsync_schema_raw");
+        if (rawSchemaStr) {
+          const schema = JSON.parse(rawSchemaStr);
+          const storedBackend =
+            (sessionStorage.getItem(
+              "formsync_backend_language",
+            ) as BackendLanguage | null) ?? "springBoot";
+          const result = generationService.generateFromSchema(
+            schema,
+            storedBackend,
+          );
+          sessionStorage.removeItem("formsync_schema_raw");
+          if (result.success && result.data) {
+            navigate("/generated", {
+              state: {
+                generatedCode: result.data,
+                schema,
+                formModel: state.form,
+                backendLanguage: storedBackend,
+              },
+            });
+            return;
+          }
+        }
+        // Final fallback — no schema context available
+        window.location.href = "/generated";
         return;
       }
 

@@ -215,95 +215,139 @@ function collectFieldTypeMap(formModel: FormModel): Record<string, FieldType> {
   return map;
 }
 
+const FORMSYNC_SUBMIT_START = "/* FORMSYNC_API_SUBMIT_START */";
+const FORMSYNC_SUBMIT_END = "/* FORMSYNC_API_SUBMIT_END */";
+
 function wireFrontendApp(
   appTsx: string,
   apiPath: string,
   formModel: FormModel,
-  backendLanguage: BackendLanguage,
+  backendPort: number,
 ): string {
   const serializedFieldTypes = JSON.stringify(collectFieldTypeMap(formModel), null, 2);
-  const replacement = `const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-  const API_PATH = import.meta.env.VITE_API_PATH || "${apiPath}";
-  const FIELD_TYPES: Record<string, string> = ${serializedFieldTypes};
+  const replacement = `${FORMSYNC_SUBMIT_START}
+    setStatusMessage('');
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:${backendPort}";
+      const API_PATH = import.meta.env.VITE_API_PATH || "${apiPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}";
+      const FIELD_TYPES: Record<string, string> = ${serializedFieldTypes};
 
-  const setDeepValue = (target: Record<string, any>, path: string, value: any) => {
-    const parts = path.split(".");
-    let current: Record<string, any> = target;
-    for (let i = 0; i < parts.length - 1; i++) {
-      const segment = parts[i];
-      if (
-        typeof current[segment] !== "object" ||
-        current[segment] === null ||
-        Array.isArray(current[segment])
-      ) {
-        current[segment] = {};
+      const setDeepValue = (target: Record<string, any>, path: string, value: any) => {
+        const parts = path.split(".");
+        let current: Record<string, any> = target;
+        for (let i = 0; i < parts.length - 1; i++) {
+          const segment = parts[i];
+          if (
+            typeof current[segment] !== "object" ||
+            current[segment] === null ||
+            Array.isArray(current[segment])
+          ) {
+            current[segment] = {};
+          }
+          current = current[segment];
+        }
+        current[parts[parts.length - 1]] = value;
+      };
+
+      const coerceValue = (fieldType: string | undefined, rawValue: FormDataEntryValue) => {
+        if (fieldType === "number") {
+          const value = typeof rawValue === "string" ? rawValue.trim() : String(rawValue);
+          if (!value) return null;
+          const numeric = Number(value);
+          return Number.isNaN(numeric) ? null : numeric;
+        }
+        if (fieldType === "checkbox") {
+          if (typeof rawValue !== "string") return false;
+          return rawValue === "on" || rawValue === "true" || rawValue === "1";
+        }
+        return rawValue;
+      };
+
+      /** Drop "", null, undefined so Jackson never sees empty strings for Java enums or optional dates. */
+      const stripEmptyJsonValues = (value: unknown): unknown => {
+        if (value === "" || value === null || value === undefined) return undefined;
+        if (typeof value !== "object") return value;
+        if (Array.isArray(value)) {
+          return value
+            .map(stripEmptyJsonValues)
+            .filter((v) => v !== undefined);
+        }
+        const obj = value as Record<string, unknown>;
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          const s = stripEmptyJsonValues(v);
+          if (s === undefined) continue;
+          if (
+            typeof s === "object" &&
+            s !== null &&
+            !Array.isArray(s) &&
+            Object.keys(s as Record<string, unknown>).length === 0
+          ) {
+            continue;
+          }
+          out[k] = s;
+        }
+        return out;
+      };
+
+      const toPayload = (form: HTMLFormElement) => {
+        const payload: Record<string, any> = {};
+        const formData = new FormData(form);
+
+        for (const [key, value] of formData.entries()) {
+          setDeepValue(payload, key, coerceValue(FIELD_TYPES[key], value));
+        }
+
+        const checkboxes = Array.from(
+          form.querySelectorAll<HTMLInputElement>('input[type="checkbox"][name]'),
+        );
+        for (const checkbox of checkboxes) {
+          if (!checkbox.checked) {
+            setDeepValue(payload, checkbox.name, false);
+          }
+        }
+
+        return payload;
+      };
+
+      const payload = toPayload(e.currentTarget);
+      const jsonBody = stripEmptyJsonValues(payload);
+      const response = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonBody !== undefined ? jsonBody : {}),
+      });
+
+      if (!response.ok) {
+        throw new Error(\`Submission failed (\${response.status})\`);
       }
-      current = current[segment];
+
+      alert("Submitted successfully");
+      console.log("Form submitted:", jsonBody !== undefined ? jsonBody : {});
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Submission failed";
+      setStatusMessage(msg);
     }
-    current[parts[parts.length - 1]] = value;
-  };
-
-  const coerceValue = (fieldType: string | undefined, rawValue: FormDataEntryValue) => {
-    if (fieldType === "number") {
-      const value = typeof rawValue === "string" ? rawValue.trim() : String(rawValue);
-      if (!value) return null;
-      const numeric = Number(value);
-      return Number.isNaN(numeric) ? null : numeric;
-    }
-    if (fieldType === "checkbox") {
-      if (typeof rawValue !== "string") return false;
-      return rawValue === "on" || rawValue === "true" || rawValue === "1";
-    }
-    return rawValue;
-  };
-
-  const toPayload = (form: HTMLFormElement) => {
-    const payload: Record<string, any> = {};
-    const formData = new FormData(form);
-
-    for (const [key, value] of formData.entries()) {
-      setDeepValue(payload, key, coerceValue(FIELD_TYPES[key], value));
-    }
-
-    // Ensure unchecked checkboxes are explicitly sent as false.
-    const checkboxes = Array.from(
-      form.querySelectorAll<HTMLInputElement>('input[type="checkbox"][name]'),
-    );
-    for (const checkbox of checkboxes) {
-      if (!checkbox.checked) {
-        setDeepValue(payload, checkbox.name, false);
-      }
-    }
-
-    return payload;
-  };
-
-  const data =
-    "${backendLanguage}" === "springBoot" || "${backendLanguage}" === "dotnetWebApi"
-      ? toPayload(e.currentTarget)
-      : Object.fromEntries(new FormData(e.currentTarget).entries());
-
-  const response = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error(\`Submission failed (\${response.status})\`);
-  }
-
-  alert("Submitted successfully");
-  console.log("Form submitted:", data);`;
+    ${FORMSYNC_SUBMIT_END}`;
 
   const withAsyncSubmit = appTsx.replace(
     "const handleSubmit = (e: FormEvent<HTMLFormElement>) => {",
     "const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {",
   );
 
-  return withAsyncSubmit.replace(
-    "const formData = new FormData(e.currentTarget);\n    const data = Object.fromEntries(formData.entries());\n    console.log('Form submitted:', data);\n    // Add your form submission logic here",
-    replacement,
+  const startIdx = withAsyncSubmit.indexOf(FORMSYNC_SUBMIT_START);
+  const endIdx = withAsyncSubmit.indexOf(FORMSYNC_SUBMIT_END);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    console.warn(
+      "[wireFrontendApp] FORMSYNC submit markers missing; frontend will not call the generated API.",
+    );
+    return withAsyncSubmit;
+  }
+
+  return (
+    withAsyncSubmit.slice(0, startIdx) +
+    replacement +
+    withAsyncSubmit.slice(endIdx + FORMSYNC_SUBMIT_END.length)
   );
 }
 
@@ -353,6 +397,8 @@ npm install
 npm run dev
 \`\`\`
 
+Dev server defaults to \`http://localhost:5170\` (see \`vite.config.ts\`).
+
 Frontend reads backend URL from \`frontend/.env\`.
 `;
 }
@@ -376,6 +422,7 @@ function validateBackendStructure(
     || hasPathPrefix(generatedFiles, "src/services/");
   const hasCsproj = generatedFiles.some((file) => file.path.endsWith(".csproj"));
   const hasDotNetControllers = hasPathPrefix(generatedFiles, "Controllers/");
+  const hasOpenApiYaml = generatedFiles.some((file) => file.path === "openapi.yaml");
 
   if (backendLanguage === "springBoot") {
     if (!hasPom || !hasSpringMain || !hasSpringResources) {
@@ -383,22 +430,24 @@ function validateBackendStructure(
         "Spring Boot generation returned an invalid project structure (missing pom.xml or src/main/*).",
       );
     }
-    return;
-  }
-
-  if (backendLanguage === "dotnetWebApi") {
+  } else if (backendLanguage === "dotnetWebApi") {
     if (!hasCsproj || !hasDotNetControllers) {
       throw new Error(
         "ASP.NET Core generation returned an invalid project structure (missing .csproj or Controllers/).",
       );
     }
-    return;
+  } else {
+    // nodeExpress
+    if (!hasNodeSrc) {
+      throw new Error(
+        "Node Express generation returned an invalid project structure (missing src/controllers|routes|services).",
+      );
+    }
   }
 
-  // nodeExpress
-  if (!hasNodeSrc) {
+  if (!hasOpenApiYaml) {
     throw new Error(
-      "Node Express generation returned an invalid project structure (missing src/controllers|routes|services).",
+      "Backend generation did not include openapi.yaml (OpenAPI contract).",
     );
   }
 }
@@ -498,14 +547,14 @@ app.post("/generate-fullstack", async (req, res) => {
     const effectiveFormModel = formModel || buildFormModelFromSchema(schema);
     const frontendFiles = generateFrontendFiles(effectiveFormModel);
     const apiPath = getPrimaryApiPath(effectiveFormModel, backendLanguage);
-    const backendPort = backendLanguage === "springBoot" ? 8080 : backendLanguage === "dotnetWebApi" ? 5000 : 3000;
+    const backendPort = backendLanguage === "springBoot" ? 8080 : backendLanguage === "dotnetWebApi" ? 5000 : 3600;
 
     // Patch generated frontend to submit directly to generated backend.
     frontendFiles["src/App.tsx"] = wireFrontendApp(
       frontendFiles["src/App.tsx"],
       apiPath,
       effectiveFormModel,
-      backendLanguage,
+      backendPort,
     );
     frontendFiles[".env"] = `VITE_API_URL=http://localhost:${backendPort}\nVITE_API_PATH=${apiPath}\n`;
 

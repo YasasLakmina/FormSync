@@ -1,11 +1,29 @@
+const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
+{{#if includeSwagger}}
+const swaggerUi = require("swagger-ui-express");
+const yaml = require("js-yaml");
+{{/if}}
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || {{serverPort}};
 
 app.use(cors());
 app.use(express.json());
+
+{{#if includeSwagger}}
+const openApiPath = path.join(__dirname, "..", "openapi.yaml");
+const openApiDocument = yaml.load(fs.readFileSync(openApiPath, "utf8"));
+
+app.get("/openapi.yaml", (_req, res) => {
+  res.type("application/yaml");
+  res.sendFile(path.resolve(openApiPath));
+});
+
+app.use("/swagger", swaggerUi.serve, swaggerUi.setup(openApiDocument));
+{{/if}}
 
 {{#each entities}}
 const {{toCamelCase name}}Routes = require("./routes/{{routeName}}.routes");
@@ -20,6 +38,10 @@ app.get("/health", (_req, res) => {
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+{{#if includeSwagger}}
+    console.log(`OpenAPI YAML: http://localhost:${PORT}/openapi.yaml`);
+    console.log(`Swagger UI: http://localhost:${PORT}/swagger`);
+{{/if}}
   });
 }
 

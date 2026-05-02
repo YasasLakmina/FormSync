@@ -1,0 +1,22 @@
+{
+  "name": "@formsync/schema-openapi",
+  "version": "1.0.0",
+  "description": "JSON Schema to InternalSchema mapping and OpenAPI 3 spec builder (shared by FormSync generators)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.5",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.2.2"
+  }
+}

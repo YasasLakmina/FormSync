@@ -1,35 +1,34 @@
 # ── Build stage ────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-WORKDIR /workspace
+WORKDIR /workspace/services
 
-# Shared tsconfig — services extend ../../config/tsconfig.base.json
-COPY config/ config/
+COPY config/ /workspace/config/
 
-# Install dependencies first (cache layer)
-COPY services/node-backend-generator/package*.json services/node-backend-generator/
+COPY services/schema-openapi ./schema-openapi
+WORKDIR /workspace/services/schema-openapi
+RUN npm install && npm run build
+
 WORKDIR /workspace/services/node-backend-generator
+COPY services/node-backend-generator/package*.json ./
 RUN npm install
 
-# Copy source and build
-# postbuild automatically copies templates to dist/templates
 COPY services/node-backend-generator/ .
 RUN npm run build
-# cpx postbuild copies to the correct location for node-backend-generator (dist/templates)
-# Just in case, ensure it's there
 RUN cp -r src/templates dist/templates || true
 
 # ── Runtime stage ──────────────────────────────────────────────
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /workspace/services
 
-# Compiled output + embedded templates
-COPY --from=builder /workspace/services/node-backend-generator/dist ./dist
+COPY --from=builder /workspace/services/schema-openapi ./schema-openapi
 
-# Production dependencies only
+WORKDIR /workspace/services/node-backend-generator
 COPY services/node-backend-generator/package*.json ./
 RUN npm install --omit=dev
+
+COPY --from=builder /workspace/services/node-backend-generator/dist ./dist
 
 EXPOSE 3015
 

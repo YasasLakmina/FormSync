@@ -8,9 +8,11 @@
     "services/schema-enhancement-engine",
     "services/user-management-service",
     "services/backend-dto-generator",
+    "services/schema-openapi",
     "services/runtime-binding-engine",
     "services/formgen-service",
     "services/node-backend-generator",
+    "services/dotnet-backend-generator",
     "frontend"
   ],
   "scripts": {

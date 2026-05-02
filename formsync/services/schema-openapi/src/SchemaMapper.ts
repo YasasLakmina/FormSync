@@ -5,14 +5,14 @@ import {
     DataType,
     ValidationConstraints,
     SchemaEnum
-} from '../model/InternalModel';
-import { SchemaPayload } from '../model/InputContract';
+} from './InternalModel';
+import { SchemaPayload } from './SchemaPayload';
 
 /**
  * Maps a JSON Schema payload into an InternalSchema optimized for
- * generating a complete Spring Boot server. Handles nested objects,
+ * generating servers and OpenAPI docs. Handles nested objects,
  * enums, arrays, format-based validations (email, date, etc.), and
- * all JSON Schema validation keywords.
+ * JSON Schema validation keywords.
  */
 export class SchemaMapper {
 
@@ -52,7 +52,6 @@ export class SchemaMapper {
                 if (schema.required && schema.required.includes(key)) {
                     field.constraints.required = true;
 
-                    // For required string fields, also add @NotBlank
                     if (field.type === DataType.STRING && !field.constraints.email) {
                         field.constraints.notBlank = true;
                     }
@@ -84,7 +83,6 @@ export class SchemaMapper {
             pattern: schema.pattern,
         };
 
-        // Capture example value from JSON Schema – critical for fields with @Pattern
         if (schema.examples && schema.examples.length > 0) {
             constraints.example = String(schema.examples[0]);
         } else if (schema.example !== undefined) {
@@ -114,15 +112,16 @@ export class SchemaMapper {
                     const mappedItem = this.mapField(name + 'Item', schema.items, entities, enums);
                     itemType = mappedItem.type;
                     itemReferenceType = mappedItem.referenceType;
-                    // Propagate inner type to List<T> generic parameter
                     referenceType = mappedItem.referenceType || this.getJavaTypeName(mappedItem.type);
                 }
                 break;
             case 'object':
                 type = DataType.OBJECT;
-                const entityName = this.capitalize(name);
-                this.parseEntity(entityName, schema, entities, enums);
-                referenceType = entityName;
+                {
+                    const entityName = this.capitalize(name);
+                    this.parseEntity(entityName, schema, entities, enums);
+                    referenceType = entityName;
+                }
                 break;
             case 'string':
                 if (schema.enum) {
@@ -157,10 +156,6 @@ export class SchemaMapper {
         };
     }
 
-    /**
-     * Converts a JSON Schema property name into a valid Java field identifier
-     * (camelCase, no hyphens) so generated entities compile.
-     */
     private jsonPropertyKeyToJavaIdentifier(jsonKey: string): string {
         const cleaned = jsonKey.trim();
         if (!cleaned) return 'field';

@@ -1,6 +1,6 @@
 import { SchemaMapper } from './SchemaMapper';
-import { SchemaPayload } from '../model/InputContract';
-import { DataType } from '../model/InternalModel';
+import { SchemaPayload } from './SchemaPayload';
+import { DataType } from './InternalModel';
 
 describe('SchemaMapper', () => {
     let mapper: SchemaMapper;
@@ -67,7 +67,6 @@ describe('SchemaMapper', () => {
         expect(emailField?.type).toBe(DataType.STRING);
         expect(emailField?.constraints.email).toBe(true);
         expect(emailField?.constraints.required).toBe(true);
-        // email fields should NOT get notBlank (email validation is sufficient)
         expect(emailField?.constraints.notBlank).toBeFalsy();
     });
 
@@ -199,7 +198,6 @@ describe('SchemaMapper', () => {
         expect(entity.fields).toHaveLength(7);
         expect(entity.isRoot).toBe(true);
 
-        // All fields are required
         entity.fields.forEach(f => {
             expect(f.constraints.required).toBe(true);
         });

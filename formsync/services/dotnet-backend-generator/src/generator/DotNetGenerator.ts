@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { buildOpenApiYaml } from '@formsync/schema-openapi';
 import { FileWriter } from '../service/FileWriter';
 import { TemplateService } from '../service/TemplateService';
 import { DotNetGeneratorConfig } from '../model/InputContract';
@@ -130,6 +131,25 @@ export class DotNetGenerator {
 
     const { appName, namespace, entities } = this.parseSchema(schema);
 
+    const raw = schema.content || schema;
+    const apiVersion = schema.version?.toString() ?? '1.0.0';
+    const apiDescription = (
+      schema.description ||
+      (typeof raw === 'object' && raw?.description) ||
+      `Generated API for ${appName}`
+    )
+      .replace(/\r?\n/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, "'");
+
+    const openApiYaml = buildOpenApiYaml({
+      name: appName,
+      content: raw,
+      version: apiVersion,
+      description: schema.description ?? (typeof raw === 'object' ? raw.description : undefined),
+    });
+    this.fileWriter.write(path.join(outputDir, 'openapi.yaml'), openApiYaml);
+
     // 1. .csproj
     this.fileWriter.write(
       path.join(outputDir, `${namespace}.csproj`),
@@ -139,7 +159,15 @@ export class DotNetGenerator {
     // 2. Program.cs
     this.fileWriter.write(
       path.join(outputDir, 'Program.cs'),
-      this.templateService.render('Program', { namespace, appName, serverPort, includeSwagger, entities }),
+      this.templateService.render('Program', {
+        namespace,
+        appName,
+        serverPort,
+        includeSwagger,
+        entities,
+        apiVersion,
+        apiDescription,
+      }),
     );
 
     // 3. appsettings.json
@@ -212,7 +240,14 @@ export class DotNetGenerator {
     // 7. README.md
     this.fileWriter.write(
       path.join(outputDir, 'README.md'),
-      this.templateService.render('readme', { appName, namespace, serverPort, includeSwagger, entities }),
+      this.templateService.render('readme', {
+        appName,
+        namespace,
+        serverPort,
+        includeSwagger,
+        entities,
+        apiVersion,
+      }),
     );
 
     console.log(`DotNetGenerator: Complete ASP.NET Core server generated at ${outputDir}`);

@@ -13,6 +13,7 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "@formsync/schema-openapi": "file:../schema-openapi",
     "archiver": "^7.0.1",
     "axios": "^1.13.2",
     "axios-retry": "^4.5.0",

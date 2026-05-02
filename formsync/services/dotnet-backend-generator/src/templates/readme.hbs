@@ -14,8 +14,18 @@ dotnet run
 
 The API will start at `http://localhost:{{serverPort}}`.
 
+### OpenAPI specification
+
+An **OpenAPI 3.0** specification is included as `openapi.yaml` in the project root (API version **{{apiVersion}}**). Use it for API contracts, code generation, or documentation without running the server.
+
 {{#if includeSwagger}}
-Swagger UI: `http://localhost:{{serverPort}}/swagger`
+
+### Swagger UI
+
+- **Swagger UI**: **http://localhost:{{serverPort}}/swagger**
+- **OpenAPI YAML**: **http://localhost:{{serverPort}}/openapi.yaml**
+
+For offline use, see **openapi.yaml** in the project root.
 {{/if}}
 
 ## Project Structure
@@ -23,6 +33,7 @@ Swagger UI: `http://localhost:{{serverPort}}/swagger`
 ```
 {{namespace}}/
 ├── {{namespace}}.csproj
+├── openapi.yaml
 ├── Program.cs
 ├── appsettings.json
 ├── appsettings.Development.json

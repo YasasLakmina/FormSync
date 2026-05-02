@@ -138,10 +138,11 @@ function App() {
       }
       return;
     }
+    /* FORMSYNC_API_SUBMIT_START */
     // Clear any prior status message on a clean submission.
     setStatusMessage('');
     console.log('Form submitted:', data);
-    // Add your form submission logic here
+    /* FORMSYNC_API_SUBMIT_END */
   };
 
   return (
