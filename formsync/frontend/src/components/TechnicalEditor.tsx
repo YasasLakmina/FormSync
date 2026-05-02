@@ -71,8 +71,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   onNextToFormBuilder,
   stages = [],
   schemaFromBuilder,
-  isLoadedFromTemplate: _isLoadedFromTemplate = false,
-  isLoadedFromSrs = false,
+  isLoadedFromTemplate = false,
+  isLoadedFromSrs: _isLoadedFromSrs = false,
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>("json");
@@ -942,10 +942,9 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Right: Next: Form Builder Button — only shown for SRS drafts after AI Enhancement completes */}
+        {/* Right: Next: Form Builder Button — shown after AI Enhancement completes, or when loaded from a saved template */}
         {onNextToFormBuilder &&
-          isLoadedFromSrs &&
-          stages.length > 0 && stages[3]?.status === "complete" && (
+          (isLoadedFromTemplate || (stages.length > 0 && stages[3]?.status === "complete")) && (
             <div className="flex items-end">
               <Button
                 onClick={onNextToFormBuilder}
