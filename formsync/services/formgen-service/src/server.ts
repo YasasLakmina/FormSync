@@ -547,8 +547,14 @@ app.post("/generate-fullstack", async (req, res) => {
       "utf8",
     );
 
-    const projectName = effectiveFormModel.name.toLowerCase().replace(/\s+/g, "-");
-    res.attachment(`${projectName}-fullstack-${backendLanguage}.zip`);
+    const schemaSlug = effectiveFormModel.name
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    /** Fullstack bundle is React + selected backend; FE slug reserved for future stacks. */
+    const frontendSlug = "react";
+    res.attachment(
+      `${schemaSlug}_fullstack-${frontendSlug}_${backendLanguage}.zip`,
+    );
     res.setHeader("Content-Type", "application/zip");
 
     const archive = archiver("zip", { zlib: { level: 9 } });

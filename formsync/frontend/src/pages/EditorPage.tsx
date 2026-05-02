@@ -28,6 +28,7 @@ import {
 } from "../services/generationService";
 import { useAuth } from "../context/AuthContext";
 import { projectApi } from "../api/projectApi";
+import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
 
 export interface GenerationStage {
   name: string;
@@ -361,27 +362,20 @@ export const EditorPage: React.FC = () => {
                 Define your data structure, validate and enhance it with AI,
                 then generate complete application code in one click.
               </p>
-              <div className="mt-4 inline-flex items-center gap-2">
-                <label
-                  htmlFor="backendLanguage"
-                  className="text-sm text-neutral-600 dark:text-neutral-300"
-                >
-                  Backend language
+              <div className="mt-6 max-w-3xl">
+                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                  Backend Language
                 </label>
-                <select
-                  id="backendLanguage"
-                  value={backendLanguage}
-                  onChange={(e) => {
-                    const selected = e.target.value as BackendLanguage;
+                <BackendLanguageSelector
+                  selected={backendLanguage}
+                  onChange={(selected) => {
                     setBackendLanguage(selected);
-                    sessionStorage.setItem("formsync_backend_language", selected);
+                    sessionStorage.setItem(
+                      "formsync_backend_language",
+                      selected,
+                    );
                   }}
-                  className="text-sm px-3 py-1.5 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200"
-                >
-                  <option value="springBoot">Spring Boot (Java)</option>
-                  <option value="nodeExpress">Node.js (Express)</option>
-                  <option value="dotnetWebApi">.NET Web API (C#)</option>
-                </select>
+                />
               </div>
             </motion.div>
 

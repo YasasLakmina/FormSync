@@ -5,7 +5,6 @@ import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
-import { exportReactApp } from "./export-handler";
 import { generationService } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
@@ -15,7 +14,6 @@ import { Button } from "../components/ui/button";
 export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
   const navigate = useNavigate();
-  const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   type Stage = {
@@ -34,39 +32,22 @@ export const BuilderLayout: React.FC = () => {
     { name: "Test Generation", status: "pending" },
   ]);
 
-  const isFrontendComplete =
-    stages.find((s) => s.name === "Frontend Generation")?.status === "complete";
-
   const markStage = (name: string, status: Stage["status"]) =>
     setStages((prev) =>
       prev.map((s) => (s.name === name ? { ...s, status } : s)),
     );
 
-  const handleExport = async () => {
-    try {
-      setIsExporting(true);
-      await exportReactApp(state.form);
-      markStage("Frontend Generation", "complete");
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert(
-        `Export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-      markStage("Frontend Generation", "error");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
+      // Form builder preview is the frontend — show this step complete as soon as generation starts
+      markStage("Frontend Generation", "complete");
+
       for (const name of ["Backend Generation", "DTO Generation"]) {
         markStage(name, "loading");
         await new Promise((r) => setTimeout(r, 600));
         markStage(name, "complete");
       }
-      markStage("Frontend Generation", "complete");
 
       if (state.schemaId) {
         // Schema is saved — GeneratedCodePage can fetch it by ID
@@ -143,13 +124,7 @@ export const BuilderLayout: React.FC = () => {
 
         {/* ── Right: theme / field settings ── */}
         <aside className="builder-sidebar builder-sidebar--right">
-          <RightPanel
-            onExport={handleExport}
-            onGenerate={handleGenerate}
-            isExporting={isExporting}
-            isGenerating={isGenerating}
-            isFrontendComplete={isFrontendComplete}
-          />
+          <RightPanel onGenerate={handleGenerate} isGenerating={isGenerating} />
         </aside>
       </div>
     </div>
