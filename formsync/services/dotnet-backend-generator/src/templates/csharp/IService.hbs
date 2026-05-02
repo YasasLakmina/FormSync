@@ -1,0 +1,12 @@
+using {{namespace}}.DTOs;
+
+namespace {{namespace}}.Services;
+
+public interface I{{name}}Service
+{
+    IEnumerable<{{name}}Response> GetAll();
+    {{name}}Response GetById(int id);
+    {{name}}Response Create({{name}}Request request);
+    {{name}}Response Update(int id, {{name}}Request request);
+    void Delete(int id);
+}

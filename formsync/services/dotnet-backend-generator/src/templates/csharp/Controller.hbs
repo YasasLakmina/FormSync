@@ -1,0 +1,77 @@
+using Microsoft.AspNetCore.Mvc;
+using {{namespace}}.DTOs;
+using {{namespace}}.Exceptions;
+using {{namespace}}.Services;
+
+namespace {{namespace}}.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class {{namePlural}}Controller : ControllerBase
+{
+    private readonly I{{name}}Service _service;
+
+    public {{namePlural}}Controller(I{{name}}Service service)
+    {
+        _service = service;
+    }
+
+    [HttpGet]
+    public ActionResult<IEnumerable<{{name}}Response>> GetAll()
+    {
+        return Ok(_service.GetAll());
+    }
+
+    [HttpGet("{id:int}")]
+    public ActionResult<{{name}}Response> GetById(int id)
+    {
+        try
+        {
+            return Ok(_service.GetById(id));
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiErrorResponse { Message = ex.Message, StatusCode = 404 });
+        }
+    }
+
+    [HttpPost]
+    public ActionResult<{{name}}Response> Create([FromBody] {{name}}Request request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var created = _service.Create(request);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPut("{id:int}")]
+    public ActionResult<{{name}}Response> Update(int id, [FromBody] {{name}}Request request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            return Ok(_service.Update(id, request));
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiErrorResponse { Message = ex.Message, StatusCode = 404 });
+        }
+    }
+
+    [HttpDelete("{id:int}")]
+    public ActionResult Delete(int id)
+    {
+        try
+        {
+            _service.Delete(id);
+            return NoContent();
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiErrorResponse { Message = ex.Message, StatusCode = 404 });
+        }
+    }
+}

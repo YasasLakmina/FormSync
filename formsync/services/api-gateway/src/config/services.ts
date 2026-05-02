@@ -49,4 +49,10 @@ export const SERVICES: Record<string, ServiceConfig> = {
     description: 'Generates Express JavaScript backend from JSON Schema',
     healthPath: '/health',
   },
+  dotnetBackendGenerator: {
+    name: 'dotnet-backend-generator',
+    url: process.env.DOTNET_BACKEND_GENERATOR_URL || 'http://localhost:3016',
+    description: 'Generates ASP.NET Core Web API backend from JSON Schema',
+    healthPath: '/health',
+  },
 };

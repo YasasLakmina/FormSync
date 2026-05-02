@@ -139,7 +139,7 @@ function buildFormModelFromSchema(schema: any): FormModel {
 
 const app = express();
 const port = process.env.FORMGEN_SERVICE_PORT || 3014;
-type BackendLanguage = "springBoot" | "nodeExpress";
+type BackendLanguage = "springBoot" | "nodeExpress" | "dotnetWebApi";
 
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
@@ -147,6 +147,8 @@ app.use(express.json({ limit: "5mb" }));
 const RUNTIME_ENGINE_URL = process.env.RUNTIME_ENGINE_URL || "http://localhost:3013";
 const NODE_BACKEND_GENERATOR_URL =
   process.env.NODE_BACKEND_GENERATOR_URL || "http://localhost:3015";
+const DOTNET_BACKEND_GENERATOR_URL =
+  process.env.DOTNET_BACKEND_GENERATOR_URL || "http://localhost:3016";
 
 function toKebabCase(input: string): string {
   return input
@@ -157,12 +159,31 @@ function toKebabCase(input: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function toPascalCase(str: string): string {
+  return (str || '')
+    .replace(/[_-]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('');
+}
+
+function pluralize(name: string): string {
+  if (/(?:s|x|z|ch|sh)$/i.test(name)) return name + 'es';
+  if (/[^aeiou]y$/i.test(name)) return name.slice(0, -1) + 'ies';
+  return name + 's';
+}
+
 function getPrimaryApiPath(formModel: FormModel, backendLanguage: BackendLanguage): string {
   const rawTitle = formModel.meta?.title || formModel.name || "resource";
   const routeBase = toKebabCase(rawTitle) || "resource";
-  return backendLanguage === "springBoot"
-    ? `/api/${routeBase}s`
-    : `/api/${routeBase}`;
+  if (backendLanguage === "springBoot") return `/api/${routeBase}s`;
+  if (backendLanguage === "dotnetWebApi") {
+    // .NET [Route("api/[controller]")] uses PascalCase plural controller name
+    const plural = pluralize(toPascalCase(rawTitle));
+    return `/api/${plural}`;
+  }
+  return `/api/${routeBase}`;
 }
 
 function generateFrontendFiles(formModel: FormModel): Record<string, string> {
@@ -258,7 +279,7 @@ function wireFrontendApp(
   };
 
   const data =
-    "${backendLanguage}" === "springBoot"
+    "${backendLanguage}" === "springBoot" || "${backendLanguage}" === "dotnetWebApi"
       ? toPayload(e.currentTarget)
       : Object.fromEntries(new FormData(e.currentTarget).entries());
 
@@ -287,22 +308,34 @@ function wireFrontendApp(
 }
 
 function generateBundleReadme(backendLanguage: BackendLanguage, backendPort: number): string {
+  const backendLabel =
+    backendLanguage === "springBoot" ? "Spring Boot (Java)" :
+    backendLanguage === "dotnetWebApi" ? "ASP.NET Core Web API (.NET 8)" :
+    "Node Express";
+
+  const backendPrereqs =
+    backendLanguage === "springBoot" ? "- Java 17+\n- Maven 3.8+" :
+    backendLanguage === "dotnetWebApi" ? "- .NET 8 SDK" :
+    "";
+
   const backendRun =
     backendLanguage === "springBoot"
       ? "cd backend\nmvn clean install\nmvn spring-boot:run"
-      : "cd backend\nnpm install\nnpm run start";
+      : backendLanguage === "dotnetWebApi"
+        ? "cd backend\ndotnet run"
+        : "cd backend\nnpm install\nnpm run start";
 
   return `# Fullstack Generated Project
 
 This package includes:
 - \`frontend/\` (Vite + React)
-- \`backend/\` (${backendLanguage === "springBoot" ? "Spring Boot (Java)" : "Node Express"})
+- \`backend/\` (${backendLabel})
 
 ## Prerequisites
 
 - Node.js 18+
 - npm 9+
-${backendLanguage === "springBoot" ? "- Java 17+\n- Maven 3.8+" : ""}
+${backendPrereqs}
 
 ## Run Backend
 
@@ -341,11 +374,22 @@ function validateBackendStructure(
   const hasNodeSrc = hasPathPrefix(generatedFiles, "src/controllers/")
     || hasPathPrefix(generatedFiles, "src/routes/")
     || hasPathPrefix(generatedFiles, "src/services/");
+  const hasCsproj = generatedFiles.some((file) => file.path.endsWith(".csproj"));
+  const hasDotNetControllers = hasPathPrefix(generatedFiles, "Controllers/");
 
   if (backendLanguage === "springBoot") {
     if (!hasPom || !hasSpringMain || !hasSpringResources) {
       throw new Error(
         "Spring Boot generation returned an invalid project structure (missing pom.xml or src/main/*).",
+      );
+    }
+    return;
+  }
+
+  if (backendLanguage === "dotnetWebApi") {
+    if (!hasCsproj || !hasDotNetControllers) {
+      throw new Error(
+        "ASP.NET Core generation returned an invalid project structure (missing .csproj or Controllers/).",
       );
     }
     return;
@@ -435,10 +479,10 @@ app.post("/generate-fullstack", async (req, res) => {
       .json({ error: "schema is required" });
   }
 
-  if (!["springBoot", "nodeExpress"].includes(backendLanguage)) {
+  if (!["springBoot", "nodeExpress", "dotnetWebApi"].includes(backendLanguage)) {
     return res
       .status(400)
-      .json({ error: "backendLanguage must be springBoot or nodeExpress" });
+      .json({ error: "backendLanguage must be springBoot, nodeExpress, or dotnetWebApi" });
   }
 
   const requestId = crypto.randomUUID();
@@ -454,7 +498,7 @@ app.post("/generate-fullstack", async (req, res) => {
     const effectiveFormModel = formModel || buildFormModelFromSchema(schema);
     const frontendFiles = generateFrontendFiles(effectiveFormModel);
     const apiPath = getPrimaryApiPath(effectiveFormModel, backendLanguage);
-    const backendPort = backendLanguage === "springBoot" ? 8080 : 3000;
+    const backendPort = backendLanguage === "springBoot" ? 8080 : backendLanguage === "dotnetWebApi" ? 5000 : 3000;
 
     // Patch generated frontend to submit directly to generated backend.
     frontendFiles["src/App.tsx"] = wireFrontendApp(
@@ -474,7 +518,9 @@ app.post("/generate-fullstack", async (req, res) => {
     const targetUrl =
       backendLanguage === "springBoot"
         ? `${RUNTIME_ENGINE_URL}/generate`
-        : `${NODE_BACKEND_GENERATOR_URL}/generate`;
+        : backendLanguage === "dotnetWebApi"
+          ? `${DOTNET_BACKEND_GENERATOR_URL}/generate`
+          : `${NODE_BACKEND_GENERATOR_URL}/generate`;
 
     const backendResp = await axios.post(
       targetUrl,
@@ -501,8 +547,14 @@ app.post("/generate-fullstack", async (req, res) => {
       "utf8",
     );
 
-    const projectName = effectiveFormModel.name.toLowerCase().replace(/\s+/g, "-");
-    res.attachment(`${projectName}-fullstack-${backendLanguage}.zip`);
+    const schemaSlug = effectiveFormModel.name
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    /** Fullstack bundle is React + selected backend; FE slug reserved for future stacks. */
+    const frontendSlug = "react";
+    res.attachment(
+      `${schemaSlug}_fullstack-${frontendSlug}_${backendLanguage}.zip`,
+    );
     res.setHeader("Content-Type", "application/zip");
 
     const archive = archiver("zip", { zlib: { level: 9 } });

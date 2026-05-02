@@ -1,0 +1,27 @@
+using {{namespace}}.Models;
+
+namespace {{namespace}}.Repositories;
+
+public class {{name}}Repository : I{{name}}Repository
+{
+    private readonly List<{{name}}> _store = new();
+    private int _nextId = 1;
+
+    public IEnumerable<{{name}}> GetAll() => _store.ToList();
+
+    public {{name}}? GetById(int id) => _store.FirstOrDefault(e => e.Id == id);
+
+    public void Add({{name}} entity)
+    {
+        entity.Id = _nextId++;
+        _store.Add(entity);
+    }
+
+    public void Update({{name}} entity)
+    {
+        var idx = _store.FindIndex(e => e.Id == entity.Id);
+        if (idx >= 0) _store[idx] = entity;
+    }
+
+    public void Delete(int id) => _store.RemoveAll(e => e.Id == id);
+}

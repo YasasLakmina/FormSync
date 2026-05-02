@@ -9,6 +9,8 @@
 #    backend-dto-generator     → Express               :3012
 #    runtime-binding-engine    → Express               :3013
 #    formgen-service           → Express               :3014
+#    node-backend-generator    → Express               :3015
+#    dotnet-backend-generator  → Express               :3016
 #    frontend                  → React (nginx)         :5173
 #
 #  Usage:
@@ -37,6 +39,7 @@ x-common-env: &common-env
   RUNTIME_ENGINE_PORT: 3013
   FORMGEN_SERVICE_PORT: 3014
   NODE_BACKEND_GENERATOR_PORT: 3015
+  DOTNET_BACKEND_GENERATOR_PORT: 3016
   # ── Internal URLs (Docker service names, not localhost) ───
   SCHEMA_ENGINE_URL: http://schema-enhancement-engine:3010
   USER_SERVICE_URL: http://user-management-service:3011
@@ -46,6 +49,7 @@ x-common-env: &common-env
   SCHEMA_API_URL: http://schema-enhancement-engine:3010/schema
   FRONTEND_URL: http://localhost
   NODE_BACKEND_GENERATOR_URL: http://node-backend-generator:3015
+  DOTNET_BACKEND_GENERATOR_URL: http://dotnet-backend-generator:3016
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────────
@@ -229,6 +233,32 @@ services:
     networks:
       - formsync-net
 
+  # ── .NET Backend Generator (Express) ───────────────────────
+  dotnet-backend-generator:
+    build:
+      context: .
+      dockerfile: services/dotnet-backend-generator/Dockerfile
+    container_name: formsync-dotnet-backend
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    ports:
+      - "3016:3016"
+    depends_on:
+      - schema-enhancement-engine
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3016/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - formsync-net
+
   # ── API Gateway (Express) ───────────────────────────────────
   api-gateway:
     build:
@@ -252,6 +282,8 @@ services:
       formgen-service:
         condition: service_started
       node-backend-generator:
+        condition: service_started
+      dotnet-backend-generator:
         condition: service_started
     healthcheck:
       test:

@@ -1,0 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace {{namespace}}.DTOs;
+
+public class {{name}}Request
+{
+{{#each fields}}
+{{#each validationAttributes}}
+    {{this}}
+{{/each}}
+    public {{csType}} {{namePascal}} { get; set; } = {{defaultValue}};
+
+{{/each}}
+}

@@ -1,0 +1,12 @@
+using {{namespace}}.Models;
+
+namespace {{namespace}}.Repositories;
+
+public interface I{{name}}Repository
+{
+    IEnumerable<{{name}}> GetAll();
+    {{name}}? GetById(int id);
+    void Add({{name}} entity);
+    void Update({{name}} entity);
+    void Delete(int id);
+}

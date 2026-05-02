@@ -1,0 +1,9 @@
+namespace {{namespace}}.Models;
+
+public class {{name}}
+{
+    public int Id { get; set; }
+{{#each fields}}
+    public {{csType}} {{namePascal}} { get; set; } = {{defaultValue}};
+{{/each}}
+}

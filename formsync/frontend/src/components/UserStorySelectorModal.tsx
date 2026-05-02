@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
 import { ParseSrsResponse, ExtractedUserStory } from "../api/schemaApi";
 import { projectApi } from "../api/projectApi";
@@ -60,6 +61,8 @@ export const UserStorySelectorModal: React.FC<Props> = ({
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
+  const [minConfidence, setMinConfidence] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -68,9 +71,10 @@ export const UserStorySelectorModal: React.FC<Props> = ({
   /* ── Group stories by feature area ─────────────────── */
   const filtered = result.userStories.filter(
     (s) =>
-      s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.featureArea.toLowerCase().includes(search.toLowerCase()) ||
-      s.role.toLowerCase().includes(search.toLowerCase()),
+      s.confidence >= minConfidence / 100 &&
+      (s.title.toLowerCase().includes(search.toLowerCase()) ||
+        s.featureArea.toLowerCase().includes(search.toLowerCase()) ||
+        s.role.toLowerCase().includes(search.toLowerCase())),
   );
 
   const grouped = filtered.reduce<Record<string, ExtractedUserStory[]>>((acc, s) => {
@@ -214,18 +218,85 @@ export const UserStorySelectorModal: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* Search */}
-        <div className="px-6 py-3 border-b border-neutral-100 flex-shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search stories by title, area or role…"
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-neutral-200 bg-neutral-50/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
-            />
+        {/* Search + filters */}
+        <div className="px-6 py-3 border-b border-neutral-100 flex-shrink-0 space-y-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search stories by title, area or role…"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-neutral-200 bg-neutral-50/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                showFilters || minConfidence > 0
+                  ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                  : "border-neutral-200 bg-neutral-50 text-neutral-500 hover:text-neutral-700"
+              }`}
+              title="Filter by confidence"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filter
+              {minConfidence > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.5 bg-indigo-500 text-white rounded-full text-[10px] font-bold">
+                  ≥{minConfidence}%
+                </span>
+              )}
+            </button>
           </div>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-1 pb-0.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-neutral-600 flex items-center gap-1.5">
+                      Min. confidence
+                      <span className={`font-bold ${
+                        minConfidence >= 85 ? "text-emerald-600" :
+                        minConfidence >= 60 ? "text-amber-600" : "text-neutral-500"
+                      }`}>
+                        {minConfidence}%
+                      </span>
+                    </label>
+                    {minConfidence > 0 && (
+                      <button
+                        onClick={() => setMinConfidence(0)}
+                        className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={90}
+                    step={5}
+                    value={minConfidence}
+                    onChange={(e) => setMinConfidence(Number(e.target.value))}
+                    className="w-full h-1.5 rounded-full appearance-none bg-neutral-200 accent-indigo-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-neutral-400">
+                    <span>0% — all</span>
+                    <span>60% — good</span>
+                    <span>85% — high</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Two-column body */}
@@ -236,7 +307,11 @@ export const UserStorySelectorModal: React.FC<Props> = ({
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <AlertCircle className="w-8 h-8 text-neutral-300 mb-3" />
                 <p className="text-sm font-semibold text-neutral-700">No stories match</p>
-                <p className="text-xs text-neutral-400">Try a different search term</p>
+                <p className="text-xs text-neutral-400">
+                  {minConfidence > 0
+                    ? `Try lowering the confidence filter (currently ≥${minConfidence}%)`
+                    : "Try a different search term"}
+                </p>
               </div>
             ) : (
               Object.entries(grouped).map(([area, stories]) => {

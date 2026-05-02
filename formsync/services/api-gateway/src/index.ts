@@ -13,6 +13,7 @@
  *   /formgen/*         → formgen-service              (3014)  rewrite → /
  *   /bundle/*          → formgen-service              (3014)  rewrite → /
  *   /node-backend/*    → node-backend-generator       (3015)  rewrite → /
+ *   /dotnet-backend/*  → dotnet-backend-generator      (3016)  rewrite → /
  *   GET /health        → aggregate health of all services
  *   GET /              → gateway info
  */
@@ -80,6 +81,7 @@ app.get("/", (_req, res) => {
       "/formgen/*": `${SERVICES.formgenService.url} — ${SERVICES.formgenService.description}`,
       "/bundle/*": `${SERVICES.formgenService.url} — fullstack bundle generation`,
       "/node-backend/*": `${SERVICES.nodeBackendGenerator.url} — ${SERVICES.nodeBackendGenerator.description}`,
+      "/dotnet-backend/*": `${SERVICES.dotnetBackendGenerator.url} — ${SERVICES.dotnetBackendGenerator.description}`,
     },
     docs: {
       "schema-enhancement-engine": `${SERVICES.schemaEnhancementEngine.url}/api/docs`,
@@ -229,6 +231,14 @@ app.use(
   }),
 );
 
+// .NET Backend Generator  →  /dotnet-backend/*  rewrite to /
+app.use(
+  "/dotnet-backend",
+  proxy(SERVICES.dotnetBackendGenerator.url, {
+    pathRewrite: { "^/dotnet-backend": "" },
+  }),
+);
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
@@ -245,6 +255,7 @@ app.listen(PORT, () => {
   console.log(`│  /formgen/*  →  formgen-service             :3014   │`);
   console.log(`│  /bundle/*   →  formgen-service             :3014   │`);
   console.log(`│  /node-backend/* → node-backend-generator   :3015   │`);
+  console.log(`│  /dotnet-backend/* → dotnet-backend-gen     :3016   │`);
   console.log(`│  /health     →  aggregate health check              │`);
   console.log("└─────────────────────────────────────────────────────┘");
   console.log("");

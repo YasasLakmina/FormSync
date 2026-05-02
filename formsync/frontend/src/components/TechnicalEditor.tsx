@@ -36,6 +36,8 @@ import {
   FileJson,
   BookOpen,
   ArrowRight,
+  AlertTriangle,
+  PenLine,
   GitCompare,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -94,6 +96,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
   // Schema name state
   const [schemaName, setSchemaName] = useState("");
+  const [showSchemaNameAlert, setShowSchemaNameAlert] = useState(false);
+  const [schemaNameShaking, setSchemaNameShaking] = useState(false);
+  const [schemaNameHighlighted, setSchemaNameHighlighted] = useState(false);
+  const schemaNameRef = useRef<HTMLInputElement>(null);
 
   // Validation state
   const [isInputValid, setIsInputValid] = useState(false);
@@ -273,6 +279,23 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     }
   }, [editorValue, history.length]);
 
+  // Show "schema name required" popup and highlight the field
+  const requireSchemaName = () => {
+    setShowSchemaNameAlert(true);
+    setSchemaNameHighlighted(true);
+  };
+
+  // Called when user clicks OK in the alert — focus + shake the field
+  const handleSchemaNameAlertOk = () => {
+    setShowSchemaNameAlert(false);
+    // Scroll to and focus the field
+    schemaNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    schemaNameRef.current?.focus();
+    // Trigger shake
+    setSchemaNameShaking(true);
+    setTimeout(() => setSchemaNameShaking(false), 600);
+  };
+
   // Helper function to validate input format
   // Handlers - NEW ORDER: Validate → Convert → Enhance
 
@@ -285,8 +308,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
     // Check if schema name is provided
     if (!schemaName || !schemaName.trim()) {
-      toast.error("Please enter a schema name before validation");
-      setValidationError("Schema name is required");
+      requireSchemaName();
       return;
     }
 
@@ -411,8 +433,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
 
     // Check if schema name is provided
     if (!schemaName || !schemaName.trim()) {
-      const error = new Error("Please enter a schema name before conversion");
-      toast.error("Please enter a schema name before conversion");
+      requireSchemaName();
+      const error = new Error("Schema name is required");
       throw error;
     }
 
@@ -911,24 +933,40 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     <div className="flex flex-col gap-4 h-full">
       {/* Schema Name — Hero Field */}
       <div className="w-full">
-        <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
-          Schema Name
+        <label className={`block text-xs font-bold uppercase tracking-widest mb-2 transition-colors ${schemaNameHighlighted ? "text-red-500" : "text-neutral-800 dark:text-neutral-500"}`}>
+          Schema Name {schemaNameHighlighted && <span className="normal-case font-normal text-red-400 ml-1">— required to proceed</span>}
         </label>
-        <div className="relative">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500">
+        <div className={`relative ${schemaNameShaking ? "animate-shake" : ""}`}>
+          <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${schemaNameHighlighted ? "text-red-400" : "text-neutral-400 dark:text-neutral-500"}`}>
             <FileText className="h-4 w-4" />
           </div>
           <input
+            ref={schemaNameRef}
             type="text"
             placeholder="e.g., User Registration Form, Contact Schema"
             value={schemaName}
-            onChange={(e) => setSchemaName(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500 transition-all shadow-sm"
+            onChange={(e) => {
+              setSchemaName(e.target.value);
+              if (e.target.value.trim()) {
+                setSchemaNameHighlighted(false);
+              }
+            }}
+            className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none transition-all shadow-sm text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 ${
+              schemaNameHighlighted
+                ? "border-2 border-red-400 dark:border-red-500 bg-red-50/60 dark:bg-red-950/20 ring-2 ring-red-300/50 dark:ring-red-700/40 focus:ring-red-400/60 focus:border-red-400"
+                : "border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 dark:focus:border-purple-500"
+            }`}
           />
+          {schemaNameHighlighted && (
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+          )}
         </div>
-        <p className="mt-1.5 text-xs text-neutral-400 dark:text-neutral-500">
-          Give your schema a descriptive name — used across all generated code
-          files.
+        <p className={`mt-1.5 text-xs transition-colors ${schemaNameHighlighted ? "text-red-500 font-medium" : "text-neutral-400 dark:text-neutral-500"}`}>
+          {schemaNameHighlighted
+            ? "A schema name is required before you can validate or convert."
+            : "Give your schema a descriptive name — used across all generated code files."}
         </p>
       </div>
 
@@ -1673,6 +1711,72 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           onProjectSaved={() => {}}
           onSchemaGenerated={handleSchemaGenerated}
         />
+      )}
+
+      {/* ── Schema Name Required Alert ──────────────────────── */}
+      {showSchemaNameAlert && (
+        <motion.div
+          key="schema-name-alert-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60] flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && handleSchemaNameAlertOk()}
+        >
+          <motion.div
+            key="schema-name-alert-panel"
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 8 }}
+            transition={{ type: "spring", stiffness: 380, damping: 28 }}
+            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-neutral-200/80 dark:border-neutral-700/80"
+          >
+            {/* Top accent bar */}
+            <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-red-400" />
+
+            <div className="px-6 pt-6 pb-5">
+              {/* Icon + title */}
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200/60 dark:border-amber-700/40 flex items-center justify-center shadow-sm">
+                  <PenLine className="w-5 h-5 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <h3 className="text-base font-bold text-neutral-900 dark:text-white leading-tight">
+                    Schema name required
+                  </h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">
+                    Your schema needs a name before it can be processed. It's used to identify this schema across your library and generated outputs.
+                  </p>
+                </div>
+              </div>
+
+              {/* Tip strip */}
+              <div className="flex items-start gap-2.5 px-3.5 py-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-700/40 rounded-xl mb-5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                  <span className="font-semibold">Tip:</span> Use a clear, descriptive name like{" "}
+                  <span className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded text-amber-800 dark:text-amber-300">
+                    User Registration Form
+                  </span>{" "}
+                  or{" "}
+                  <span className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded text-amber-800 dark:text-amber-300">
+                    Product Checkout Schema
+                  </span>
+                </p>
+              </div>
+
+              {/* Actions */}
+              <button
+                onClick={handleSchemaNameAlertOk}
+                className="w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-md shadow-purple-200/60 dark:shadow-purple-900/40 hover:shadow-lg hover:shadow-purple-200/80 dark:hover:shadow-purple-900/60 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+              >
+                <PenLine className="w-4 h-4" />
+                Take me to the name field
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
     </>

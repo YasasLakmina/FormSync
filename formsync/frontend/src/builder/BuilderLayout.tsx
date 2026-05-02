@@ -5,7 +5,6 @@ import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
 import { useBuilder } from "../context/BuilderContext";
-import { exportReactApp } from "./export-handler";
 import { generationService } from "../services/generationService";
 import {
   formModelToJsonSchema,
@@ -19,7 +18,6 @@ import { Button } from "../components/ui/button";
 export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
   const navigate = useNavigate();
-  const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   type Stage = {
@@ -38,70 +36,22 @@ export const BuilderLayout: React.FC = () => {
     { name: "Test Generation", status: "pending" },
   ]);
 
-  const isFrontendComplete =
-    stages.find((s) => s.name === "Frontend Generation")?.status === "complete";
-
   const markStage = (name: string, status: Stage["status"]) =>
     setStages((prev) =>
       prev.map((s) => (s.name === name ? { ...s, status } : s)),
     );
 
-  const handleExport = async () => {
-    try {
-      setIsExporting(true);
-      await exportReactApp(state.form);
-      markStage("Frontend Generation", "complete");
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert(
-        `Export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-      markStage("Frontend Generation", "error");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const synced = formModelToJsonSchema(
-        state.form,
-        state.baseJsonSchema ?? undefined,
-      );
-      const validation = validateBuilderJsonSchema(synced);
-      if (!validation.valid) {
-        alert(
-          `Cannot generate: schema validation failed.\n${validation.errors.join("\n")}`,
-        );
-        setStages((prev) =>
-          prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
-        );
-        return;
-      }
-
-      sessionStorage.setItem("formsync_schema_raw", JSON.stringify(synced));
-
-      if (state.schemaId) {
-        const putRes = await fetch(`/schema/${state.schemaId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: synced }),
-        });
-        if (!putRes.ok) {
-          const errBody = await putRes.text();
-          throw new Error(
-            `Failed to save schema (${putRes.status}): ${errBody || putRes.statusText}`,
-          );
-        }
-      }
+      // Form builder preview is the frontend — show this step complete as soon as generation starts
+      markStage("Frontend Generation", "complete");
 
       for (const name of ["Backend Generation", "DTO Generation"]) {
         markStage(name, "loading");
         await new Promise((r) => setTimeout(r, 600));
         markStage(name, "complete");
       }
-      markStage("Frontend Generation", "complete");
 
       if (state.schemaId) {
         navigate(`/generated?schemaId=${state.schemaId}`, {
@@ -179,13 +129,7 @@ export const BuilderLayout: React.FC = () => {
 
         {/* ── Right: theme / field settings ── */}
         <aside className="builder-sidebar builder-sidebar--right">
-          <RightPanel
-            onExport={handleExport}
-            onGenerate={handleGenerate}
-            isExporting={isExporting}
-            isGenerating={isGenerating}
-            isFrontendComplete={isFrontendComplete}
-          />
+          <RightPanel onGenerate={handleGenerate} isGenerating={isGenerating} />
         </aside>
       </div>
     </div>

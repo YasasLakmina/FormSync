@@ -1,0 +1,9 @@
+namespace {{namespace}}.DTOs;
+
+public class {{name}}Response
+{
+    public int Id { get; set; }
+{{#each fields}}
+    public {{csType}} {{namePascal}} { get; set; } = {{defaultValue}};
+{{/each}}
+}
