@@ -290,7 +290,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </label>
                 </div>
                 <Group label="Placeholder">
-                    <input className="control-input" value={selectedField.ui?.placeholder ?? ''} onChange={(e) => handleUiUpdate('placeholder', e.target.value)} placeholder="Enter placeholder…" />
+                    <input className="control-input" value={selectedField.ui?.placeholder ?? ''} onChange={(e) => handleUiUpdate('placeholder', e.target.value)} placeholder={`Enter ${selectedField.label.toLowerCase()}…`} />
                 </Group>
                 <Group label="Help Text">
                     <textarea className="control-input" style={{ height: '56px', resize: 'vertical', paddingTop: '0.5rem' }} value={selectedField.ui?.helpText ?? ''} onChange={(e) => handleUiUpdate('helpText', e.target.value)} placeholder="Describe this field…" />

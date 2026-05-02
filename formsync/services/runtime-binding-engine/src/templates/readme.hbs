@@ -25,6 +25,10 @@ mvn spring-boot:run
 
 The server starts at **http://localhost:{{serverPort}}**
 
+### OpenAPI specification
+
+An **OpenAPI 3.0** specification is included as `openapi.yaml` in the project root (and at `src/main/resources/static/openapi.yaml`). Use it for API contracts, code generation, or documentation without running the server.
+
 {{#eq database 'h2'}}
 ### H2 In-Memory Database Console
 
@@ -40,7 +44,10 @@ The H2 console is available at: **http://localhost:{{serverPort}}/h2-console**
 
 ### Swagger UI
 
-API documentation is available at: **http://localhost:{{serverPort}}/swagger-ui.html**
+- **Swagger UI**: **http://localhost:{{serverPort}}/swagger-ui.html**
+- **OpenAPI JSON**: **http://localhost:{{serverPort}}/v3/api-docs** (for tooling or export)
+
+For offline use, see the **openapi.yaml** file in the project root.
 {{/if}}
 
 ---

@@ -240,10 +240,23 @@ body {
   transition: all 0.2s ease;
 }
 
+input[type="checkbox"].field-input {
+  width: auto;
+  margin-right: 0.5rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* :focus-visible targets keyboard nav only — mouse users won't see the ring.
+   We keep the outline visible for High Contrast / forced-colors mode (WCAG 2.4.11). */
 .field-input:focus {
-  outline: none;
+  outline: 2px solid transparent;
+}
+.field-input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .field-input::placeholder {
@@ -255,6 +268,56 @@ body {
   font-size: 0.875rem;
   color: var(--color-muted);
   margin-top: 0.25rem;
+}
+
+/* Accessible error message — hidden when empty, visible when there is an error */
+.field-error {
+  display: block;
+  min-height: 1.25rem; /* reserve space so the layout doesn't jump */
+  font-size: 0.8rem;
+  color: var(--color-error);
+  margin-top: 0.2rem;
+}
+
+/* Visual treatment for invalid inputs — mirrors aria-invalid="true" */
+.field-input[aria-invalid="true"] {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.field-input[aria-invalid="true"]:focus {
+  outline: none;
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+
+/* Screen-reader-only utility — visually hidden but fully accessible to AT.
+   Used by the aria-live status region. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Grouped fields — theme-aware fieldset */
+.field-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.field-legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95rem;
 }
 
 /* Submit Button */
@@ -278,6 +341,17 @@ body {
 
 .submit-button:active {
   opacity: 0.8;
+}
+
+/* Visible keyboard focus ring for the submit button (WCAG 2.4.11). */
+.submit-button:focus {
+  outline: 2px solid transparent;
+}
+
+.submit-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 /* Empty State */

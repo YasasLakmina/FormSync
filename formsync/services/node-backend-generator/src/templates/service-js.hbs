@@ -1,0 +1,25 @@
+const items = [];
+
+exports.create = (payload) => {
+  const item = { id: String(Date.now()), ...payload };
+  items.push(item);
+  return item;
+};
+
+exports.findAll = () => items;
+
+exports.findOne = (id) => items.find((item) => item.id === id);
+
+exports.update = (id, payload) => {
+  const index = items.findIndex((item) => item.id === id);
+  if (index === -1) return null;
+  items[index] = { ...items[index], ...payload, id };
+  return items[index];
+};
+
+exports.remove = (id) => {
+  const index = items.findIndex((item) => item.id === id);
+  if (index === -1) return false;
+  items.splice(index, 1);
+  return true;
+};

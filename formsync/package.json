@@ -10,6 +10,7 @@
     "services/backend-dto-generator",
     "services/runtime-binding-engine",
     "services/formgen-service",
+    "services/node-backend-generator",
     "frontend"
   ],
   "scripts": {
@@ -19,8 +20,9 @@
     "dev:backend-gen": "npm run dev --workspace=backend-dto-generator",
     "dev:runtime": "npm run dev --workspace=runtime-binding-engine",
     "dev:formgen": "npm run dev --workspace=formgen-service",
+    "dev:node-backend": "npm run dev --workspace=node-backend-generator",
     "dev:gateway": "npm run dev --workspace=api-gateway",
-    "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:schema:api\" \"npm run dev:user:api\" \"npm run dev:backend-gen\" \"npm run dev:runtime\" \"npm run dev:formgen\" \"npm run dev:schema:ui\"",
+    "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:schema:api\" \"npm run dev:user:api\" \"npm run dev:backend-gen\" \"npm run dev:runtime\" \"npm run dev:formgen\" \"npm run dev:node-backend\" \"npm run dev:schema:ui\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "eslint . --ext .ts,.tsx",

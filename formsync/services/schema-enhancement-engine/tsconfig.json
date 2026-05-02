@@ -20,8 +20,13 @@
     "noFallthroughCasesInSwitch": false,
     "paths": {
       "@formsync/plugins": ["../../packages/plugins/src"]
-    }
+    },
+    "types": ["jest", "node"],
+    "typeRoots": [
+      "../../node_modules/@types",
+      "./node_modules/@types"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

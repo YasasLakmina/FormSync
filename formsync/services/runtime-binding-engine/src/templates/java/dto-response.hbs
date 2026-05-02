@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+{{#if includeSwagger}}
+import io.swagger.v3.oas.annotations.media.Schema;
+{{/if}}
 import java.util.*;
 import java.time.*;
 import java.math.*;
@@ -12,15 +15,24 @@ import java.math.*;
 /**
  * Response DTO for {{name}}.
  */
+{{#if includeSwagger}}
+@Schema(description = "Response for {{name}}")
+{{/if}}
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class {{name}}Response {
 
+    {{#if includeSwagger}}
+    @Schema(description = "Entity ID")
+    {{/if}}
     private Long id;
 
 {{#each fields}}
+{{#if ../includeSwagger}}
+    @Schema(description = "{{#if description}}{{description}}{{else}}{{name}} field{{/if}}")
+{{/if}}
 {{#if description}}
     /**
      * {{description}}

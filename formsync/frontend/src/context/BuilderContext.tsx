@@ -283,13 +283,16 @@ export const useBuilder = () => useContext(BuilderContext);
 /** Creates a new FieldModel with sensible defaults for a given type */
 export function createField(type: FieldType, stepIndex?: number): FieldModel {
     const id = `field-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const baseLabel = labelForType(type);
     const base: FieldModel = {
         id,
         key: id,
         type,
-        label: labelForType(type),
+        label: baseLabel,
         required: false,
-        ui: {},
+        ui: {
+            placeholder: `Enter ${baseLabel.toLowerCase()}...`
+        },
         ...(stepIndex !== undefined ? { stepIndex } : {}),
     };
 

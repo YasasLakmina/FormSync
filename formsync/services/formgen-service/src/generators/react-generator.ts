@@ -47,7 +47,7 @@ export function generateAppTsx(formModel: FormModel): string {
         </section>`;
     }).join('\n\n        ');
 
-    formBody = `<form onSubmit={handleSubmit}>
+    formBody = `<form onSubmit={handleSubmit} noValidate>
         ${sections}
 
         <button
@@ -63,7 +63,7 @@ export function generateAppTsx(formModel: FormModel): string {
     const fieldComponents = orderedFields
       .map(f => generateFieldComponent(f, theme))
       .join('\n\n');
-    formBody = `<form onSubmit={handleSubmit}>
+    formBody = `<form onSubmit={handleSubmit} noValidate>
         ${fieldComponents}
 
         <button
@@ -78,19 +78,75 @@ export function generateAppTsx(formModel: FormModel): string {
     formBody = `<div className="empty-state">Form is empty.</div>`;
   }
 
-  return `import React, { FormEvent } from 'react';
+  // Build a static key → DOM-id map so the generated form can auto-focus
+  // the first invalid field without needing React refs.
+  const allFields = collectAllFields(orderedFields);
+  const fieldIdMapEntries = allFields
+    .map((f: FieldModel) => `  '${f.key}': '${f.id}'`)
+    .join(',\n');
+
+  return `import React, { FormEvent, useState } from 'react';
+
+// Maps every field's form key to its DOM id.
+// Generated at build time — do not edit manually.
+const FIELD_ID_MAP: Record<string, string> = {
+${fieldIdMapEntries}
+};
 
 function App() {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Drives the aria-live announcement region — screen readers read this after submit.
+  const [statusMessage, setStatusMessage] = useState<string>('');
+
+  const validate = (data: Record<string, FormDataEntryValue>): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    // Add field-level validation here — key matches the field 'name' attribute.
+    // Example: if (!data['email']) errs['email'] = 'Email is required.';
+    return errs;
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
+    const errs = validate(data);
+    setErrors(errs);
+    const errorCount = Object.keys(errs).length;
+    if (errorCount > 0) {
+      // Announce a summary to screen readers via the polite live region.
+      setStatusMessage(
+        errorCount === 1
+          ? '1 error found. Please review the highlighted field.'
+          : errorCount + ' errors found. Please review the highlighted fields.'
+      );
+      // Move focus AND scroll to the first invalid field.
+      const firstErrorKey = Object.keys(errs)[0];
+      const firstErrorId = FIELD_ID_MAP[firstErrorKey];
+      if (firstErrorId) {
+        const el = document.getElementById(firstErrorId) as HTMLElement | null;
+        el?.focus();
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    // Clear any prior status message on a clean submission.
+    setStatusMessage('');
     console.log('Form submitted:', data);
     // Add your form submission logic here
   };
 
   return (
     <div className="form-container">
+      {/* Visually hidden — screen readers announce statusMessage when it changes. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {statusMessage}
+      </div>
+
       <h1 className="form-title">${escapeHtml(title)}</h1>
       ${description ? `<p className="form-description">${escapeHtml(description)}</p>` : ''}
 
@@ -114,11 +170,27 @@ export default App;
  *    to avoid the invalid-JSX duplicate-style-attribute pitfall.
  *  - Only non-empty override values emit a CSS var entry (no empty strings polluting styles).
  */
+/** WCAG 1.3.5 — maps field keys to HTML autocomplete tokens so password
+ *  managers and assistive technology can identify the purpose of each input. */
+const AUTO_COMPLETE_MAP: Record<string, string> = {
+  name: 'name', firstName: 'given-name', lastName: 'family-name',
+  email: 'email', phone: 'tel', mobile: 'tel',
+  password: 'current-password', newPassword: 'new-password',
+  street: 'street-address', city: 'address-level2', state: 'address-level1',
+  zip: 'postal-code', country: 'country-name',
+  organisation: 'organization', company: 'organization',
+};
+
 function generateFieldComponent(field: FieldModel, theme: any): string {
   const { id, key, type, label, required, ui } = field;
-  const placeholder = ui?.placeholder || '';
+  // date/number inputs don't benefit from placeholder — omit it to keep markup clean.
+  const explicitPlaceholder = ui?.placeholder;
+  const computedPlaceholder = explicitPlaceholder ?? `Enter ${label.toLowerCase()}...`;
+  const placeholder = type === 'date' ? '' : computedPlaceholder;
   const helpText = ui?.helpText;
   const overrides = ui?.styleOverrides as Record<string, string> | undefined;
+  // Look up autoComplete token for this field key (WCAG 1.3.5).
+  const autoComplete = AUTO_COMPLETE_MAP[key] ?? '';
 
   // Collect per-field CSS custom property entries (only truthy values)
   const overrideVars: string[] = overrides
@@ -164,46 +236,138 @@ function generateFieldComponent(field: FieldModel, theme: any): string {
 
   // ── input element ──────────────────────────────────────────────────────────
   let inputElement: string;
+  // Build aria attributes shared across input types
+  // - aria-required: explicitly declares the field as required for AT
+  // - aria-describedby: links to help text and/or error message spans
+  // - aria-invalid: evaluated at runtime via {errors['key'] ? 'true' : 'false'}
+  // - aria-errormessage: points to the error span when invalid
+  const describedByParts: string[] = [];
+  if (helpText) describedByParts.push(`${id}-help`);
+  describedByParts.push(`${id}-error`);
+  const ariaDescribedBy = `aria-describedby="${describedByParts.join(' ')}"`;
+  const ariaRequired = required ? `aria-required="true"` : '';
+  const ariaInvalid = `aria-invalid={errors['${key}'] ? 'true' : 'false'}`;
+  const ariaErrMsg = `aria-errormessage="${id}-error"`;
+
+  const autoCompleteAttr = autoComplete ? `autoComplete="${autoComplete}"` : '';
+
   switch (type) {
     case 'textarea':
-      inputElement = `<textarea name="${key}" id="${id}" className="field-input" placeholder="${escapeHtml(placeholder)}" ${required ? 'required' : ''}></textarea>`;
+      inputElement = `<textarea
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
+            ${required ? 'required' : ''}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+            ${autoCompleteAttr}
+          ></textarea>`;
       break;
     case 'select': {
       const options = field.constraints?.enum || [];
-      inputElement = `<select name="${key}" id="${id}" className="field-input" ${required ? 'required' : ''}>
+      inputElement = `<select
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            ${required ? 'required' : ''}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+            ${autoCompleteAttr}
+          >
             <option value="">${escapeHtml(placeholder) || 'Select...'}</option>
             ${options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('\n            ')}
           </select>`;
       break;
     }
     case 'checkbox':
-      inputElement = `<input type="checkbox" name="${key}" id="${id}" className="field-input" />`;
+      // Checkboxes use aria-checked semantics; aria-required still applies.
+      // autoComplete is not applicable to checkboxes — omitted intentionally.
+      inputElement = `<input
+            type="checkbox"
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+          />`;
       break;
     default:
       // text, email, password, number, date
-      inputElement = `<input type="${type}" name="${key}" id="${id}" className="field-input" placeholder="${escapeHtml(placeholder)}" ${required ? 'required' : ''} />`;
+      inputElement = `<input
+            type="${type}"
+            name="${key}"
+            id="${id}"
+            className="field-input"
+            ${placeholder ? `placeholder="${escapeHtml(placeholder)}"` : ''}
+            ${required ? 'required' : ''}
+            ${ariaRequired}
+            ${ariaInvalid}
+            ${ariaErrMsg}
+            ${ariaDescribedBy}
+            ${autoCompleteAttr}
+          />`;
   }
 
-  // ── checkbox wrapper ───────────────────────────────────────────────────────
+  // ── checkbox wrapper ─────────────────────────────────────────────────────
+  // Checkboxes render the label after the input; error lives below the group
   if (type === 'checkbox') {
-    const checkboxExtra = [`display: 'flex'`, `alignItems: 'center'`];
+    const checkboxExtra = [`display: 'flex'`, `alignItems: 'center'`, `flexWrap: 'wrap'`];
     return `<div className="field-item checkbox-item" ${buildStyle(checkboxExtra)}>
           ${inputElement}
           <label htmlFor="${id}" className="field-label" style={{ marginBottom: 0 }}>
-            ${escapeHtml(label)}${required ? '<span className="required">*</span>' : ''}
+            ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ''}
           </label>
-          ${helpText ? `<small className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
+          ${helpText ? `<small id="${id}-help" className="field-help-text" style={{ marginLeft: 'auto' }}>${escapeHtml(helpText)}</small>` : ''}
+          <span
+            id="${id}-error"
+            className="field-error"
+            role="alert"
+            aria-live="polite"
+          >
+            {errors['${key}']}
+          </span>
         </div>`;
   }
 
-  // ── standard field wrapper ─────────────────────────────────────────────────
+  // ── standard field wrapper ───────────────────────────────────────────────
   return `<div className="field-item" ${buildStyle()}>
           <label htmlFor="${id}" className="field-label">
-            ${escapeHtml(label)}${required ? '<span className="required">*</span>' : ''}
+            ${escapeHtml(label)}${required ? '<span className="required" aria-hidden="true">*</span>' : ''}
           </label>
           ${inputElement}
-          ${helpText ? `<small className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
+          ${helpText ? `<small id="${id}-help" className="field-help-text">${escapeHtml(helpText)}</small>` : ''}
+          <span
+            id="${id}-error"
+            className="field-error"
+            role="alert"
+            aria-live="polite"
+          >
+            {errors['${key}']}
+          </span>
         </div>`;
+}
+
+/**
+ * Recursively collect every leaf field (including group children) so we can
+ * build a complete key → id mapping used by FIELD_ID_MAP in the App component.
+ */
+function collectAllFields(fields: FieldModel[]): FieldModel[] {
+  const result: FieldModel[] = [];
+  for (const f of fields) {
+    if (f.type === 'group' && f.children && f.children.length > 0) {
+      result.push(...collectAllFields(f.children));
+    } else {
+      result.push(f);
+    }
+  }
+  return result;
 }
 
 /**

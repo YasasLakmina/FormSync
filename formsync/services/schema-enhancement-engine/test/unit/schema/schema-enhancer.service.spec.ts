@@ -5,10 +5,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { SchemaEnhancerService } from './schema-enhancer.service';
-import { OpenAILLMPlugin } from '../plugins/llm/openai-llm.plugin';
-import { SchemaQualityEngine } from './schema-quality-engine';
-import { SchemaSuggestionEngine } from './schema-suggestion.engine';
+import { SchemaEnhancerService } from 'src/schema/schema-enhancer.service';
+import { OpenAILLMPlugin } from 'src/plugins/llm/openai-llm.plugin';
+import { SchemaQualityEngine } from 'src/schema/schema-quality-engine';
+import { SchemaSuggestionEngine } from 'src/schema/schema-suggestion.engine';
 
 describe('SchemaEnhancerService', () => {
   let service: SchemaEnhancerService;

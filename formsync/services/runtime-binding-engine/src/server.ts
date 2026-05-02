@@ -5,6 +5,7 @@ import express from "express";
 import cors from "cors";
 import * as os from "os";
 import * as fs from "fs-extra";
+import { randomUUID } from "crypto";
 import { SpringBootGenerator } from "./generator/SpringBootGenerator";
 import { ZipService } from "./service/ZipService";
 import { SchemaApiClient } from "./client/SchemaApiClient";
@@ -68,7 +69,7 @@ app.post("/generate", async (req, res) => {
     return res.status(400).json({ error: "Schema or Schema ID is required" });
   }
 
-  const requestId = crypto.randomUUID();
+  const requestId = randomUUID();
   const tempDir = path.join(os.tmpdir(), `formsync-springboot-${requestId}`);
 
   console.log(`[${requestId}] Received Spring Boot generation request`);
