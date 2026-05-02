@@ -635,35 +635,78 @@ interface DetectionHint {
 const DETECTION_RULES: Array<{ patterns: RegExp[]; hint: DetectionHint }> = [
   {
     patterns: [/email/i],
-    hint: { type: "string", format: "email", label: "Email field", icon: <Mail className="h-3 w-3" /> },
+    hint: {
+      type: "string",
+      format: "email",
+      label: "Email field",
+      icon: <Mail className="h-3 w-3" />,
+    },
   },
   {
     patterns: [/phone|mobile|tel|cell/i],
-    hint: { type: "string", pattern: "^\\+?[0-9 \\-()]{7,15}$", label: "Phone field", icon: <Phone className="h-3 w-3" /> },
+    hint: {
+      type: "string",
+      pattern: "^\\+?[0-9 \\-()]{7,15}$",
+      label: "Phone field",
+      icon: <Phone className="h-3 w-3" />,
+    },
   },
   {
     patterns: [/url|website|link|href|site/i],
-    hint: { type: "string", format: "uri", label: "URL field", icon: <Link className="h-3 w-3" /> },
+    hint: {
+      type: "string",
+      format: "uri",
+      label: "URL field",
+      icon: <Link className="h-3 w-3" />,
+    },
   },
   {
     patterns: [/(^|_)date($|_)|birthday|birth_date|dob/i],
-    hint: { type: "string", format: "date", label: "Date field", icon: <Calendar className="h-3 w-3" /> },
+    hint: {
+      type: "string",
+      format: "date",
+      label: "Date field",
+      icon: <Calendar className="h-3 w-3" />,
+    },
   },
   {
-    patterns: [/^age$|^count$|quantity|price|amount|score|rating|weight|height|total|qty/i],
-    hint: { type: "number", label: "Number field", icon: <Hash className="h-3 w-3" /> },
+    patterns: [
+      /^age$|^count$|quantity|price|amount|score|rating|weight|height|total|qty/i,
+    ],
+    hint: {
+      type: "number",
+      label: "Number field",
+      icon: <Hash className="h-3 w-3" />,
+    },
   },
   {
-    patterns: [/^is_|^has_|accept|agree|term|consent|remember|subscribe|active|verified|enabled/i],
-    hint: { type: "boolean", label: "Yes / No field", icon: <ToggleRight className="h-3 w-3" /> },
+    patterns: [
+      /^is_|^has_|accept|agree|term|consent|remember|subscribe|active|verified|enabled/i,
+    ],
+    hint: {
+      type: "boolean",
+      label: "Yes / No field",
+      icon: <ToggleRight className="h-3 w-3" />,
+    },
   },
   {
     patterns: [/password|passwd/i],
-    hint: { type: "string", pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{8,}$", label: "Password field", icon: <Lock className="h-3 w-3" /> },
+    hint: {
+      type: "string",
+      pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{8,}$",
+      label: "Password field",
+      icon: <Lock className="h-3 w-3" />,
+    },
   },
   {
-    patterns: [/description|message|comment|bio|note|details|content|body|summary/i],
-    hint: { type: "string", label: "Long text field", icon: <AlignLeft className="h-3 w-3" /> },
+    patterns: [
+      /description|message|comment|bio|note|details|content|body|summary/i,
+    ],
+    hint: {
+      type: "string",
+      label: "Long text field",
+      icon: <AlignLeft className="h-3 w-3" />,
+    },
   },
 ];
 
@@ -749,7 +792,6 @@ const FieldCard: React.FC<
               {field.description}
             </span>
           )}
-
         </div>
       </div>
 
@@ -838,17 +880,24 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
-  const [hoveredTemplate, setHoveredTemplate] = useState<string>(SCHEMA_TEMPLATES[0].name);
+  const [hoveredTemplate, setHoveredTemplate] = useState<string>(
+    SCHEMA_TEMPLATES[0].name,
+  );
 
   // Smart detection state
   const [detectedHint, setDetectedHint] = useState<DetectionHint | null>(null);
   const [hintDismissed, setHintDismissed] = useState(false);
-  const [pendingFormat, setPendingFormat] = useState<string | undefined>(undefined);
-  const [editDetectedHint, setEditDetectedHint] = useState<DetectionHint | null>(null);
+  const [pendingFormat, setPendingFormat] = useState<string | undefined>(
+    undefined,
+  );
+  const [editDetectedHint, setEditDetectedHint] =
+    useState<DetectionHint | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Reset edit-panel hint whenever a different field is opened
-  React.useEffect(() => { setEditDetectedHint(null); }, [expandedFieldId]);
+  React.useEffect(() => {
+    setEditDetectedHint(null);
+  }, [expandedFieldId]);
 
   // Schema name state
   const [schemaName, setSchemaName] = useState("");
@@ -965,7 +1014,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       name: `${field.name}_copy`,
     };
     const idx = fields.findIndex((f) => f.id === id);
-    setFieldsWithHistory([...fields.slice(0, idx + 1), copy, ...fields.slice(idx + 1)]);
+    setFieldsWithHistory([
+      ...fields.slice(0, idx + 1),
+      copy,
+      ...fields.slice(idx + 1),
+    ]);
     toast.success(`Duplicated "${field.name}"`);
   };
 
@@ -1328,36 +1381,44 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
           {/* Template Button - Opens Modal */}
           <div className="pt-2 border-t border-neutral-200 dark:border-neutral-700 mt-2">
             {/* Field health hints */}
-            {fields.length > 0 && (() => {
-              const noDescFields = fields.filter((f) => !f.description);
-              const noValidationFields = fields.filter((f) =>
-                f.type === "string"
-                  ? !f.minLength && !f.maxLength && !f.format && !f.pattern
-                  : f.type === "number" || f.type === "integer"
-                  ? f.minimum === undefined && f.maximum === undefined
-                  : false,
-              );
-              if (noDescFields.length === 0 && noValidationFields.length === 0) return null;
-              return (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {noDescFields.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                      <span className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0" />
-                      {noDescFields.length} field{noDescFields.length !== 1 ? "s" : ""} missing description
-                    </span>
-                  )}
-                  {noValidationFields.map((f) => (
-                    <span
-                      key={f.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
-                    >
-                      <span className="w-1 h-1 rounded-full bg-sky-500 flex-shrink-0" />
-                      <span className="font-medium">{f.name}</span>: no validation
-                    </span>
-                  ))}
-                </div>
-              );
-            })()}
+            {fields.length > 0 &&
+              (() => {
+                const noDescFields = fields.filter((f) => !f.description);
+                const noValidationFields = fields.filter((f) =>
+                  f.type === "string"
+                    ? !f.minLength && !f.maxLength && !f.format && !f.pattern
+                    : f.type === "number" || f.type === "integer"
+                      ? f.minimum === undefined && f.maximum === undefined
+                      : false,
+                );
+                if (
+                  noDescFields.length === 0 &&
+                  noValidationFields.length === 0
+                )
+                  return null;
+                return (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {noDescFields.length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                        <span className="w-1 h-1 rounded-full bg-amber-500 flex-shrink-0" />
+                        {noDescFields.length} field
+                        {noDescFields.length !== 1 ? "s" : ""} missing
+                        description
+                      </span>
+                    )}
+                    {noValidationFields.map((f) => (
+                      <span
+                        key={f.id}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800"
+                      >
+                        <span className="w-1 h-1 rounded-full bg-sky-500 flex-shrink-0" />
+                        <span className="font-medium">{f.name}</span>: no
+                        validation
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
             <Button
               onClick={() => setShowTemplateModal(true)}
               variant="outline"
@@ -1371,156 +1432,169 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         </CardHeader>
         <CardContent className="pt-6">
           <AnimatePresence mode="wait">
-          {fields.length === 0 ? (
-            <motion.div
-              key="onboarding"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.22 }}
-              className="py-8 px-4"
-            >
+            {fields.length === 0 ? (
               <motion.div
-                initial={{ scale: 0.7, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.05, duration: 0.4, type: "spring", stiffness: 180 }}
-                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center mx-auto mb-5 shadow-sm"
+                key="onboarding"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.22 }}
+                className="py-8 px-4"
               >
-                <Layers className="h-8 w-8 text-purple-400" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.12, duration: 0.28 }}
-                className="text-center mb-7"
-              >
-                <h3 className="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">
-                  Let's build your schema
-                </h3>
-                <p className="text-sm text-neutral-400 dark:text-neutral-500">
-                  Choose how you want to get started
-                </p>
-              </motion.div>
+                <motion.div
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    delay: 0.05,
+                    duration: 0.4,
+                    type: "spring",
+                    stiffness: 180,
+                  }}
+                  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center mx-auto mb-5 shadow-sm"
+                >
+                  <Layers className="h-8 w-8 text-purple-400" />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.12, duration: 0.28 }}
+                  className="text-center mb-7"
+                >
+                  <h3 className="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">
+                    Let's build your schema
+                  </h3>
+                  <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                    Choose how you want to get started
+                  </p>
+                </motion.div>
 
-              <div className="flex flex-col gap-2.5 w-full max-w-xs mx-auto">
-                {[
-                  {
-                    icon: <LayoutTemplate className="h-5 w-5" />,
-                    label: "Use a Template",
-                    description: "Pick from 9 ready-made schemas",
-                    color: "purple" as const,
-                    onClick: () => setShowTemplateModal(true),
-                  },
-                  {
-                    icon: <PenLine className="h-5 w-5" />,
-                    label: "Add Fields Myself",
-                    description: "Build it field by field",
-                    color: "blue" as const,
-                    onClick: () => setTimeout(() => nameInputRef.current?.focus(), 50),
-                  },
-                ].map((opt, i) => (
-                  <motion.button
-                    key={opt.label}
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + i * 0.09, duration: 0.3, ease: "easeOut" }}
-                    whileHover={{ scale: 1.012, transition: { duration: 0.12 } }}
-                    whileTap={{ scale: 0.978 }}
-                    onClick={opt.onClick}
-                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left transition-colors group ${
-                      opt.color === "purple"
-                        ? "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/40 hover:border-purple-300 dark:hover:border-purple-700"
-                        : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700"
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                <div className="flex flex-col gap-2.5 w-full max-w-xs mx-auto">
+                  {[
+                    {
+                      icon: <LayoutTemplate className="h-5 w-5" />,
+                      label: "Use a Template",
+                      description: "Pick from 9 ready-made schemas",
+                      color: "purple" as const,
+                      onClick: () => setShowTemplateModal(true),
+                    },
+                    {
+                      icon: <PenLine className="h-5 w-5" />,
+                      label: "Add Fields Myself",
+                      description: "Build it field by field",
+                      color: "blue" as const,
+                      onClick: () =>
+                        setTimeout(() => nameInputRef.current?.focus(), 50),
+                    },
+                  ].map((opt, i) => (
+                    <motion.button
+                      key={opt.label}
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: 0.2 + i * 0.09,
+                        duration: 0.3,
+                        ease: "easeOut",
+                      }}
+                      whileHover={{
+                        scale: 1.012,
+                        transition: { duration: 0.12 },
+                      }}
+                      whileTap={{ scale: 0.978 }}
+                      onClick={opt.onClick}
+                      className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left transition-colors group ${
                         opt.color === "purple"
-                          ? "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/60"
-                          : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/60"
+                          ? "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/40 hover:border-purple-300 dark:hover:border-purple-700"
+                          : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700"
                       }`}
                     >
-                      {opt.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
                       <div
-                        className={`text-sm font-bold mb-0.5 ${
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
                           opt.color === "purple"
-                            ? "text-purple-900 dark:text-purple-100"
-                            : "text-blue-900 dark:text-blue-100"
+                            ? "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/60"
+                            : "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/60"
                         }`}
                       >
-                        {opt.label}
+                        {opt.icon}
                       </div>
-                      <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {opt.description}
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className={`text-sm font-bold mb-0.5 ${
+                            opt.color === "purple"
+                              ? "text-purple-900 dark:text-purple-100"
+                              : "text-blue-900 dark:text-blue-100"
+                          }`}
+                        >
+                          {opt.label}
+                        </div>
+                        <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                          {opt.description}
+                        </div>
                       </div>
-                    </div>
-                    <ArrowRight
-                      className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-1 ${
-                        opt.color === "purple"
-                          ? "text-purple-300"
-                          : "text-blue-300"
-                      }`}
-                    />
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={fields.map((f) => f.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <AnimatePresence>
-                  <div className="space-y-2">
-                    {fields.map((field, index) => (
-                      <SortableFieldItem
-                        key={field.id}
-                        field={field}
-                        index={index}
-                        onToggleRequired={toggleRequired}
-                        onRemove={removeField}
-                        onEdit={() => setExpandedFieldId(field.id)}
-                        onDuplicate={duplicateField}
+                      <ArrowRight
+                        className={`h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-1 ${
+                          opt.color === "purple"
+                            ? "text-purple-300"
+                            : "text-blue-300"
+                        }`}
                       />
-                    ))}
-                  </div>
-                </AnimatePresence>
-              </SortableContext>
-              <DragOverlay
-                dropAnimation={{
-                  duration: 200,
-                  easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
-                }}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
               >
-                {activeField ? (
-                  <motion.div
-                    initial={{ scale: 1 }}
-                    animate={{ scale: 1.03, rotate: 0.8 }}
-                    className="cursor-grabbing"
-                  >
-                    <FieldCard
-                      field={activeField}
-                      index={0}
-                      onToggleRequired={() => {}}
-                      onRemove={() => {}}
-                      onEdit={() => {}}
-                      onDuplicate={() => {}}
-                      isDragOverlay
-                      dragHandleProps={{}}
-                    />
-                  </motion.div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )}
+                <SortableContext
+                  items={fields.map((f) => f.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <AnimatePresence>
+                    <div className="space-y-2">
+                      {fields.map((field, index) => (
+                        <SortableFieldItem
+                          key={field.id}
+                          field={field}
+                          index={index}
+                          onToggleRequired={toggleRequired}
+                          onRemove={removeField}
+                          onEdit={() => setExpandedFieldId(field.id)}
+                          onDuplicate={duplicateField}
+                        />
+                      ))}
+                    </div>
+                  </AnimatePresence>
+                </SortableContext>
+                <DragOverlay
+                  dropAnimation={{
+                    duration: 200,
+                    easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+                  }}
+                >
+                  {activeField ? (
+                    <motion.div
+                      initial={{ scale: 1 }}
+                      animate={{ scale: 1.03, rotate: 0.8 }}
+                      className="cursor-grabbing"
+                    >
+                      <FieldCard
+                        field={activeField}
+                        index={0}
+                        onToggleRequired={() => {}}
+                        onRemove={() => {}}
+                        onEdit={() => {}}
+                        onDuplicate={() => {}}
+                        isDragOverlay
+                        dragHandleProps={{}}
+                      />
+                    </motion.div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            )}
           </AnimatePresence>
         </CardContent>
       </Card>
@@ -1592,211 +1666,105 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              onClick={() => { setShowTemplateModal(false); setTemplateSearch(""); }}
+              onClick={() => {
+                setShowTemplateModal(false);
+                setTemplateSearch("");
+              }}
               className="fixed inset-0 bg-black/60 z-50"
             />
             {/* Centering wrapper — static, pointer-events-none so backdrop clicks still close */}
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
-            {/* Panel */}
-            <motion.div
-              key="template-panel"
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 6 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-neutral-900 flex pointer-events-auto"
-              style={{ height: "540px" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <button
-                onClick={() => { setShowTemplateModal(false); setTemplateSearch(""); }}
-                className="absolute top-3 right-3 z-10 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              {/* Panel */}
+              <motion.div
+                key="template-panel"
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 6 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-neutral-900 flex pointer-events-auto"
+                style={{ height: "540px" }}
+                onClick={(e) => e.stopPropagation()}
               >
-                <X className="h-4 w-4" />
-              </button>
+                {/* Close button */}
+                <button
+                  onClick={() => {
+                    setShowTemplateModal(false);
+                    setTemplateSearch("");
+                  }}
+                  className="absolute top-3 right-3 z-10 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
 
-              {/* ── Left: scrollable card list ── */}
-              <div className="w-72 flex-shrink-0 flex flex-col border-r border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/60">
-                {/* Header */}
-                <div className="px-4 pt-5 pb-4 border-b border-neutral-100 dark:border-neutral-800">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <div className="w-6 h-6 rounded-md bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center flex-shrink-0">
-                      <Layers className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                {/* ── Left: scrollable card list ── */}
+                <div className="w-72 flex-shrink-0 flex flex-col border-r border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/60">
+                  {/* Header */}
+                  <div className="px-4 pt-5 pb-4 border-b border-neutral-100 dark:border-neutral-800">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className="w-6 h-6 rounded-md bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center flex-shrink-0">
+                        <Layers className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                        Quick Start Templates
+                      </span>
                     </div>
-                    <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                      Quick Start Templates
-                    </span>
+                    <p className="text-[11px] text-neutral-400 mt-0.5 ml-8">
+                      {SCHEMA_TEMPLATES.length} ready-made schemas
+                    </p>
                   </div>
-                  <p className="text-[11px] text-neutral-400 mt-0.5 ml-8">
-                    {SCHEMA_TEMPLATES.length} ready-made schemas
-                  </p>
-                </div>
 
-                {/* Search */}
-                <div className="px-3 py-2.5 border-b border-neutral-100 dark:border-neutral-800">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Search templates..."
-                      value={templateSearch}
-                      onChange={(e) => setTemplateSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
-                    />
+                  {/* Search */}
+                  <div className="px-3 py-2.5 border-b border-neutral-100 dark:border-neutral-800">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search templates..."
+                        value={templateSearch}
+                        onChange={(e) => setTemplateSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Cards */}
-                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-                  {(() => {
-                    const filtered = SCHEMA_TEMPLATES.filter(
-                      (t) =>
-                        t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
-                        t.description.toLowerCase().includes(templateSearch.toLowerCase()),
-                    );
-                    if (filtered.length === 0)
-                      return (
-                        <div className="py-10 text-center">
-                          <p className="text-xs text-neutral-400 dark:text-neutral-500">No templates found</p>
-                        </div>
+                  {/* Cards */}
+                  <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                    {(() => {
+                      const filtered = SCHEMA_TEMPLATES.filter(
+                        (t) =>
+                          t.name
+                            .toLowerCase()
+                            .includes(templateSearch.toLowerCase()) ||
+                          t.description
+                            .toLowerCase()
+                            .includes(templateSearch.toLowerCase()),
                       );
-                    return filtered.map((template, i) => {
-                      const cfg = TEMPLATE_CONFIG[template.name] ?? { icon: <FileJson className="h-4 w-4" /> };
-                      const isActive = hoveredTemplate === template.name;
-                      return (
-                        <motion.button
-                          key={template.name}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.03, duration: 0.2, ease: "easeOut" }}
-                          onMouseEnter={() => setHoveredTemplate(template.name)}
-                          onClick={() => {
-                            if (fields.length > 0) {
-                              setPendingTemplate(template.name);
-                            } else {
-                              loadSchemaTemplate(template.name);
-                              setShowTemplateModal(false);
-                              setTemplateSearch("");
-                            }
-                          }}
-                          className={`w-full p-3 text-left rounded-xl border transition-all duration-150 ${
-                            isActive
-                              ? "bg-white dark:bg-neutral-900 border-purple-200 dark:border-purple-700 shadow-sm"
-                              : "border-neutral-100 dark:border-neutral-700/60 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:border-neutral-200 dark:hover:border-neutral-600"
-                          }`}
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <span className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${isActive ? "bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500"}`}>
-                              {cfg.icon}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className={`text-xs font-semibold truncate ${isActive ? "text-purple-700 dark:text-purple-300" : "text-neutral-800 dark:text-neutral-200"}`}>
-                                {template.name}
-                              </div>
-                              <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">
-                                {template.description}
-                              </div>
-                              <div className="flex items-center gap-1.5 mt-1.5">
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 font-medium">
-                                  {template.fields.length} fields
-                                </span>
-                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isActive ? "bg-purple-100 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500"}`}>
-                                  {template.fields.filter((f) => f.required).length} required
-                                </span>
-                              </div>
-                            </div>
-                            {isActive && <ChevronRight className="h-3.5 w-3.5 text-purple-400 flex-shrink-0 mt-2" />}
+                      if (filtered.length === 0)
+                        return (
+                          <div className="py-10 text-center">
+                            <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                              No templates found
+                            </p>
                           </div>
-                        </motion.button>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-
-              {/* ── Right: animated detail panel ── */}
-              <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-900">
-                <AnimatePresence mode="wait">
-                  {(() => {
-                    const template = SCHEMA_TEMPLATES.find((t) => t.name === hoveredTemplate);
-                    if (!template) return null;
-                    const cfg = TEMPLATE_CONFIG[template.name] ?? { icon: <FileJson className="h-5 w-5" /> };
-                    return (
-                      <motion.div
-                        key={template.name}
-                        initial={{ opacity: 0, x: 16 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="flex flex-col h-full"
-                      >
-                        {/* Detail header */}
-                        <div className="px-7 pt-6 pb-5 border-b border-neutral-100 dark:border-neutral-800">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-400">
-                              {cfg.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-0.5">
-                                {template.name}
-                              </h3>
-                              <p className="text-sm text-neutral-400 dark:text-neutral-500">
-                                {template.description}
-                              </p>
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
-                                  {template.fields.length} fields total
-                                </span>
-                                <span className="inline-flex items-center gap-1.5 text-xs text-purple-500 dark:text-purple-400">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                                  {template.fields.filter((f) => f.required).length} required
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Field list */}
-                        <div className="flex-1 overflow-y-auto px-7 py-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">Fields</p>
-                          <div className="space-y-2">
-                            {template.fields.map((f, idx) => {
-                              const tc = getTypeConfig(f.type);
-                              return (
-                                <motion.div
-                                  key={f.name}
-                                  initial={{ opacity: 0, y: 6 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: idx * 0.04, duration: 0.18 }}
-                                  className="flex items-center gap-3 px-3 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800"
-                                >
-                                  <span className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${tc.bg} ${tc.color}`}>
-                                    {tc.icon}
-                                  </span>
-                                  <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex-1 truncate">
-                                    {f.name}
-                                  </span>
-                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium border ${tc.bg} ${tc.color} ${tc.border}`}>
-                                    {getTypeLabel(f.type)}
-                                  </span>
-                                  {f.required ? (
-                                    <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded-md flex-shrink-0">req</span>
-                                  ) : (
-                                    <span className="text-[10px] text-neutral-300 dark:text-neutral-600 flex-shrink-0">opt</span>
-                                  )}
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* CTA */}
-                        <div className="px-7 py-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/30">
+                        );
+                      return filtered.map((template, i) => {
+                        const cfg = TEMPLATE_CONFIG[template.name] ?? {
+                          icon: <FileJson className="h-4 w-4" />,
+                        };
+                        const isActive = hoveredTemplate === template.name;
+                        return (
                           <motion.button
-                            whileHover={{ scale: 1.015 }}
-                            whileTap={{ scale: 0.985 }}
+                            key={template.name}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                              delay: i * 0.03,
+                              duration: 0.2,
+                              ease: "easeOut",
+                            }}
+                            onMouseEnter={() =>
+                              setHoveredTemplate(template.name)
+                            }
                             onClick={() => {
                               if (fields.length > 0) {
                                 setPendingTemplate(template.name);
@@ -1806,33 +1774,196 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                 setTemplateSearch("");
                               }
                             }}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors"
+                            className={`w-full p-3 text-left rounded-xl border transition-all duration-150 ${
+                              isActive
+                                ? "bg-white dark:bg-neutral-900 border-purple-200 dark:border-purple-700 shadow-sm"
+                                : "border-neutral-100 dark:border-neutral-700/60 hover:bg-neutral-100 dark:hover:bg-neutral-800/50 hover:border-neutral-200 dark:hover:border-neutral-600"
+                            }`}
                           >
-                            <Check className="h-4 w-4" />
-                            Use {template.name}
-                            <ArrowRight className="h-4 w-4" />
+                            <div className="flex items-start gap-2.5">
+                              <span
+                                className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${isActive ? "bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500"}`}
+                              >
+                                {cfg.icon}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div
+                                  className={`text-xs font-semibold truncate ${isActive ? "text-purple-700 dark:text-purple-300" : "text-neutral-800 dark:text-neutral-200"}`}
+                                >
+                                  {template.name}
+                                </div>
+                                <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate mt-0.5">
+                                  {template.description}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1.5">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 font-medium">
+                                    {template.fields.length} fields
+                                  </span>
+                                  <span
+                                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isActive ? "bg-purple-100 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400" : "bg-neutral-50 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500"}`}
+                                  >
+                                    {
+                                      template.fields.filter((f) => f.required)
+                                        .length
+                                    }{" "}
+                                    required
+                                  </span>
+                                </div>
+                              </div>
+                              {isActive && (
+                                <ChevronRight className="h-3.5 w-3.5 text-purple-400 flex-shrink-0 mt-2" />
+                              )}
+                            </div>
                           </motion.button>
-                        </div>
-                      </motion.div>
-                    );
-                  })()}
-                </AnimatePresence>
-              </div>
-            </motion.div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                {/* ── Right: animated detail panel ── */}
+                <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-neutral-900">
+                  <AnimatePresence mode="wait">
+                    {(() => {
+                      const template = SCHEMA_TEMPLATES.find(
+                        (t) => t.name === hoveredTemplate,
+                      );
+                      if (!template) return null;
+                      const cfg = TEMPLATE_CONFIG[template.name] ?? {
+                        icon: <FileJson className="h-5 w-5" />,
+                      };
+                      return (
+                        <motion.div
+                          key={template.name}
+                          initial={{ opacity: 0, x: 16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="flex flex-col h-full"
+                        >
+                          {/* Detail header */}
+                          <div className="px-7 pt-6 pb-5 border-b border-neutral-100 dark:border-neutral-800">
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-950/50 dark:to-indigo-950/50 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-400">
+                                {cfg.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-0.5">
+                                  {template.name}
+                                </h3>
+                                <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                                  {template.description}
+                                </p>
+                                <div className="flex items-center gap-3 mt-2">
+                                  <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                                    {template.fields.length} fields total
+                                  </span>
+                                  <span className="inline-flex items-center gap-1.5 text-xs text-purple-500 dark:text-purple-400">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                                    {
+                                      template.fields.filter((f) => f.required)
+                                        .length
+                                    }{" "}
+                                    required
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Field list */}
+                          <div className="flex-1 overflow-y-auto px-7 py-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-3">
+                              Fields
+                            </p>
+                            <div className="space-y-2">
+                              {template.fields.map((f, idx) => {
+                                const tc = getTypeConfig(f.type);
+                                return (
+                                  <motion.div
+                                    key={f.name}
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{
+                                      delay: idx * 0.04,
+                                      duration: 0.18,
+                                    }}
+                                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800"
+                                  >
+                                    <span
+                                      className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${tc.bg} ${tc.color}`}
+                                    >
+                                      {tc.icon}
+                                    </span>
+                                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 flex-1 truncate">
+                                      {f.name}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium border ${tc.bg} ${tc.color} ${tc.border}`}
+                                    >
+                                      {getTypeLabel(f.type)}
+                                    </span>
+                                    {f.required ? (
+                                      <span className="text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded-md flex-shrink-0">
+                                        req
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-neutral-300 dark:text-neutral-600 flex-shrink-0">
+                                        opt
+                                      </span>
+                                    )}
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* CTA */}
+                          <div className="px-7 py-4 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/30">
+                            <motion.button
+                              whileHover={{ scale: 1.015 }}
+                              whileTap={{ scale: 0.985 }}
+                              onClick={() => {
+                                if (fields.length > 0) {
+                                  setPendingTemplate(template.name);
+                                } else {
+                                  loadSchemaTemplate(template.name);
+                                  setShowTemplateModal(false);
+                                  setTemplateSearch("");
+                                }
+                              }}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors"
+                            >
+                              <Check className="h-4 w-4" />
+                              Use {template.name}
+                              <ArrowRight className="h-4 w-4" />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
             </div>
           </>
         )}
       </AnimatePresence>
 
       {/* Replace Confirmation Dialog */}
-      <AlertDialog open={!!pendingTemplate} onOpenChange={() => setPendingTemplate(null)}>
+      <AlertDialog
+        open={!!pendingTemplate}
+        onOpenChange={() => setPendingTemplate(null)}
+      >
         <AlertDialogContent className="max-w-sm rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle_>Replace current fields?</AlertDialogTitle_>
             <AlertDialogDescription_>
               This will replace your {fields.length} current field
               {fields.length !== 1 ? "s" : ""} with the{" "}
-              <strong>{pendingTemplate}</strong> template. This cannot be undone.
+              <strong>{pendingTemplate}</strong> template. This cannot be
+              undone.
             </AlertDialogDescription_>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2 mt-4">
@@ -1872,7 +2003,10 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
               <AlertDialogContent className="max-w-lg rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle_>
-                    Edit: <span className="text-violet-600 dark:text-violet-400">{editField.name}</span>
+                    Edit:{" "}
+                    <span className="text-violet-600 dark:text-violet-400">
+                      {editField.name}
+                    </span>
                   </AlertDialogTitle_>
                   <AlertDialogDescription_>
                     Configure field properties and validation rules
@@ -1898,7 +2032,11 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                             updateField(editField.id, { name: val });
                             if (editField.type === "string") {
                               const hint = detectFieldType(val);
-                              setEditDetectedHint(hint && (hint.format || hint.pattern) ? hint : null);
+                              setEditDetectedHint(
+                                hint && (hint.format || hint.pattern)
+                                  ? hint
+                                  : null,
+                              );
                             } else {
                               setEditDetectedHint(null);
                             }
@@ -1916,7 +2054,8 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                               onClick={() => {
                                 updateField(editField.id, {
                                   format: editDetectedHint.format || undefined,
-                                  pattern: editDetectedHint.pattern || undefined,
+                                  pattern:
+                                    editDetectedHint.pattern || undefined,
                                 });
                                 setEditDetectedHint(null);
                               }}
@@ -1971,11 +2110,18 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                       </div>
                       {/* Contextual example hint */}
                       {(() => {
-                        const ex = getFieldExample(editField.type, editField.format);
+                        const ex = getFieldExample(
+                          editField.type,
+                          editField.format,
+                        );
                         return ex ? (
                           <div className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-100 dark:border-neutral-800">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 flex-shrink-0">Example</span>
-                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">{ex}</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 flex-shrink-0">
+                              Example
+                            </span>
+                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
+                              {ex}
+                            </span>
                           </div>
                         ) : null;
                       })()}
@@ -2037,61 +2183,209 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           editField.minLength !== undefined &&
                           editField.maxLength < editField.minLength && (
                             <div className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[11px]">
-                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                              <svg
+                                className="w-3.5 h-3.5 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
-                              Max length ({editField.maxLength}) must be greater than min length ({editField.minLength}).
+                              Max length ({editField.maxLength}) must be greater
+                              than min length ({editField.minLength}).
                             </div>
                           )}
                         {/* ── Input Format ── */}
                         <div className="col-span-2">
                           {(() => {
                             const FORMAT_PRESETS = [
-                              { id: "none",    label: "No restriction — accept any text",  format: undefined,  pattern: undefined,                        hint: "" },
-                              { id: "email",   label: "Email address",                     format: "email",    pattern: undefined,                        hint: "user@example.com" },
-                              { id: "url",     label: "Website URL",                       format: "uri",      pattern: undefined,                        hint: "https://example.com" },
-                              { id: "date",    label: "Date (YYYY-MM-DD)",                 format: "date",     pattern: undefined,                        hint: "2026-01-31" },
-                              { id: "time",    label: "Time (HH:MM)",                      format: "time",     pattern: undefined,                        hint: "14:30" },
-                              { id: "phone",   label: "Phone number",                      format: undefined,  pattern: "^\\+?[0-9 \\-()]{7,15}$",        hint: "+1 555 123 4567" },
-                              { id: "numbers", label: "Numbers only",                      format: undefined,  pattern: "^[0-9]+$",                       hint: "42, 100, 9999" },
-                              { id: "letters", label: "Letters only",                      format: undefined,  pattern: "^[A-Za-z]+$",                    hint: "John, Smith" },
-                              { id: "nospace", label: "No spaces allowed",                 format: undefined,  pattern: "^\\S+$",                         hint: "username123" },
-                              { id: "zip",     label: "Postal code / ZIP",                 format: undefined,  pattern: "^[0-9A-Z \\-]{3,10}$",          hint: "10001, SW1A" },
-                              { id: "upper",    label: "Must start with capital letter",    format: undefined,  pattern: "^[A-Z]",                                                           hint: "John, London" },
-                              { id: "password", label: "Password (strong)",                format: undefined,  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{8,}$",        hint: "Min 8 chars, at least one uppercase letter and one number" },
-                              { id: "custom",   label: "Custom pattern (advanced)",        format: undefined,  pattern: "__custom__",                                                        hint: "" },
+                              {
+                                id: "none",
+                                label: "No restriction — accept any text",
+                                format: undefined,
+                                pattern: undefined,
+                                hint: "",
+                              },
+                              {
+                                id: "email",
+                                label: "Email address",
+                                format: "email",
+                                pattern: undefined,
+                                hint: "user@example.com",
+                              },
+                              {
+                                id: "url",
+                                label: "Website URL",
+                                format: "uri",
+                                pattern: undefined,
+                                hint: "https://example.com",
+                              },
+                              {
+                                id: "date",
+                                label: "Date (YYYY-MM-DD)",
+                                format: "date",
+                                pattern: undefined,
+                                hint: "2026-01-31",
+                              },
+                              {
+                                id: "time",
+                                label: "Time (HH:MM)",
+                                format: "time",
+                                pattern: undefined,
+                                hint: "14:30",
+                              },
+                              {
+                                id: "phone",
+                                label: "Phone number",
+                                format: undefined,
+                                pattern: "^\\+?[0-9 \\-()]{7,15}$",
+                                hint: "+1 555 123 4567",
+                              },
+                              {
+                                id: "numbers",
+                                label: "Numbers only",
+                                format: undefined,
+                                pattern: "^[0-9]+$",
+                                hint: "42, 100, 9999",
+                              },
+                              {
+                                id: "letters",
+                                label: "Letters only",
+                                format: undefined,
+                                pattern: "^[A-Za-z]+$",
+                                hint: "John, Smith",
+                              },
+                              {
+                                id: "nospace",
+                                label: "No spaces allowed",
+                                format: undefined,
+                                pattern: "^\\S+$",
+                                hint: "username123",
+                              },
+                              {
+                                id: "zip",
+                                label: "Postal code / ZIP",
+                                format: undefined,
+                                pattern: "^[0-9A-Z \\-]{3,10}$",
+                                hint: "10001, SW1A",
+                              },
+                              {
+                                id: "upper",
+                                label: "Must start with capital letter",
+                                format: undefined,
+                                pattern: "^[A-Z]",
+                                hint: "John, London",
+                              },
+                              {
+                                id: "password",
+                                label: "Password (strong)",
+                                format: undefined,
+                                pattern:
+                                  "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d@$!%*?&]{8,}$",
+                                hint: "Min 8 chars, at least one uppercase letter and one number",
+                              },
+                              {
+                                id: "custom",
+                                label: "Custom pattern (advanced)",
+                                format: undefined,
+                                pattern: "__custom__",
+                                hint: "",
+                              },
                             ];
 
                             // Suggested min/max lengths per format preset
-                            const FORMAT_LENGTH_HINTS: Record<string, { min: number; max: number; reason: string }> = {
-                              email:    { min: 6,  max: 254, reason: "RFC 5321: 6–254 chars" },
-                              url:      { min: 10, max: 2048, reason: "Typical URL: 10–2048 chars" },
-                              date:     { min: 10, max: 10,  reason: "YYYY-MM-DD is always 10 chars" },
-                              time:     { min: 5,  max: 8,   reason: "HH:MM or HH:MM:SS" },
-                              phone:    { min: 7,  max: 15,  reason: "ITU-T E.164: 7–15 digits" },
-                              numbers:  { min: 1,  max: 20,  reason: "Numeric strings" },
-                              letters:  { min: 1,  max: 100, reason: "Alphabetic text" },
-                              nospace:  { min: 1,  max: 50,  reason: "Single token / username" },
-                              zip:      { min: 3,  max: 10,  reason: "Postal codes: 3–10 chars" },
-                              upper:    { min: 1,  max: 100, reason: "Capitalised text" },
-                              password: { min: 8,  max: 15, reason: "Strong password: 8–15 chars" },
+                            const FORMAT_LENGTH_HINTS: Record<
+                              string,
+                              { min: number; max: number; reason: string }
+                            > = {
+                              email: {
+                                min: 6,
+                                max: 254,
+                                reason: "RFC 5321: 6–254 chars",
+                              },
+                              url: {
+                                min: 10,
+                                max: 2048,
+                                reason: "Typical URL: 10–2048 chars",
+                              },
+                              date: {
+                                min: 10,
+                                max: 10,
+                                reason: "YYYY-MM-DD is always 10 chars",
+                              },
+                              time: {
+                                min: 5,
+                                max: 8,
+                                reason: "HH:MM or HH:MM:SS",
+                              },
+                              phone: {
+                                min: 7,
+                                max: 15,
+                                reason: "ITU-T E.164: 7–15 digits",
+                              },
+                              numbers: {
+                                min: 1,
+                                max: 20,
+                                reason: "Numeric strings",
+                              },
+                              letters: {
+                                min: 1,
+                                max: 100,
+                                reason: "Alphabetic text",
+                              },
+                              nospace: {
+                                min: 1,
+                                max: 50,
+                                reason: "Single token / username",
+                              },
+                              zip: {
+                                min: 3,
+                                max: 10,
+                                reason: "Postal codes: 3–10 chars",
+                              },
+                              upper: {
+                                min: 1,
+                                max: 100,
+                                reason: "Capitalised text",
+                              },
+                              password: {
+                                min: 8,
+                                max: 15,
+                                reason: "Strong password: 8–15 chars",
+                              },
                             };
 
-                            const isCustomActive = editField.pattern !== undefined && !FORMAT_PRESETS.some(
-                              (p) => p.id !== "custom" && p.id !== "none" && p.pattern === editField.pattern
-                            );
+                            const isCustomActive =
+                              editField.pattern !== undefined &&
+                              !FORMAT_PRESETS.some(
+                                (p) =>
+                                  p.id !== "custom" &&
+                                  p.id !== "none" &&
+                                  p.pattern === editField.pattern,
+                              );
 
-                            const activePreset = FORMAT_PRESETS.find((p) => {
-                              if (p.id === "none")   return editField.pattern === undefined && !editField.format;
-                              if (p.id === "custom") return isCustomActive;
-                              if (p.format)          return editField.format === p.format;
-                              return editField.pattern === p.pattern;
-                            }) ?? FORMAT_PRESETS[0];
+                            const activePreset =
+                              FORMAT_PRESETS.find((p) => {
+                                if (p.id === "none")
+                                  return (
+                                    editField.pattern === undefined &&
+                                    !editField.format
+                                  );
+                                if (p.id === "custom") return isCustomActive;
+                                if (p.format)
+                                  return editField.format === p.format;
+                                return editField.pattern === p.pattern;
+                              }) ?? FORMAT_PRESETS[0];
 
                             const selectValue = activePreset.id;
                             const lengthHint = FORMAT_LENGTH_HINTS[selectValue];
-                            const lengthSuggestNeeded = lengthHint &&
-                              (editField.minLength !== lengthHint.min || editField.maxLength !== lengthHint.max);
+                            const lengthSuggestNeeded =
+                              lengthHint &&
+                              (editField.minLength !== lengthHint.min ||
+                                editField.maxLength !== lengthHint.max);
 
                             return (
                               <div className="space-y-2">
@@ -2101,12 +2395,20 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                 <select
                                   value={selectValue}
                                   onChange={(e) => {
-                                    const chosen = FORMAT_PRESETS.find((p) => p.id === e.target.value);
+                                    const chosen = FORMAT_PRESETS.find(
+                                      (p) => p.id === e.target.value,
+                                    );
                                     if (!chosen) return;
                                     if (chosen.id === "none") {
-                                      updateField(editField.id, { pattern: undefined, format: undefined });
+                                      updateField(editField.id, {
+                                        pattern: undefined,
+                                        format: undefined,
+                                      });
                                     } else if (chosen.id === "custom") {
-                                      updateField(editField.id, { format: undefined, pattern: "" });
+                                      updateField(editField.id, {
+                                        format: undefined,
+                                        pattern: "",
+                                      });
                                     } else {
                                       updateField(editField.id, {
                                         format: chosen.format || undefined,
@@ -2117,14 +2419,19 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                   className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
                                 >
                                   {FORMAT_PRESETS.map((p) => (
-                                    <option key={p.id} value={p.id}>{p.label}</option>
+                                    <option key={p.id} value={p.id}>
+                                      {p.label}
+                                    </option>
                                   ))}
                                 </select>
 
                                 {/* Hint text for active preset */}
                                 {activePreset.hint && (
                                   <p className="text-[11px] text-neutral-400 dark:text-neutral-500">
-                                    Example: <span className="font-mono">{activePreset.hint}</span>
+                                    Example:{" "}
+                                    <span className="font-mono">
+                                      {activePreset.hint}
+                                    </span>
                                   </p>
                                 )}
 
@@ -2132,12 +2439,21 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                 {lengthHint && lengthSuggestNeeded && (
                                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
                                     <span className="text-[11px] text-emerald-700 dark:text-emerald-300 flex-1">
-                                      Suggested: min <strong>{lengthHint.min}</strong>, max <strong>{lengthHint.max}</strong>
-                                      <span className="text-emerald-500 dark:text-emerald-500 ml-1">— {lengthHint.reason}</span>
+                                      Suggested: min{" "}
+                                      <strong>{lengthHint.min}</strong>, max{" "}
+                                      <strong>{lengthHint.max}</strong>
+                                      <span className="text-emerald-500 dark:text-emerald-500 ml-1">
+                                        — {lengthHint.reason}
+                                      </span>
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => updateField(editField.id, { minLength: lengthHint.min, maxLength: lengthHint.max })}
+                                      onClick={() =>
+                                        updateField(editField.id, {
+                                          minLength: lengthHint.min,
+                                          maxLength: lengthHint.max,
+                                        })
+                                      }
                                       className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-colors flex-shrink-0"
                                     >
                                       Apply
@@ -2146,7 +2462,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                 )}
 
                                 {/* Custom pattern text input */}
-                                {(selectValue === "custom") && (
+                                {selectValue === "custom" && (
                                   <div className="space-y-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800">
                                     <label className="text-xs font-medium text-violet-700 dark:text-violet-300 block">
                                       Enter your regex pattern
@@ -2155,35 +2471,44 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                                       type="text"
                                       value={editField.pattern || ""}
                                       onChange={(e) =>
-                                        updateField(editField.id, { pattern: e.target.value || undefined })
+                                        updateField(editField.id, {
+                                          pattern: e.target.value || undefined,
+                                        })
                                       }
                                       className="w-full px-3 py-2 text-sm border border-violet-300 dark:border-violet-700 rounded-lg bg-white dark:bg-neutral-800 font-mono focus:outline-none focus:ring-2 focus:ring-violet-400"
                                       placeholder="e.g., ^[A-Z][a-z]+$"
                                       autoFocus
                                     />
                                     <p className="text-[10px] text-neutral-400 dark:text-neutral-500">
-                                      Only input matching this pattern will be accepted.
+                                      Only input matching this pattern will be
+                                      accepted.
                                     </p>
                                   </div>
                                 )}
 
                                 {/* Active rule tag */}
-                                {(editField.pattern || editField.format) && activePreset.id !== "none" && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-[10px] font-mono border border-violet-200 dark:border-violet-800">
-                                      {editField.format
-                                        ? `format: ${editField.format}`
-                                        : `pattern: ${editField.pattern}`}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => updateField(editField.id, { pattern: undefined, format: undefined })}
-                                      className="text-[10px] text-neutral-400 hover:text-red-500 transition-colors"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                )}
+                                {(editField.pattern || editField.format) &&
+                                  activePreset.id !== "none" && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-[10px] font-mono border border-violet-200 dark:border-violet-800">
+                                        {editField.format
+                                          ? `format: ${editField.format}`
+                                          : `pattern: ${editField.pattern}`}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updateField(editField.id, {
+                                            pattern: undefined,
+                                            format: undefined,
+                                          })
+                                        }
+                                        className="text-[10px] text-neutral-400 hover:text-red-500 transition-colors"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  )}
                               </div>
                             );
                           })()}
@@ -2205,12 +2530,17 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           </label>
                           <input
                             type="number"
-                            value={editField.minimum !== undefined ? editField.minimum : ""}
+                            value={
+                              editField.minimum !== undefined
+                                ? editField.minimum
+                                : ""
+                            }
                             onChange={(e) =>
                               updateField(editField.id, {
-                                minimum: e.target.value !== ""
-                                  ? Number(e.target.value)
-                                  : undefined,
+                                minimum:
+                                  e.target.value !== ""
+                                    ? Number(e.target.value)
+                                    : undefined,
                               })
                             }
                             className="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-violet-400"
@@ -2223,12 +2553,17 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           </label>
                           <input
                             type="number"
-                            value={editField.maximum !== undefined ? editField.maximum : ""}
+                            value={
+                              editField.maximum !== undefined
+                                ? editField.maximum
+                                : ""
+                            }
                             onChange={(e) =>
                               updateField(editField.id, {
-                                maximum: e.target.value !== ""
-                                  ? Number(e.target.value)
-                                  : undefined,
+                                maximum:
+                                  e.target.value !== ""
+                                    ? Number(e.target.value)
+                                    : undefined,
                               })
                             }
                             className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 ${
@@ -2245,10 +2580,19 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
                           editField.minimum !== undefined &&
                           editField.maximum < editField.minimum && (
                             <div className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-[11px]">
-                              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                              <svg
+                                className="w-3.5 h-3.5 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
-                              Maximum ({editField.maximum}) must be greater than minimum ({editField.minimum}).
+                              Maximum ({editField.maximum}) must be greater than
+                              minimum ({editField.minimum}).
                             </div>
                           )}
                       </div>

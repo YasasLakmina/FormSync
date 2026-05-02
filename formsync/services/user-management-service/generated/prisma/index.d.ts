@@ -28,6 +28,16 @@ export type Schema = $Result.DefaultSelection<Prisma.$SchemaPayload>
  * 
  */
 export type FormTemplate = $Result.DefaultSelection<Prisma.$FormTemplatePayload>
+/**
+ * Model SrsProject
+ * 
+ */
+export type SrsProject = $Result.DefaultSelection<Prisma.$SrsProjectPayload>
+/**
+ * Model UserStory
+ * 
+ */
+export type UserStory = $Result.DefaultSelection<Prisma.$UserStoryPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -181,6 +191,26 @@ export class PrismaClient<
     * ```
     */
   get formTemplate(): Prisma.FormTemplateDelegate<ExtArgs>;
+
+  /**
+   * `prisma.srsProject`: Exposes CRUD operations for the **SrsProject** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SrsProjects
+    * const srsProjects = await prisma.srsProject.findMany()
+    * ```
+    */
+  get srsProject(): Prisma.SrsProjectDelegate<ExtArgs>;
+
+  /**
+   * `prisma.userStory`: Exposes CRUD operations for the **UserStory** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserStories
+    * const userStories = await prisma.userStory.findMany()
+    * ```
+    */
+  get userStory(): Prisma.UserStoryDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -624,7 +654,9 @@ export namespace Prisma {
   export const ModelName: {
     User: 'User',
     Schema: 'Schema',
-    FormTemplate: 'FormTemplate'
+    FormTemplate: 'FormTemplate',
+    SrsProject: 'SrsProject',
+    UserStory: 'UserStory'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -640,7 +672,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "schema" | "formTemplate"
+      modelProps: "user" | "schema" | "formTemplate" | "srsProject" | "userStory"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -854,6 +886,146 @@ export namespace Prisma {
           }
         }
       }
+      SrsProject: {
+        payload: Prisma.$SrsProjectPayload<ExtArgs>
+        fields: Prisma.SrsProjectFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SrsProjectFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SrsProjectFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>
+          }
+          findFirst: {
+            args: Prisma.SrsProjectFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SrsProjectFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>
+          }
+          findMany: {
+            args: Prisma.SrsProjectFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>[]
+          }
+          create: {
+            args: Prisma.SrsProjectCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>
+          }
+          createMany: {
+            args: Prisma.SrsProjectCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SrsProjectCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>[]
+          }
+          delete: {
+            args: Prisma.SrsProjectDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>
+          }
+          update: {
+            args: Prisma.SrsProjectUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>
+          }
+          deleteMany: {
+            args: Prisma.SrsProjectDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SrsProjectUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SrsProjectUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SrsProjectPayload>
+          }
+          aggregate: {
+            args: Prisma.SrsProjectAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSrsProject>
+          }
+          groupBy: {
+            args: Prisma.SrsProjectGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SrsProjectGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SrsProjectCountArgs<ExtArgs>
+            result: $Utils.Optional<SrsProjectCountAggregateOutputType> | number
+          }
+        }
+      }
+      UserStory: {
+        payload: Prisma.$UserStoryPayload<ExtArgs>
+        fields: Prisma.UserStoryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserStoryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserStoryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>
+          }
+          findFirst: {
+            args: Prisma.UserStoryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserStoryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>
+          }
+          findMany: {
+            args: Prisma.UserStoryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>[]
+          }
+          create: {
+            args: Prisma.UserStoryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>
+          }
+          createMany: {
+            args: Prisma.UserStoryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserStoryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>[]
+          }
+          delete: {
+            args: Prisma.UserStoryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>
+          }
+          update: {
+            args: Prisma.UserStoryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>
+          }
+          deleteMany: {
+            args: Prisma.UserStoryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserStoryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.UserStoryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserStoryPayload>
+          }
+          aggregate: {
+            args: Prisma.UserStoryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserStory>
+          }
+          groupBy: {
+            args: Prisma.UserStoryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserStoryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserStoryCountArgs<ExtArgs>
+            result: $Utils.Optional<UserStoryCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1017,11 +1189,13 @@ export namespace Prisma {
   export type UserCountOutputType = {
     schemas: number
     templates: number
+    srsProjects: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     schemas?: boolean | UserCountOutputTypeCountSchemasArgs
     templates?: boolean | UserCountOutputTypeCountTemplatesArgs
+    srsProjects?: boolean | UserCountOutputTypeCountSrsProjectsArgs
   }
 
   // Custom InputTypes
@@ -1047,6 +1221,44 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountTemplatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FormTemplateWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountSrsProjectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SrsProjectWhereInput
+  }
+
+
+  /**
+   * Count Type SrsProjectCountOutputType
+   */
+
+  export type SrsProjectCountOutputType = {
+    userStories: number
+  }
+
+  export type SrsProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    userStories?: boolean | SrsProjectCountOutputTypeCountUserStoriesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * SrsProjectCountOutputType without action
+   */
+  export type SrsProjectCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProjectCountOutputType
+     */
+    select?: SrsProjectCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * SrsProjectCountOutputType without action
+   */
+  export type SrsProjectCountOutputTypeCountUserStoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserStoryWhereInput
   }
 
 
@@ -1228,6 +1440,7 @@ export namespace Prisma {
     updatedAt?: boolean
     schemas?: boolean | User$schemasArgs<ExtArgs>
     templates?: boolean | User$templatesArgs<ExtArgs>
+    srsProjects?: boolean | User$srsProjectsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -1252,6 +1465,7 @@ export namespace Prisma {
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     schemas?: boolean | User$schemasArgs<ExtArgs>
     templates?: boolean | User$templatesArgs<ExtArgs>
+    srsProjects?: boolean | User$srsProjectsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -1261,6 +1475,7 @@ export namespace Prisma {
     objects: {
       schemas: Prisma.$SchemaPayload<ExtArgs>[]
       templates: Prisma.$FormTemplatePayload<ExtArgs>[]
+      srsProjects: Prisma.$SrsProjectPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -1635,6 +1850,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     schemas<T extends User$schemasArgs<ExtArgs> = {}>(args?: Subset<T, User$schemasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SchemaPayload<ExtArgs>, T, "findMany"> | Null>
     templates<T extends User$templatesArgs<ExtArgs> = {}>(args?: Subset<T, User$templatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FormTemplatePayload<ExtArgs>, T, "findMany"> | Null>
+    srsProjects<T extends User$srsProjectsArgs<ExtArgs> = {}>(args?: Subset<T, User$srsProjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2021,6 +2237,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: FormTemplateScalarFieldEnum | FormTemplateScalarFieldEnum[]
+  }
+
+  /**
+   * User.srsProjects
+   */
+  export type User$srsProjectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    where?: SrsProjectWhereInput
+    orderBy?: SrsProjectOrderByWithRelationInput | SrsProjectOrderByWithRelationInput[]
+    cursor?: SrsProjectWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SrsProjectScalarFieldEnum | SrsProjectScalarFieldEnum[]
   }
 
   /**
@@ -4023,6 +4259,2056 @@ export namespace Prisma {
 
 
   /**
+   * Model SrsProject
+   */
+
+  export type AggregateSrsProject = {
+    _count: SrsProjectCountAggregateOutputType | null
+    _min: SrsProjectMinAggregateOutputType | null
+    _max: SrsProjectMaxAggregateOutputType | null
+  }
+
+  export type SrsProjectMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    userId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SrsProjectMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    userId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SrsProjectCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    userId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type SrsProjectMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    userId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SrsProjectMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    userId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SrsProjectCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    userId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type SrsProjectAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SrsProject to aggregate.
+     */
+    where?: SrsProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SrsProjects to fetch.
+     */
+    orderBy?: SrsProjectOrderByWithRelationInput | SrsProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SrsProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SrsProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SrsProjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SrsProjects
+    **/
+    _count?: true | SrsProjectCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SrsProjectMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SrsProjectMaxAggregateInputType
+  }
+
+  export type GetSrsProjectAggregateType<T extends SrsProjectAggregateArgs> = {
+        [P in keyof T & keyof AggregateSrsProject]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSrsProject[P]>
+      : GetScalarType<T[P], AggregateSrsProject[P]>
+  }
+
+
+
+
+  export type SrsProjectGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SrsProjectWhereInput
+    orderBy?: SrsProjectOrderByWithAggregationInput | SrsProjectOrderByWithAggregationInput[]
+    by: SrsProjectScalarFieldEnum[] | SrsProjectScalarFieldEnum
+    having?: SrsProjectScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SrsProjectCountAggregateInputType | true
+    _min?: SrsProjectMinAggregateInputType
+    _max?: SrsProjectMaxAggregateInputType
+  }
+
+  export type SrsProjectGroupByOutputType = {
+    id: string
+    name: string
+    description: string | null
+    userId: string
+    createdAt: Date
+    updatedAt: Date
+    _count: SrsProjectCountAggregateOutputType | null
+    _min: SrsProjectMinAggregateOutputType | null
+    _max: SrsProjectMaxAggregateOutputType | null
+  }
+
+  type GetSrsProjectGroupByPayload<T extends SrsProjectGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SrsProjectGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SrsProjectGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SrsProjectGroupByOutputType[P]>
+            : GetScalarType<T[P], SrsProjectGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SrsProjectSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    userId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    userStories?: boolean | SrsProject$userStoriesArgs<ExtArgs>
+    _count?: boolean | SrsProjectCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["srsProject"]>
+
+  export type SrsProjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    userId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["srsProject"]>
+
+  export type SrsProjectSelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    userId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type SrsProjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    userStories?: boolean | SrsProject$userStoriesArgs<ExtArgs>
+    _count?: boolean | SrsProjectCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type SrsProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $SrsProjectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SrsProject"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      userStories: Prisma.$UserStoryPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      description: string | null
+      userId: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["srsProject"]>
+    composites: {}
+  }
+
+  type SrsProjectGetPayload<S extends boolean | null | undefined | SrsProjectDefaultArgs> = $Result.GetResult<Prisma.$SrsProjectPayload, S>
+
+  type SrsProjectCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SrsProjectFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SrsProjectCountAggregateInputType | true
+    }
+
+  export interface SrsProjectDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SrsProject'], meta: { name: 'SrsProject' } }
+    /**
+     * Find zero or one SrsProject that matches the filter.
+     * @param {SrsProjectFindUniqueArgs} args - Arguments to find a SrsProject
+     * @example
+     * // Get one SrsProject
+     * const srsProject = await prisma.srsProject.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SrsProjectFindUniqueArgs>(args: SelectSubset<T, SrsProjectFindUniqueArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one SrsProject that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {SrsProjectFindUniqueOrThrowArgs} args - Arguments to find a SrsProject
+     * @example
+     * // Get one SrsProject
+     * const srsProject = await prisma.srsProject.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SrsProjectFindUniqueOrThrowArgs>(args: SelectSubset<T, SrsProjectFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first SrsProject that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectFindFirstArgs} args - Arguments to find a SrsProject
+     * @example
+     * // Get one SrsProject
+     * const srsProject = await prisma.srsProject.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SrsProjectFindFirstArgs>(args?: SelectSubset<T, SrsProjectFindFirstArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first SrsProject that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectFindFirstOrThrowArgs} args - Arguments to find a SrsProject
+     * @example
+     * // Get one SrsProject
+     * const srsProject = await prisma.srsProject.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SrsProjectFindFirstOrThrowArgs>(args?: SelectSubset<T, SrsProjectFindFirstOrThrowArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more SrsProjects that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SrsProjects
+     * const srsProjects = await prisma.srsProject.findMany()
+     * 
+     * // Get first 10 SrsProjects
+     * const srsProjects = await prisma.srsProject.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const srsProjectWithIdOnly = await prisma.srsProject.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SrsProjectFindManyArgs>(args?: SelectSubset<T, SrsProjectFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a SrsProject.
+     * @param {SrsProjectCreateArgs} args - Arguments to create a SrsProject.
+     * @example
+     * // Create one SrsProject
+     * const SrsProject = await prisma.srsProject.create({
+     *   data: {
+     *     // ... data to create a SrsProject
+     *   }
+     * })
+     * 
+     */
+    create<T extends SrsProjectCreateArgs>(args: SelectSubset<T, SrsProjectCreateArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many SrsProjects.
+     * @param {SrsProjectCreateManyArgs} args - Arguments to create many SrsProjects.
+     * @example
+     * // Create many SrsProjects
+     * const srsProject = await prisma.srsProject.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SrsProjectCreateManyArgs>(args?: SelectSubset<T, SrsProjectCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SrsProjects and returns the data saved in the database.
+     * @param {SrsProjectCreateManyAndReturnArgs} args - Arguments to create many SrsProjects.
+     * @example
+     * // Create many SrsProjects
+     * const srsProject = await prisma.srsProject.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SrsProjects and only return the `id`
+     * const srsProjectWithIdOnly = await prisma.srsProject.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SrsProjectCreateManyAndReturnArgs>(args?: SelectSubset<T, SrsProjectCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a SrsProject.
+     * @param {SrsProjectDeleteArgs} args - Arguments to delete one SrsProject.
+     * @example
+     * // Delete one SrsProject
+     * const SrsProject = await prisma.srsProject.delete({
+     *   where: {
+     *     // ... filter to delete one SrsProject
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SrsProjectDeleteArgs>(args: SelectSubset<T, SrsProjectDeleteArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one SrsProject.
+     * @param {SrsProjectUpdateArgs} args - Arguments to update one SrsProject.
+     * @example
+     * // Update one SrsProject
+     * const srsProject = await prisma.srsProject.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SrsProjectUpdateArgs>(args: SelectSubset<T, SrsProjectUpdateArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more SrsProjects.
+     * @param {SrsProjectDeleteManyArgs} args - Arguments to filter SrsProjects to delete.
+     * @example
+     * // Delete a few SrsProjects
+     * const { count } = await prisma.srsProject.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SrsProjectDeleteManyArgs>(args?: SelectSubset<T, SrsProjectDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SrsProjects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SrsProjects
+     * const srsProject = await prisma.srsProject.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SrsProjectUpdateManyArgs>(args: SelectSubset<T, SrsProjectUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one SrsProject.
+     * @param {SrsProjectUpsertArgs} args - Arguments to update or create a SrsProject.
+     * @example
+     * // Update or create a SrsProject
+     * const srsProject = await prisma.srsProject.upsert({
+     *   create: {
+     *     // ... data to create a SrsProject
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SrsProject we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SrsProjectUpsertArgs>(args: SelectSubset<T, SrsProjectUpsertArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of SrsProjects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectCountArgs} args - Arguments to filter SrsProjects to count.
+     * @example
+     * // Count the number of SrsProjects
+     * const count = await prisma.srsProject.count({
+     *   where: {
+     *     // ... the filter for the SrsProjects we want to count
+     *   }
+     * })
+    **/
+    count<T extends SrsProjectCountArgs>(
+      args?: Subset<T, SrsProjectCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SrsProjectCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SrsProject.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SrsProjectAggregateArgs>(args: Subset<T, SrsProjectAggregateArgs>): Prisma.PrismaPromise<GetSrsProjectAggregateType<T>>
+
+    /**
+     * Group by SrsProject.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SrsProjectGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SrsProjectGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SrsProjectGroupByArgs['orderBy'] }
+        : { orderBy?: SrsProjectGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SrsProjectGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSrsProjectGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SrsProject model
+   */
+  readonly fields: SrsProjectFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SrsProject.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SrsProjectClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    userStories<T extends SrsProject$userStoriesArgs<ExtArgs> = {}>(args?: Subset<T, SrsProject$userStoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SrsProject model
+   */ 
+  interface SrsProjectFieldRefs {
+    readonly id: FieldRef<"SrsProject", 'String'>
+    readonly name: FieldRef<"SrsProject", 'String'>
+    readonly description: FieldRef<"SrsProject", 'String'>
+    readonly userId: FieldRef<"SrsProject", 'String'>
+    readonly createdAt: FieldRef<"SrsProject", 'DateTime'>
+    readonly updatedAt: FieldRef<"SrsProject", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SrsProject findUnique
+   */
+  export type SrsProjectFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * Filter, which SrsProject to fetch.
+     */
+    where: SrsProjectWhereUniqueInput
+  }
+
+  /**
+   * SrsProject findUniqueOrThrow
+   */
+  export type SrsProjectFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * Filter, which SrsProject to fetch.
+     */
+    where: SrsProjectWhereUniqueInput
+  }
+
+  /**
+   * SrsProject findFirst
+   */
+  export type SrsProjectFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * Filter, which SrsProject to fetch.
+     */
+    where?: SrsProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SrsProjects to fetch.
+     */
+    orderBy?: SrsProjectOrderByWithRelationInput | SrsProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SrsProjects.
+     */
+    cursor?: SrsProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SrsProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SrsProjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SrsProjects.
+     */
+    distinct?: SrsProjectScalarFieldEnum | SrsProjectScalarFieldEnum[]
+  }
+
+  /**
+   * SrsProject findFirstOrThrow
+   */
+  export type SrsProjectFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * Filter, which SrsProject to fetch.
+     */
+    where?: SrsProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SrsProjects to fetch.
+     */
+    orderBy?: SrsProjectOrderByWithRelationInput | SrsProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SrsProjects.
+     */
+    cursor?: SrsProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SrsProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SrsProjects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SrsProjects.
+     */
+    distinct?: SrsProjectScalarFieldEnum | SrsProjectScalarFieldEnum[]
+  }
+
+  /**
+   * SrsProject findMany
+   */
+  export type SrsProjectFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * Filter, which SrsProjects to fetch.
+     */
+    where?: SrsProjectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SrsProjects to fetch.
+     */
+    orderBy?: SrsProjectOrderByWithRelationInput | SrsProjectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SrsProjects.
+     */
+    cursor?: SrsProjectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SrsProjects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SrsProjects.
+     */
+    skip?: number
+    distinct?: SrsProjectScalarFieldEnum | SrsProjectScalarFieldEnum[]
+  }
+
+  /**
+   * SrsProject create
+   */
+  export type SrsProjectCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * The data needed to create a SrsProject.
+     */
+    data: XOR<SrsProjectCreateInput, SrsProjectUncheckedCreateInput>
+  }
+
+  /**
+   * SrsProject createMany
+   */
+  export type SrsProjectCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SrsProjects.
+     */
+    data: SrsProjectCreateManyInput | SrsProjectCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SrsProject createManyAndReturn
+   */
+  export type SrsProjectCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many SrsProjects.
+     */
+    data: SrsProjectCreateManyInput | SrsProjectCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * SrsProject update
+   */
+  export type SrsProjectUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * The data needed to update a SrsProject.
+     */
+    data: XOR<SrsProjectUpdateInput, SrsProjectUncheckedUpdateInput>
+    /**
+     * Choose, which SrsProject to update.
+     */
+    where: SrsProjectWhereUniqueInput
+  }
+
+  /**
+   * SrsProject updateMany
+   */
+  export type SrsProjectUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SrsProjects.
+     */
+    data: XOR<SrsProjectUpdateManyMutationInput, SrsProjectUncheckedUpdateManyInput>
+    /**
+     * Filter which SrsProjects to update
+     */
+    where?: SrsProjectWhereInput
+  }
+
+  /**
+   * SrsProject upsert
+   */
+  export type SrsProjectUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * The filter to search for the SrsProject to update in case it exists.
+     */
+    where: SrsProjectWhereUniqueInput
+    /**
+     * In case the SrsProject found by the `where` argument doesn't exist, create a new SrsProject with this data.
+     */
+    create: XOR<SrsProjectCreateInput, SrsProjectUncheckedCreateInput>
+    /**
+     * In case the SrsProject was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SrsProjectUpdateInput, SrsProjectUncheckedUpdateInput>
+  }
+
+  /**
+   * SrsProject delete
+   */
+  export type SrsProjectDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+    /**
+     * Filter which SrsProject to delete.
+     */
+    where: SrsProjectWhereUniqueInput
+  }
+
+  /**
+   * SrsProject deleteMany
+   */
+  export type SrsProjectDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SrsProjects to delete
+     */
+    where?: SrsProjectWhereInput
+  }
+
+  /**
+   * SrsProject.userStories
+   */
+  export type SrsProject$userStoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    where?: UserStoryWhereInput
+    orderBy?: UserStoryOrderByWithRelationInput | UserStoryOrderByWithRelationInput[]
+    cursor?: UserStoryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserStoryScalarFieldEnum | UserStoryScalarFieldEnum[]
+  }
+
+  /**
+   * SrsProject without action
+   */
+  export type SrsProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SrsProject
+     */
+    select?: SrsProjectSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SrsProjectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UserStory
+   */
+
+  export type AggregateUserStory = {
+    _count: UserStoryCountAggregateOutputType | null
+    _avg: UserStoryAvgAggregateOutputType | null
+    _sum: UserStorySumAggregateOutputType | null
+    _min: UserStoryMinAggregateOutputType | null
+    _max: UserStoryMaxAggregateOutputType | null
+  }
+
+  export type UserStoryAvgAggregateOutputType = {
+    confidence: number | null
+  }
+
+  export type UserStorySumAggregateOutputType = {
+    confidence: number | null
+  }
+
+  export type UserStoryMinAggregateOutputType = {
+    id: string | null
+    title: string | null
+    role: string | null
+    action: string | null
+    benefit: string | null
+    featureArea: string | null
+    confidence: number | null
+    status: string | null
+    generatedSchemaId: string | null
+    rawText: string | null
+    projectId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UserStoryMaxAggregateOutputType = {
+    id: string | null
+    title: string | null
+    role: string | null
+    action: string | null
+    benefit: string | null
+    featureArea: string | null
+    confidence: number | null
+    status: string | null
+    generatedSchemaId: string | null
+    rawText: string | null
+    projectId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UserStoryCountAggregateOutputType = {
+    id: number
+    title: number
+    role: number
+    action: number
+    benefit: number
+    acceptanceCriteria: number
+    suggestedFields: number
+    featureArea: number
+    confidence: number
+    status: number
+    generatedSchemaId: number
+    rawText: number
+    projectId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type UserStoryAvgAggregateInputType = {
+    confidence?: true
+  }
+
+  export type UserStorySumAggregateInputType = {
+    confidence?: true
+  }
+
+  export type UserStoryMinAggregateInputType = {
+    id?: true
+    title?: true
+    role?: true
+    action?: true
+    benefit?: true
+    featureArea?: true
+    confidence?: true
+    status?: true
+    generatedSchemaId?: true
+    rawText?: true
+    projectId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UserStoryMaxAggregateInputType = {
+    id?: true
+    title?: true
+    role?: true
+    action?: true
+    benefit?: true
+    featureArea?: true
+    confidence?: true
+    status?: true
+    generatedSchemaId?: true
+    rawText?: true
+    projectId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UserStoryCountAggregateInputType = {
+    id?: true
+    title?: true
+    role?: true
+    action?: true
+    benefit?: true
+    acceptanceCriteria?: true
+    suggestedFields?: true
+    featureArea?: true
+    confidence?: true
+    status?: true
+    generatedSchemaId?: true
+    rawText?: true
+    projectId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type UserStoryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserStory to aggregate.
+     */
+    where?: UserStoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserStories to fetch.
+     */
+    orderBy?: UserStoryOrderByWithRelationInput | UserStoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserStoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserStories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserStories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserStories
+    **/
+    _count?: true | UserStoryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: UserStoryAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UserStorySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserStoryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserStoryMaxAggregateInputType
+  }
+
+  export type GetUserStoryAggregateType<T extends UserStoryAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserStory]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserStory[P]>
+      : GetScalarType<T[P], AggregateUserStory[P]>
+  }
+
+
+
+
+  export type UserStoryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserStoryWhereInput
+    orderBy?: UserStoryOrderByWithAggregationInput | UserStoryOrderByWithAggregationInput[]
+    by: UserStoryScalarFieldEnum[] | UserStoryScalarFieldEnum
+    having?: UserStoryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserStoryCountAggregateInputType | true
+    _avg?: UserStoryAvgAggregateInputType
+    _sum?: UserStorySumAggregateInputType
+    _min?: UserStoryMinAggregateInputType
+    _max?: UserStoryMaxAggregateInputType
+  }
+
+  export type UserStoryGroupByOutputType = {
+    id: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria: string[]
+    suggestedFields: JsonValue
+    featureArea: string
+    confidence: number
+    status: string
+    generatedSchemaId: string | null
+    rawText: string
+    projectId: string
+    createdAt: Date
+    updatedAt: Date
+    _count: UserStoryCountAggregateOutputType | null
+    _avg: UserStoryAvgAggregateOutputType | null
+    _sum: UserStorySumAggregateOutputType | null
+    _min: UserStoryMinAggregateOutputType | null
+    _max: UserStoryMaxAggregateOutputType | null
+  }
+
+  type GetUserStoryGroupByPayload<T extends UserStoryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserStoryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserStoryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserStoryGroupByOutputType[P]>
+            : GetScalarType<T[P], UserStoryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserStorySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    role?: boolean
+    action?: boolean
+    benefit?: boolean
+    acceptanceCriteria?: boolean
+    suggestedFields?: boolean
+    featureArea?: boolean
+    confidence?: boolean
+    status?: boolean
+    generatedSchemaId?: boolean
+    rawText?: boolean
+    projectId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | SrsProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["userStory"]>
+
+  export type UserStorySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    role?: boolean
+    action?: boolean
+    benefit?: boolean
+    acceptanceCriteria?: boolean
+    suggestedFields?: boolean
+    featureArea?: boolean
+    confidence?: boolean
+    status?: boolean
+    generatedSchemaId?: boolean
+    rawText?: boolean
+    projectId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | SrsProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["userStory"]>
+
+  export type UserStorySelectScalar = {
+    id?: boolean
+    title?: boolean
+    role?: boolean
+    action?: boolean
+    benefit?: boolean
+    acceptanceCriteria?: boolean
+    suggestedFields?: boolean
+    featureArea?: boolean
+    confidence?: boolean
+    status?: boolean
+    generatedSchemaId?: boolean
+    rawText?: boolean
+    projectId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type UserStoryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | SrsProjectDefaultArgs<ExtArgs>
+  }
+  export type UserStoryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | SrsProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $UserStoryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserStory"
+    objects: {
+      project: Prisma.$SrsProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      title: string
+      role: string
+      action: string
+      benefit: string
+      acceptanceCriteria: string[]
+      suggestedFields: Prisma.JsonValue
+      featureArea: string
+      confidence: number
+      status: string
+      generatedSchemaId: string | null
+      rawText: string
+      projectId: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["userStory"]>
+    composites: {}
+  }
+
+  type UserStoryGetPayload<S extends boolean | null | undefined | UserStoryDefaultArgs> = $Result.GetResult<Prisma.$UserStoryPayload, S>
+
+  type UserStoryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<UserStoryFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: UserStoryCountAggregateInputType | true
+    }
+
+  export interface UserStoryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserStory'], meta: { name: 'UserStory' } }
+    /**
+     * Find zero or one UserStory that matches the filter.
+     * @param {UserStoryFindUniqueArgs} args - Arguments to find a UserStory
+     * @example
+     * // Get one UserStory
+     * const userStory = await prisma.userStory.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserStoryFindUniqueArgs>(args: SelectSubset<T, UserStoryFindUniqueArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one UserStory that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {UserStoryFindUniqueOrThrowArgs} args - Arguments to find a UserStory
+     * @example
+     * // Get one UserStory
+     * const userStory = await prisma.userStory.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserStoryFindUniqueOrThrowArgs>(args: SelectSubset<T, UserStoryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first UserStory that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryFindFirstArgs} args - Arguments to find a UserStory
+     * @example
+     * // Get one UserStory
+     * const userStory = await prisma.userStory.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserStoryFindFirstArgs>(args?: SelectSubset<T, UserStoryFindFirstArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first UserStory that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryFindFirstOrThrowArgs} args - Arguments to find a UserStory
+     * @example
+     * // Get one UserStory
+     * const userStory = await prisma.userStory.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserStoryFindFirstOrThrowArgs>(args?: SelectSubset<T, UserStoryFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more UserStories that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserStories
+     * const userStories = await prisma.userStory.findMany()
+     * 
+     * // Get first 10 UserStories
+     * const userStories = await prisma.userStory.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const userStoryWithIdOnly = await prisma.userStory.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UserStoryFindManyArgs>(args?: SelectSubset<T, UserStoryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a UserStory.
+     * @param {UserStoryCreateArgs} args - Arguments to create a UserStory.
+     * @example
+     * // Create one UserStory
+     * const UserStory = await prisma.userStory.create({
+     *   data: {
+     *     // ... data to create a UserStory
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserStoryCreateArgs>(args: SelectSubset<T, UserStoryCreateArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many UserStories.
+     * @param {UserStoryCreateManyArgs} args - Arguments to create many UserStories.
+     * @example
+     * // Create many UserStories
+     * const userStory = await prisma.userStory.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserStoryCreateManyArgs>(args?: SelectSubset<T, UserStoryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserStories and returns the data saved in the database.
+     * @param {UserStoryCreateManyAndReturnArgs} args - Arguments to create many UserStories.
+     * @example
+     * // Create many UserStories
+     * const userStory = await prisma.userStory.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserStories and only return the `id`
+     * const userStoryWithIdOnly = await prisma.userStory.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserStoryCreateManyAndReturnArgs>(args?: SelectSubset<T, UserStoryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a UserStory.
+     * @param {UserStoryDeleteArgs} args - Arguments to delete one UserStory.
+     * @example
+     * // Delete one UserStory
+     * const UserStory = await prisma.userStory.delete({
+     *   where: {
+     *     // ... filter to delete one UserStory
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserStoryDeleteArgs>(args: SelectSubset<T, UserStoryDeleteArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one UserStory.
+     * @param {UserStoryUpdateArgs} args - Arguments to update one UserStory.
+     * @example
+     * // Update one UserStory
+     * const userStory = await prisma.userStory.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserStoryUpdateArgs>(args: SelectSubset<T, UserStoryUpdateArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more UserStories.
+     * @param {UserStoryDeleteManyArgs} args - Arguments to filter UserStories to delete.
+     * @example
+     * // Delete a few UserStories
+     * const { count } = await prisma.userStory.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserStoryDeleteManyArgs>(args?: SelectSubset<T, UserStoryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserStories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserStories
+     * const userStory = await prisma.userStory.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserStoryUpdateManyArgs>(args: SelectSubset<T, UserStoryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one UserStory.
+     * @param {UserStoryUpsertArgs} args - Arguments to update or create a UserStory.
+     * @example
+     * // Update or create a UserStory
+     * const userStory = await prisma.userStory.upsert({
+     *   create: {
+     *     // ... data to create a UserStory
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserStory we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserStoryUpsertArgs>(args: SelectSubset<T, UserStoryUpsertArgs<ExtArgs>>): Prisma__UserStoryClient<$Result.GetResult<Prisma.$UserStoryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of UserStories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryCountArgs} args - Arguments to filter UserStories to count.
+     * @example
+     * // Count the number of UserStories
+     * const count = await prisma.userStory.count({
+     *   where: {
+     *     // ... the filter for the UserStories we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserStoryCountArgs>(
+      args?: Subset<T, UserStoryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserStoryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserStory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserStoryAggregateArgs>(args: Subset<T, UserStoryAggregateArgs>): Prisma.PrismaPromise<GetUserStoryAggregateType<T>>
+
+    /**
+     * Group by UserStory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserStoryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserStoryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserStoryGroupByArgs['orderBy'] }
+        : { orderBy?: UserStoryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserStoryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserStoryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserStory model
+   */
+  readonly fields: UserStoryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserStory.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserStoryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends SrsProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SrsProjectDefaultArgs<ExtArgs>>): Prisma__SrsProjectClient<$Result.GetResult<Prisma.$SrsProjectPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserStory model
+   */ 
+  interface UserStoryFieldRefs {
+    readonly id: FieldRef<"UserStory", 'String'>
+    readonly title: FieldRef<"UserStory", 'String'>
+    readonly role: FieldRef<"UserStory", 'String'>
+    readonly action: FieldRef<"UserStory", 'String'>
+    readonly benefit: FieldRef<"UserStory", 'String'>
+    readonly acceptanceCriteria: FieldRef<"UserStory", 'String[]'>
+    readonly suggestedFields: FieldRef<"UserStory", 'Json'>
+    readonly featureArea: FieldRef<"UserStory", 'String'>
+    readonly confidence: FieldRef<"UserStory", 'Float'>
+    readonly status: FieldRef<"UserStory", 'String'>
+    readonly generatedSchemaId: FieldRef<"UserStory", 'String'>
+    readonly rawText: FieldRef<"UserStory", 'String'>
+    readonly projectId: FieldRef<"UserStory", 'String'>
+    readonly createdAt: FieldRef<"UserStory", 'DateTime'>
+    readonly updatedAt: FieldRef<"UserStory", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserStory findUnique
+   */
+  export type UserStoryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * Filter, which UserStory to fetch.
+     */
+    where: UserStoryWhereUniqueInput
+  }
+
+  /**
+   * UserStory findUniqueOrThrow
+   */
+  export type UserStoryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * Filter, which UserStory to fetch.
+     */
+    where: UserStoryWhereUniqueInput
+  }
+
+  /**
+   * UserStory findFirst
+   */
+  export type UserStoryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * Filter, which UserStory to fetch.
+     */
+    where?: UserStoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserStories to fetch.
+     */
+    orderBy?: UserStoryOrderByWithRelationInput | UserStoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserStories.
+     */
+    cursor?: UserStoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserStories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserStories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserStories.
+     */
+    distinct?: UserStoryScalarFieldEnum | UserStoryScalarFieldEnum[]
+  }
+
+  /**
+   * UserStory findFirstOrThrow
+   */
+  export type UserStoryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * Filter, which UserStory to fetch.
+     */
+    where?: UserStoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserStories to fetch.
+     */
+    orderBy?: UserStoryOrderByWithRelationInput | UserStoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserStories.
+     */
+    cursor?: UserStoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserStories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserStories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserStories.
+     */
+    distinct?: UserStoryScalarFieldEnum | UserStoryScalarFieldEnum[]
+  }
+
+  /**
+   * UserStory findMany
+   */
+  export type UserStoryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * Filter, which UserStories to fetch.
+     */
+    where?: UserStoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserStories to fetch.
+     */
+    orderBy?: UserStoryOrderByWithRelationInput | UserStoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserStories.
+     */
+    cursor?: UserStoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserStories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserStories.
+     */
+    skip?: number
+    distinct?: UserStoryScalarFieldEnum | UserStoryScalarFieldEnum[]
+  }
+
+  /**
+   * UserStory create
+   */
+  export type UserStoryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a UserStory.
+     */
+    data: XOR<UserStoryCreateInput, UserStoryUncheckedCreateInput>
+  }
+
+  /**
+   * UserStory createMany
+   */
+  export type UserStoryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserStories.
+     */
+    data: UserStoryCreateManyInput | UserStoryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserStory createManyAndReturn
+   */
+  export type UserStoryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many UserStories.
+     */
+    data: UserStoryCreateManyInput | UserStoryCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * UserStory update
+   */
+  export type UserStoryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a UserStory.
+     */
+    data: XOR<UserStoryUpdateInput, UserStoryUncheckedUpdateInput>
+    /**
+     * Choose, which UserStory to update.
+     */
+    where: UserStoryWhereUniqueInput
+  }
+
+  /**
+   * UserStory updateMany
+   */
+  export type UserStoryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserStories.
+     */
+    data: XOR<UserStoryUpdateManyMutationInput, UserStoryUncheckedUpdateManyInput>
+    /**
+     * Filter which UserStories to update
+     */
+    where?: UserStoryWhereInput
+  }
+
+  /**
+   * UserStory upsert
+   */
+  export type UserStoryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the UserStory to update in case it exists.
+     */
+    where: UserStoryWhereUniqueInput
+    /**
+     * In case the UserStory found by the `where` argument doesn't exist, create a new UserStory with this data.
+     */
+    create: XOR<UserStoryCreateInput, UserStoryUncheckedCreateInput>
+    /**
+     * In case the UserStory was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserStoryUpdateInput, UserStoryUncheckedUpdateInput>
+  }
+
+  /**
+   * UserStory delete
+   */
+  export type UserStoryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+    /**
+     * Filter which UserStory to delete.
+     */
+    where: UserStoryWhereUniqueInput
+  }
+
+  /**
+   * UserStory deleteMany
+   */
+  export type UserStoryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserStories to delete
+     */
+    where?: UserStoryWhereInput
+  }
+
+  /**
+   * UserStory without action
+   */
+  export type UserStoryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserStory
+     */
+    select?: UserStorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserStoryInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -4076,6 +6362,39 @@ export namespace Prisma {
   };
 
   export type FormTemplateScalarFieldEnum = (typeof FormTemplateScalarFieldEnum)[keyof typeof FormTemplateScalarFieldEnum]
+
+
+  export const SrsProjectScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    userId: 'userId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type SrsProjectScalarFieldEnum = (typeof SrsProjectScalarFieldEnum)[keyof typeof SrsProjectScalarFieldEnum]
+
+
+  export const UserStoryScalarFieldEnum: {
+    id: 'id',
+    title: 'title',
+    role: 'role',
+    action: 'action',
+    benefit: 'benefit',
+    acceptanceCriteria: 'acceptanceCriteria',
+    suggestedFields: 'suggestedFields',
+    featureArea: 'featureArea',
+    confidence: 'confidence',
+    status: 'status',
+    generatedSchemaId: 'generatedSchemaId',
+    rawText: 'rawText',
+    projectId: 'projectId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type UserStoryScalarFieldEnum = (typeof UserStoryScalarFieldEnum)[keyof typeof UserStoryScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -4201,6 +6520,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"User"> | Date | string
     schemas?: SchemaListRelationFilter
     templates?: FormTemplateListRelationFilter
+    srsProjects?: SrsProjectListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -4212,6 +6532,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     schemas?: SchemaOrderByRelationAggregateInput
     templates?: FormTemplateOrderByRelationAggregateInput
+    srsProjects?: SrsProjectOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -4226,6 +6547,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"User"> | Date | string
     schemas?: SchemaListRelationFilter
     templates?: FormTemplateListRelationFilter
+    srsProjects?: SrsProjectListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -4404,6 +6726,176 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"FormTemplate"> | Date | string
   }
 
+  export type SrsProjectWhereInput = {
+    AND?: SrsProjectWhereInput | SrsProjectWhereInput[]
+    OR?: SrsProjectWhereInput[]
+    NOT?: SrsProjectWhereInput | SrsProjectWhereInput[]
+    id?: StringFilter<"SrsProject"> | string
+    name?: StringFilter<"SrsProject"> | string
+    description?: StringNullableFilter<"SrsProject"> | string | null
+    userId?: StringFilter<"SrsProject"> | string
+    createdAt?: DateTimeFilter<"SrsProject"> | Date | string
+    updatedAt?: DateTimeFilter<"SrsProject"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+    userStories?: UserStoryListRelationFilter
+  }
+
+  export type SrsProjectOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+    userStories?: UserStoryOrderByRelationAggregateInput
+  }
+
+  export type SrsProjectWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SrsProjectWhereInput | SrsProjectWhereInput[]
+    OR?: SrsProjectWhereInput[]
+    NOT?: SrsProjectWhereInput | SrsProjectWhereInput[]
+    name?: StringFilter<"SrsProject"> | string
+    description?: StringNullableFilter<"SrsProject"> | string | null
+    userId?: StringFilter<"SrsProject"> | string
+    createdAt?: DateTimeFilter<"SrsProject"> | Date | string
+    updatedAt?: DateTimeFilter<"SrsProject"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+    userStories?: UserStoryListRelationFilter
+  }, "id">
+
+  export type SrsProjectOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: SrsProjectCountOrderByAggregateInput
+    _max?: SrsProjectMaxOrderByAggregateInput
+    _min?: SrsProjectMinOrderByAggregateInput
+  }
+
+  export type SrsProjectScalarWhereWithAggregatesInput = {
+    AND?: SrsProjectScalarWhereWithAggregatesInput | SrsProjectScalarWhereWithAggregatesInput[]
+    OR?: SrsProjectScalarWhereWithAggregatesInput[]
+    NOT?: SrsProjectScalarWhereWithAggregatesInput | SrsProjectScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SrsProject"> | string
+    name?: StringWithAggregatesFilter<"SrsProject"> | string
+    description?: StringNullableWithAggregatesFilter<"SrsProject"> | string | null
+    userId?: StringWithAggregatesFilter<"SrsProject"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"SrsProject"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"SrsProject"> | Date | string
+  }
+
+  export type UserStoryWhereInput = {
+    AND?: UserStoryWhereInput | UserStoryWhereInput[]
+    OR?: UserStoryWhereInput[]
+    NOT?: UserStoryWhereInput | UserStoryWhereInput[]
+    id?: StringFilter<"UserStory"> | string
+    title?: StringFilter<"UserStory"> | string
+    role?: StringFilter<"UserStory"> | string
+    action?: StringFilter<"UserStory"> | string
+    benefit?: StringFilter<"UserStory"> | string
+    acceptanceCriteria?: StringNullableListFilter<"UserStory">
+    suggestedFields?: JsonFilter<"UserStory">
+    featureArea?: StringFilter<"UserStory"> | string
+    confidence?: FloatFilter<"UserStory"> | number
+    status?: StringFilter<"UserStory"> | string
+    generatedSchemaId?: StringNullableFilter<"UserStory"> | string | null
+    rawText?: StringFilter<"UserStory"> | string
+    projectId?: StringFilter<"UserStory"> | string
+    createdAt?: DateTimeFilter<"UserStory"> | Date | string
+    updatedAt?: DateTimeFilter<"UserStory"> | Date | string
+    project?: XOR<SrsProjectRelationFilter, SrsProjectWhereInput>
+  }
+
+  export type UserStoryOrderByWithRelationInput = {
+    id?: SortOrder
+    title?: SortOrder
+    role?: SortOrder
+    action?: SortOrder
+    benefit?: SortOrder
+    acceptanceCriteria?: SortOrder
+    suggestedFields?: SortOrder
+    featureArea?: SortOrder
+    confidence?: SortOrder
+    status?: SortOrder
+    generatedSchemaId?: SortOrderInput | SortOrder
+    rawText?: SortOrder
+    projectId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: SrsProjectOrderByWithRelationInput
+  }
+
+  export type UserStoryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: UserStoryWhereInput | UserStoryWhereInput[]
+    OR?: UserStoryWhereInput[]
+    NOT?: UserStoryWhereInput | UserStoryWhereInput[]
+    title?: StringFilter<"UserStory"> | string
+    role?: StringFilter<"UserStory"> | string
+    action?: StringFilter<"UserStory"> | string
+    benefit?: StringFilter<"UserStory"> | string
+    acceptanceCriteria?: StringNullableListFilter<"UserStory">
+    suggestedFields?: JsonFilter<"UserStory">
+    featureArea?: StringFilter<"UserStory"> | string
+    confidence?: FloatFilter<"UserStory"> | number
+    status?: StringFilter<"UserStory"> | string
+    generatedSchemaId?: StringNullableFilter<"UserStory"> | string | null
+    rawText?: StringFilter<"UserStory"> | string
+    projectId?: StringFilter<"UserStory"> | string
+    createdAt?: DateTimeFilter<"UserStory"> | Date | string
+    updatedAt?: DateTimeFilter<"UserStory"> | Date | string
+    project?: XOR<SrsProjectRelationFilter, SrsProjectWhereInput>
+  }, "id">
+
+  export type UserStoryOrderByWithAggregationInput = {
+    id?: SortOrder
+    title?: SortOrder
+    role?: SortOrder
+    action?: SortOrder
+    benefit?: SortOrder
+    acceptanceCriteria?: SortOrder
+    suggestedFields?: SortOrder
+    featureArea?: SortOrder
+    confidence?: SortOrder
+    status?: SortOrder
+    generatedSchemaId?: SortOrderInput | SortOrder
+    rawText?: SortOrder
+    projectId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: UserStoryCountOrderByAggregateInput
+    _avg?: UserStoryAvgOrderByAggregateInput
+    _max?: UserStoryMaxOrderByAggregateInput
+    _min?: UserStoryMinOrderByAggregateInput
+    _sum?: UserStorySumOrderByAggregateInput
+  }
+
+  export type UserStoryScalarWhereWithAggregatesInput = {
+    AND?: UserStoryScalarWhereWithAggregatesInput | UserStoryScalarWhereWithAggregatesInput[]
+    OR?: UserStoryScalarWhereWithAggregatesInput[]
+    NOT?: UserStoryScalarWhereWithAggregatesInput | UserStoryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"UserStory"> | string
+    title?: StringWithAggregatesFilter<"UserStory"> | string
+    role?: StringWithAggregatesFilter<"UserStory"> | string
+    action?: StringWithAggregatesFilter<"UserStory"> | string
+    benefit?: StringWithAggregatesFilter<"UserStory"> | string
+    acceptanceCriteria?: StringNullableListFilter<"UserStory">
+    suggestedFields?: JsonWithAggregatesFilter<"UserStory">
+    featureArea?: StringWithAggregatesFilter<"UserStory"> | string
+    confidence?: FloatWithAggregatesFilter<"UserStory"> | number
+    status?: StringWithAggregatesFilter<"UserStory"> | string
+    generatedSchemaId?: StringNullableWithAggregatesFilter<"UserStory"> | string | null
+    rawText?: StringWithAggregatesFilter<"UserStory"> | string
+    projectId?: StringWithAggregatesFilter<"UserStory"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"UserStory"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"UserStory"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -4413,6 +6905,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     schemas?: SchemaCreateNestedManyWithoutUserInput
     templates?: FormTemplateCreateNestedManyWithoutUserInput
+    srsProjects?: SrsProjectCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -4424,6 +6917,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     schemas?: SchemaUncheckedCreateNestedManyWithoutUserInput
     templates?: FormTemplateUncheckedCreateNestedManyWithoutUserInput
+    srsProjects?: SrsProjectUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -4435,6 +6929,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     schemas?: SchemaUpdateManyWithoutUserNestedInput
     templates?: FormTemplateUpdateManyWithoutUserNestedInput
+    srsProjects?: SrsProjectUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -4446,6 +6941,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     schemas?: SchemaUncheckedUpdateManyWithoutUserNestedInput
     templates?: FormTemplateUncheckedUpdateManyWithoutUserNestedInput
+    srsProjects?: SrsProjectUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -4641,6 +7137,197 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SrsProjectCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutSrsProjectsInput
+    userStories?: UserStoryCreateNestedManyWithoutProjectInput
+  }
+
+  export type SrsProjectUncheckedCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    userId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userStories?: UserStoryUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type SrsProjectUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutSrsProjectsNestedInput
+    userStories?: UserStoryUpdateManyWithoutProjectNestedInput
+  }
+
+  export type SrsProjectUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userStories?: UserStoryUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type SrsProjectCreateManyInput = {
+    id?: string
+    name: string
+    description?: string | null
+    userId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SrsProjectUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SrsProjectUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserStoryCreateInput = {
+    id?: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria?: UserStoryCreateacceptanceCriteriaInput | string[]
+    suggestedFields: JsonNullValueInput | InputJsonValue
+    featureArea?: string
+    confidence?: number
+    status?: string
+    generatedSchemaId?: string | null
+    rawText?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: SrsProjectCreateNestedOneWithoutUserStoriesInput
+  }
+
+  export type UserStoryUncheckedCreateInput = {
+    id?: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria?: UserStoryCreateacceptanceCriteriaInput | string[]
+    suggestedFields: JsonNullValueInput | InputJsonValue
+    featureArea?: string
+    confidence?: number
+    status?: string
+    generatedSchemaId?: string | null
+    rawText?: string
+    projectId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserStoryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: SrsProjectUpdateOneRequiredWithoutUserStoriesNestedInput
+  }
+
+  export type UserStoryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserStoryCreateManyInput = {
+    id?: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria?: UserStoryCreateacceptanceCriteriaInput | string[]
+    suggestedFields: JsonNullValueInput | InputJsonValue
+    featureArea?: string
+    confidence?: number
+    status?: string
+    generatedSchemaId?: string | null
+    rawText?: string
+    projectId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserStoryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserStoryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -4694,6 +7381,12 @@ export namespace Prisma {
     none?: FormTemplateWhereInput
   }
 
+  export type SrsProjectListRelationFilter = {
+    every?: SrsProjectWhereInput
+    some?: SrsProjectWhereInput
+    none?: SrsProjectWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -4704,6 +7397,10 @@ export namespace Prisma {
   }
 
   export type FormTemplateOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SrsProjectOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -4945,6 +7642,133 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type UserStoryListRelationFilter = {
+    every?: UserStoryWhereInput
+    some?: UserStoryWhereInput
+    none?: UserStoryWhereInput
+  }
+
+  export type UserStoryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SrsProjectCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SrsProjectMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SrsProjectMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type SrsProjectRelationFilter = {
+    is?: SrsProjectWhereInput
+    isNot?: SrsProjectWhereInput
+  }
+
+  export type UserStoryCountOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    role?: SortOrder
+    action?: SortOrder
+    benefit?: SortOrder
+    acceptanceCriteria?: SortOrder
+    suggestedFields?: SortOrder
+    featureArea?: SortOrder
+    confidence?: SortOrder
+    status?: SortOrder
+    generatedSchemaId?: SortOrder
+    rawText?: SortOrder
+    projectId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserStoryAvgOrderByAggregateInput = {
+    confidence?: SortOrder
+  }
+
+  export type UserStoryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    role?: SortOrder
+    action?: SortOrder
+    benefit?: SortOrder
+    featureArea?: SortOrder
+    confidence?: SortOrder
+    status?: SortOrder
+    generatedSchemaId?: SortOrder
+    rawText?: SortOrder
+    projectId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserStoryMinOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    role?: SortOrder
+    action?: SortOrder
+    benefit?: SortOrder
+    featureArea?: SortOrder
+    confidence?: SortOrder
+    status?: SortOrder
+    generatedSchemaId?: SortOrder
+    rawText?: SortOrder
+    projectId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UserStorySumOrderByAggregateInput = {
+    confidence?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
   export type SchemaCreateNestedManyWithoutUserInput = {
     create?: XOR<SchemaCreateWithoutUserInput, SchemaUncheckedCreateWithoutUserInput> | SchemaCreateWithoutUserInput[] | SchemaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: SchemaCreateOrConnectWithoutUserInput | SchemaCreateOrConnectWithoutUserInput[]
@@ -4959,6 +7783,13 @@ export namespace Prisma {
     connect?: FormTemplateWhereUniqueInput | FormTemplateWhereUniqueInput[]
   }
 
+  export type SrsProjectCreateNestedManyWithoutUserInput = {
+    create?: XOR<SrsProjectCreateWithoutUserInput, SrsProjectUncheckedCreateWithoutUserInput> | SrsProjectCreateWithoutUserInput[] | SrsProjectUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SrsProjectCreateOrConnectWithoutUserInput | SrsProjectCreateOrConnectWithoutUserInput[]
+    createMany?: SrsProjectCreateManyUserInputEnvelope
+    connect?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+  }
+
   export type SchemaUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<SchemaCreateWithoutUserInput, SchemaUncheckedCreateWithoutUserInput> | SchemaCreateWithoutUserInput[] | SchemaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: SchemaCreateOrConnectWithoutUserInput | SchemaCreateOrConnectWithoutUserInput[]
@@ -4971,6 +7802,13 @@ export namespace Prisma {
     connectOrCreate?: FormTemplateCreateOrConnectWithoutUserInput | FormTemplateCreateOrConnectWithoutUserInput[]
     createMany?: FormTemplateCreateManyUserInputEnvelope
     connect?: FormTemplateWhereUniqueInput | FormTemplateWhereUniqueInput[]
+  }
+
+  export type SrsProjectUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<SrsProjectCreateWithoutUserInput, SrsProjectUncheckedCreateWithoutUserInput> | SrsProjectCreateWithoutUserInput[] | SrsProjectUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SrsProjectCreateOrConnectWithoutUserInput | SrsProjectCreateOrConnectWithoutUserInput[]
+    createMany?: SrsProjectCreateManyUserInputEnvelope
+    connect?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -5013,6 +7851,20 @@ export namespace Prisma {
     deleteMany?: FormTemplateScalarWhereInput | FormTemplateScalarWhereInput[]
   }
 
+  export type SrsProjectUpdateManyWithoutUserNestedInput = {
+    create?: XOR<SrsProjectCreateWithoutUserInput, SrsProjectUncheckedCreateWithoutUserInput> | SrsProjectCreateWithoutUserInput[] | SrsProjectUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SrsProjectCreateOrConnectWithoutUserInput | SrsProjectCreateOrConnectWithoutUserInput[]
+    upsert?: SrsProjectUpsertWithWhereUniqueWithoutUserInput | SrsProjectUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: SrsProjectCreateManyUserInputEnvelope
+    set?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    disconnect?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    delete?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    connect?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    update?: SrsProjectUpdateWithWhereUniqueWithoutUserInput | SrsProjectUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: SrsProjectUpdateManyWithWhereWithoutUserInput | SrsProjectUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: SrsProjectScalarWhereInput | SrsProjectScalarWhereInput[]
+  }
+
   export type SchemaUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<SchemaCreateWithoutUserInput, SchemaUncheckedCreateWithoutUserInput> | SchemaCreateWithoutUserInput[] | SchemaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: SchemaCreateOrConnectWithoutUserInput | SchemaCreateOrConnectWithoutUserInput[]
@@ -5039,6 +7891,20 @@ export namespace Prisma {
     update?: FormTemplateUpdateWithWhereUniqueWithoutUserInput | FormTemplateUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: FormTemplateUpdateManyWithWhereWithoutUserInput | FormTemplateUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: FormTemplateScalarWhereInput | FormTemplateScalarWhereInput[]
+  }
+
+  export type SrsProjectUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<SrsProjectCreateWithoutUserInput, SrsProjectUncheckedCreateWithoutUserInput> | SrsProjectCreateWithoutUserInput[] | SrsProjectUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SrsProjectCreateOrConnectWithoutUserInput | SrsProjectCreateOrConnectWithoutUserInput[]
+    upsert?: SrsProjectUpsertWithWhereUniqueWithoutUserInput | SrsProjectUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: SrsProjectCreateManyUserInputEnvelope
+    set?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    disconnect?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    delete?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    connect?: SrsProjectWhereUniqueInput | SrsProjectWhereUniqueInput[]
+    update?: SrsProjectUpdateWithWhereUniqueWithoutUserInput | SrsProjectUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: SrsProjectUpdateManyWithWhereWithoutUserInput | SrsProjectUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: SrsProjectScalarWhereInput | SrsProjectScalarWhereInput[]
   }
 
   export type SchemaCreatetagsInput = {
@@ -5084,6 +7950,93 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutTemplatesInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutTemplatesInput, UserUpdateWithoutTemplatesInput>, UserUncheckedUpdateWithoutTemplatesInput>
+  }
+
+  export type UserCreateNestedOneWithoutSrsProjectsInput = {
+    create?: XOR<UserCreateWithoutSrsProjectsInput, UserUncheckedCreateWithoutSrsProjectsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSrsProjectsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserStoryCreateNestedManyWithoutProjectInput = {
+    create?: XOR<UserStoryCreateWithoutProjectInput, UserStoryUncheckedCreateWithoutProjectInput> | UserStoryCreateWithoutProjectInput[] | UserStoryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: UserStoryCreateOrConnectWithoutProjectInput | UserStoryCreateOrConnectWithoutProjectInput[]
+    createMany?: UserStoryCreateManyProjectInputEnvelope
+    connect?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+  }
+
+  export type UserStoryUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<UserStoryCreateWithoutProjectInput, UserStoryUncheckedCreateWithoutProjectInput> | UserStoryCreateWithoutProjectInput[] | UserStoryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: UserStoryCreateOrConnectWithoutProjectInput | UserStoryCreateOrConnectWithoutProjectInput[]
+    createMany?: UserStoryCreateManyProjectInputEnvelope
+    connect?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+  }
+
+  export type UserUpdateOneRequiredWithoutSrsProjectsNestedInput = {
+    create?: XOR<UserCreateWithoutSrsProjectsInput, UserUncheckedCreateWithoutSrsProjectsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSrsProjectsInput
+    upsert?: UserUpsertWithoutSrsProjectsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSrsProjectsInput, UserUpdateWithoutSrsProjectsInput>, UserUncheckedUpdateWithoutSrsProjectsInput>
+  }
+
+  export type UserStoryUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<UserStoryCreateWithoutProjectInput, UserStoryUncheckedCreateWithoutProjectInput> | UserStoryCreateWithoutProjectInput[] | UserStoryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: UserStoryCreateOrConnectWithoutProjectInput | UserStoryCreateOrConnectWithoutProjectInput[]
+    upsert?: UserStoryUpsertWithWhereUniqueWithoutProjectInput | UserStoryUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: UserStoryCreateManyProjectInputEnvelope
+    set?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    disconnect?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    delete?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    connect?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    update?: UserStoryUpdateWithWhereUniqueWithoutProjectInput | UserStoryUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: UserStoryUpdateManyWithWhereWithoutProjectInput | UserStoryUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: UserStoryScalarWhereInput | UserStoryScalarWhereInput[]
+  }
+
+  export type UserStoryUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<UserStoryCreateWithoutProjectInput, UserStoryUncheckedCreateWithoutProjectInput> | UserStoryCreateWithoutProjectInput[] | UserStoryUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: UserStoryCreateOrConnectWithoutProjectInput | UserStoryCreateOrConnectWithoutProjectInput[]
+    upsert?: UserStoryUpsertWithWhereUniqueWithoutProjectInput | UserStoryUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: UserStoryCreateManyProjectInputEnvelope
+    set?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    disconnect?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    delete?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    connect?: UserStoryWhereUniqueInput | UserStoryWhereUniqueInput[]
+    update?: UserStoryUpdateWithWhereUniqueWithoutProjectInput | UserStoryUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: UserStoryUpdateManyWithWhereWithoutProjectInput | UserStoryUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: UserStoryScalarWhereInput | UserStoryScalarWhereInput[]
+  }
+
+  export type UserStoryCreateacceptanceCriteriaInput = {
+    set: string[]
+  }
+
+  export type SrsProjectCreateNestedOneWithoutUserStoriesInput = {
+    create?: XOR<SrsProjectCreateWithoutUserStoriesInput, SrsProjectUncheckedCreateWithoutUserStoriesInput>
+    connectOrCreate?: SrsProjectCreateOrConnectWithoutUserStoriesInput
+    connect?: SrsProjectWhereUniqueInput
+  }
+
+  export type UserStoryUpdateacceptanceCriteriaInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type SrsProjectUpdateOneRequiredWithoutUserStoriesNestedInput = {
+    create?: XOR<SrsProjectCreateWithoutUserStoriesInput, SrsProjectUncheckedCreateWithoutUserStoriesInput>
+    connectOrCreate?: SrsProjectCreateOrConnectWithoutUserStoriesInput
+    upsert?: SrsProjectUpsertWithoutUserStoriesInput
+    connect?: SrsProjectWhereUniqueInput
+    update?: XOR<XOR<SrsProjectUpdateToOneWithWhereWithoutUserStoriesInput, SrsProjectUpdateWithoutUserStoriesInput>, SrsProjectUncheckedUpdateWithoutUserStoriesInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -5244,6 +8197,22 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
   export type SchemaCreateWithoutUserInput = {
     id?: string
     name: string
@@ -5305,6 +8274,34 @@ export namespace Prisma {
 
   export type FormTemplateCreateManyUserInputEnvelope = {
     data: FormTemplateCreateManyUserInput | FormTemplateCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SrsProjectCreateWithoutUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userStories?: UserStoryCreateNestedManyWithoutProjectInput
+  }
+
+  export type SrsProjectUncheckedCreateWithoutUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userStories?: UserStoryUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type SrsProjectCreateOrConnectWithoutUserInput = {
+    where: SrsProjectWhereUniqueInput
+    create: XOR<SrsProjectCreateWithoutUserInput, SrsProjectUncheckedCreateWithoutUserInput>
+  }
+
+  export type SrsProjectCreateManyUserInputEnvelope = {
+    data: SrsProjectCreateManyUserInput | SrsProjectCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -5370,6 +8367,34 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"FormTemplate"> | Date | string
   }
 
+  export type SrsProjectUpsertWithWhereUniqueWithoutUserInput = {
+    where: SrsProjectWhereUniqueInput
+    update: XOR<SrsProjectUpdateWithoutUserInput, SrsProjectUncheckedUpdateWithoutUserInput>
+    create: XOR<SrsProjectCreateWithoutUserInput, SrsProjectUncheckedCreateWithoutUserInput>
+  }
+
+  export type SrsProjectUpdateWithWhereUniqueWithoutUserInput = {
+    where: SrsProjectWhereUniqueInput
+    data: XOR<SrsProjectUpdateWithoutUserInput, SrsProjectUncheckedUpdateWithoutUserInput>
+  }
+
+  export type SrsProjectUpdateManyWithWhereWithoutUserInput = {
+    where: SrsProjectScalarWhereInput
+    data: XOR<SrsProjectUpdateManyMutationInput, SrsProjectUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type SrsProjectScalarWhereInput = {
+    AND?: SrsProjectScalarWhereInput | SrsProjectScalarWhereInput[]
+    OR?: SrsProjectScalarWhereInput[]
+    NOT?: SrsProjectScalarWhereInput | SrsProjectScalarWhereInput[]
+    id?: StringFilter<"SrsProject"> | string
+    name?: StringFilter<"SrsProject"> | string
+    description?: StringNullableFilter<"SrsProject"> | string | null
+    userId?: StringFilter<"SrsProject"> | string
+    createdAt?: DateTimeFilter<"SrsProject"> | Date | string
+    updatedAt?: DateTimeFilter<"SrsProject"> | Date | string
+  }
+
   export type UserCreateWithoutSchemasInput = {
     id?: string
     email: string
@@ -5378,6 +8403,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     templates?: FormTemplateCreateNestedManyWithoutUserInput
+    srsProjects?: SrsProjectCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSchemasInput = {
@@ -5388,6 +8414,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     templates?: FormTemplateUncheckedCreateNestedManyWithoutUserInput
+    srsProjects?: SrsProjectUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSchemasInput = {
@@ -5414,6 +8441,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     templates?: FormTemplateUpdateManyWithoutUserNestedInput
+    srsProjects?: SrsProjectUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSchemasInput = {
@@ -5424,6 +8452,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     templates?: FormTemplateUncheckedUpdateManyWithoutUserNestedInput
+    srsProjects?: SrsProjectUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutTemplatesInput = {
@@ -5434,6 +8463,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     schemas?: SchemaCreateNestedManyWithoutUserInput
+    srsProjects?: SrsProjectCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutTemplatesInput = {
@@ -5444,6 +8474,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     schemas?: SchemaUncheckedCreateNestedManyWithoutUserInput
+    srsProjects?: SrsProjectUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutTemplatesInput = {
@@ -5470,6 +8501,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     schemas?: SchemaUpdateManyWithoutUserNestedInput
+    srsProjects?: SrsProjectUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTemplatesInput = {
@@ -5480,6 +8512,200 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     schemas?: SchemaUncheckedUpdateManyWithoutUserNestedInput
+    srsProjects?: SrsProjectUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutSrsProjectsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    password: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    schemas?: SchemaCreateNestedManyWithoutUserInput
+    templates?: FormTemplateCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutSrsProjectsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    password: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    schemas?: SchemaUncheckedCreateNestedManyWithoutUserInput
+    templates?: FormTemplateUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutSrsProjectsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutSrsProjectsInput, UserUncheckedCreateWithoutSrsProjectsInput>
+  }
+
+  export type UserStoryCreateWithoutProjectInput = {
+    id?: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria?: UserStoryCreateacceptanceCriteriaInput | string[]
+    suggestedFields: JsonNullValueInput | InputJsonValue
+    featureArea?: string
+    confidence?: number
+    status?: string
+    generatedSchemaId?: string | null
+    rawText?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserStoryUncheckedCreateWithoutProjectInput = {
+    id?: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria?: UserStoryCreateacceptanceCriteriaInput | string[]
+    suggestedFields: JsonNullValueInput | InputJsonValue
+    featureArea?: string
+    confidence?: number
+    status?: string
+    generatedSchemaId?: string | null
+    rawText?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserStoryCreateOrConnectWithoutProjectInput = {
+    where: UserStoryWhereUniqueInput
+    create: XOR<UserStoryCreateWithoutProjectInput, UserStoryUncheckedCreateWithoutProjectInput>
+  }
+
+  export type UserStoryCreateManyProjectInputEnvelope = {
+    data: UserStoryCreateManyProjectInput | UserStoryCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutSrsProjectsInput = {
+    update: XOR<UserUpdateWithoutSrsProjectsInput, UserUncheckedUpdateWithoutSrsProjectsInput>
+    create: XOR<UserCreateWithoutSrsProjectsInput, UserUncheckedCreateWithoutSrsProjectsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutSrsProjectsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutSrsProjectsInput, UserUncheckedUpdateWithoutSrsProjectsInput>
+  }
+
+  export type UserUpdateWithoutSrsProjectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    schemas?: SchemaUpdateManyWithoutUserNestedInput
+    templates?: FormTemplateUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutSrsProjectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    schemas?: SchemaUncheckedUpdateManyWithoutUserNestedInput
+    templates?: FormTemplateUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserStoryUpsertWithWhereUniqueWithoutProjectInput = {
+    where: UserStoryWhereUniqueInput
+    update: XOR<UserStoryUpdateWithoutProjectInput, UserStoryUncheckedUpdateWithoutProjectInput>
+    create: XOR<UserStoryCreateWithoutProjectInput, UserStoryUncheckedCreateWithoutProjectInput>
+  }
+
+  export type UserStoryUpdateWithWhereUniqueWithoutProjectInput = {
+    where: UserStoryWhereUniqueInput
+    data: XOR<UserStoryUpdateWithoutProjectInput, UserStoryUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type UserStoryUpdateManyWithWhereWithoutProjectInput = {
+    where: UserStoryScalarWhereInput
+    data: XOR<UserStoryUpdateManyMutationInput, UserStoryUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type UserStoryScalarWhereInput = {
+    AND?: UserStoryScalarWhereInput | UserStoryScalarWhereInput[]
+    OR?: UserStoryScalarWhereInput[]
+    NOT?: UserStoryScalarWhereInput | UserStoryScalarWhereInput[]
+    id?: StringFilter<"UserStory"> | string
+    title?: StringFilter<"UserStory"> | string
+    role?: StringFilter<"UserStory"> | string
+    action?: StringFilter<"UserStory"> | string
+    benefit?: StringFilter<"UserStory"> | string
+    acceptanceCriteria?: StringNullableListFilter<"UserStory">
+    suggestedFields?: JsonFilter<"UserStory">
+    featureArea?: StringFilter<"UserStory"> | string
+    confidence?: FloatFilter<"UserStory"> | number
+    status?: StringFilter<"UserStory"> | string
+    generatedSchemaId?: StringNullableFilter<"UserStory"> | string | null
+    rawText?: StringFilter<"UserStory"> | string
+    projectId?: StringFilter<"UserStory"> | string
+    createdAt?: DateTimeFilter<"UserStory"> | Date | string
+    updatedAt?: DateTimeFilter<"UserStory"> | Date | string
+  }
+
+  export type SrsProjectCreateWithoutUserStoriesInput = {
+    id?: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutSrsProjectsInput
+  }
+
+  export type SrsProjectUncheckedCreateWithoutUserStoriesInput = {
+    id?: string
+    name: string
+    description?: string | null
+    userId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SrsProjectCreateOrConnectWithoutUserStoriesInput = {
+    where: SrsProjectWhereUniqueInput
+    create: XOR<SrsProjectCreateWithoutUserStoriesInput, SrsProjectUncheckedCreateWithoutUserStoriesInput>
+  }
+
+  export type SrsProjectUpsertWithoutUserStoriesInput = {
+    update: XOR<SrsProjectUpdateWithoutUserStoriesInput, SrsProjectUncheckedUpdateWithoutUserStoriesInput>
+    create: XOR<SrsProjectCreateWithoutUserStoriesInput, SrsProjectUncheckedCreateWithoutUserStoriesInput>
+    where?: SrsProjectWhereInput
+  }
+
+  export type SrsProjectUpdateToOneWithWhereWithoutUserStoriesInput = {
+    where?: SrsProjectWhereInput
+    data: XOR<SrsProjectUpdateWithoutUserStoriesInput, SrsProjectUncheckedUpdateWithoutUserStoriesInput>
+  }
+
+  export type SrsProjectUpdateWithoutUserStoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutSrsProjectsNestedInput
+  }
+
+  export type SrsProjectUncheckedUpdateWithoutUserStoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SchemaCreateManyUserInput = {
@@ -5500,6 +8726,14 @@ export namespace Prisma {
     name: string
     description?: string | null
     content: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SrsProjectCreateManyUserInput = {
+    id?: string
+    name: string
+    description?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -5570,6 +8804,100 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SrsProjectUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userStories?: UserStoryUpdateManyWithoutProjectNestedInput
+  }
+
+  export type SrsProjectUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userStories?: UserStoryUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type SrsProjectUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserStoryCreateManyProjectInput = {
+    id?: string
+    title: string
+    role: string
+    action: string
+    benefit: string
+    acceptanceCriteria?: UserStoryCreateacceptanceCriteriaInput | string[]
+    suggestedFields: JsonNullValueInput | InputJsonValue
+    featureArea?: string
+    confidence?: number
+    status?: string
+    generatedSchemaId?: string | null
+    rawText?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserStoryUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserStoryUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserStoryUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    benefit?: StringFieldUpdateOperationsInput | string
+    acceptanceCriteria?: UserStoryUpdateacceptanceCriteriaInput | string[]
+    suggestedFields?: JsonNullValueInput | InputJsonValue
+    featureArea?: StringFieldUpdateOperationsInput | string
+    confidence?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    generatedSchemaId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawText?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -5579,6 +8907,10 @@ export namespace Prisma {
      * @deprecated Use UserCountOutputTypeDefaultArgs instead
      */
     export type UserCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SrsProjectCountOutputTypeDefaultArgs instead
+     */
+    export type SrsProjectCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SrsProjectCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserDefaultArgs instead
      */
@@ -5591,6 +8923,14 @@ export namespace Prisma {
      * @deprecated Use FormTemplateDefaultArgs instead
      */
     export type FormTemplateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FormTemplateDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SrsProjectDefaultArgs instead
+     */
+    export type SrsProjectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SrsProjectDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use UserStoryDefaultArgs instead
+     */
+    export type UserStoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserStoryDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

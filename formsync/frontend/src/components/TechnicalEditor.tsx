@@ -14,6 +14,8 @@ import { SuggestionsPanel } from "./SuggestionsPanel";
 import { SchemaDiffView } from "./SchemaDiffView";
 import { ValidationDialog } from "./ValidationDialog";
 import { QualityMetricsPanel } from "./QualityMetricsPanel";
+import { SrsUploadModal } from "./SrsUploadModal";
+import { UserStorySelectorModal } from "./UserStorySelectorModal";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -32,8 +34,12 @@ import {
   Play,
   FileText,
   FileJson,
+  BookOpen,
+  ArrowRight,
   GitCompare,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { ParseSrsResponse } from "../api/schemaApi";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -55,6 +61,7 @@ interface TechnicalEditorProps {
   stages?: any[];
   schemaFromBuilder?: string; // Schema transferred from Template Builder
   isLoadedFromTemplate?: boolean; // True when schema was opened from a saved template (already enhanced)
+  isLoadedFromSrs?: boolean; // True when schema came from an SRS user story draft
 }
 
 export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
@@ -65,6 +72,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   stages = [],
   schemaFromBuilder,
   isLoadedFromTemplate = false,
+  isLoadedFromSrs = false,
 }) => {
   // State
   const [format, setFormat] = useState<FormatType>("json");
@@ -102,6 +110,13 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
   );
   const [autoWorkflowRunning, setAutoWorkflowRunning] = useState(false);
 
+  // SRS import flow
+  const [showSrsUpload, setShowSrsUpload] = useState(false);
+  const [srsResult, setSrsResult] = useState<ParseSrsResponse | null>(null);
+  const [srsProjName, setSrsProjName] = useState("");
+  const [showEmptyState, setShowEmptyState] = useState(true);
+  const { token } = useAuth();
+
   // Store
   const {
     currentSchema,
@@ -136,6 +151,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
       // Update "Enter Schema" stage based on content
       if (newValue.trim()) {
         onStageUpdateRef.current?.("Enter Schema", "complete");
+        setShowEmptyState(false);
       }
 
       // Track changes in history with debouncing (only if not undo/redo action)
@@ -853,6 +869,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         else setFormat("json");
 
         toast.success("File uploaded");
+        setShowEmptyState(false);
       };
       reader.readAsText(file);
     };
@@ -873,7 +890,24 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleConvert]);
 
+  const handleSrsExtracted = (result: ParseSrsResponse, projectName: string) => {
+    setSrsResult(result);
+    setSrsProjName(projectName);
+    setShowSrsUpload(false);
+  };
+
+  const handleSchemaGenerated = (schemaJson: string, storyTitle: string) => {
+    setEditorValue(schemaJson);
+    setSchemaName(storyTitle);
+    setFormat("json");
+    setShowEmptyState(false);
+    onStageUpdate?.("Enter Schema", "complete");
+  };
+
+  const isEmpty = !editorValue.trim();
+
   return (
+    <>
     <div className="flex flex-col gap-4 h-full">
       {/* Schema Name — Hero Field */}
       <div className="w-full">
@@ -908,10 +942,10 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           <FormatSelector selected={format} onChange={setFormat} />
         </div>
 
-        {/* Right: Next: Form Builder Button - Shows after AI Enhancement completes, or immediately if schema was loaded from a saved template */}
+        {/* Right: Next: Form Builder Button — only shown for SRS drafts after AI Enhancement completes */}
         {onNextToFormBuilder &&
-          (isLoadedFromTemplate ||
-            (stages.length > 0 && stages[3]?.status === "complete")) && (
+          isLoadedFromSrs &&
+          stages.length > 0 && stages[3]?.status === "complete" && (
             <div className="flex items-end">
               <Button
                 onClick={onNextToFormBuilder}
@@ -1215,6 +1249,23 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
             {sidebarExpanded && <span className="text-sm">Upload</span>}
           </Button>
 
+          {/* Import from SRS */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSrsUpload(true)}
+            className={`w-full justify-start gap-3 h-10 border-purple-300 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative ${!sidebarExpanded && "px-2"}`}
+            title={!sidebarExpanded ? "Import from SRS Document" : undefined}
+          >
+            <FileText className="h-4 w-4 flex-shrink-0 text-purple-600" />
+            {sidebarExpanded && (
+              <span className="text-sm text-purple-700 dark:text-purple-300 font-medium">Import SRS</span>
+            )}
+            {!sidebarExpanded && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-purple-500" />
+            )}
+          </Button>
+
           {/* Schema Navigator */}
           <Button
             variant="outline"
@@ -1317,17 +1368,103 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           {/* Left Panel - Input */}
           <Card className="flex flex-col border border-neutral-200 dark:border-neutral-800 shadow-sm bg-white dark:bg-neutral-900">
             <CardHeader className="border-b border-neutral-200 dark:border-neutral-800 py-3 px-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                  Input{" "}
-                  <span className="text-neutral-400 dark:text-neutral-500 font-normal">
-                    ({format.toUpperCase()})
-                  </span>
-                </CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <CardTitle className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    Input{" "}
+                    <span className="text-neutral-400 dark:text-neutral-500 font-normal">
+                      ({format.toUpperCase()})
+                    </span>
+                  </CardTitle>
+                </div>
+                {isEmpty && !showEmptyState && (
+                  <button
+                    onClick={() => setShowEmptyState(true)}
+                    className="text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1 transition-colors"
+                  >
+                    <FileText className="h-3 w-3" />
+                    Import SRS
+                  </button>
+                )}
               </div>
             </CardHeader>
-            <CardContent className="flex-1 p-0">
+            <CardContent className="flex-1 p-0 relative overflow-hidden">
+              {/* ── Beautiful Empty State Overlay ─────────────────────── */}
+              <AnimatePresence>
+                {isEmpty && showEmptyState && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-neutral-50 via-white to-purple-50/40 dark:from-neutral-900 dark:via-neutral-900 dark:to-purple-950/20"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-5">
+                      How would you like to start?
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-[480px]">
+                      {/* Option A — Write manually */}
+                      <motion.button
+                        whileHover={{ y: -3 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowEmptyState(false)}
+                        className="group flex flex-col items-start p-4 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-100/60 dark:hover:shadow-indigo-900/30 transition-all text-left"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-950/50 dark:to-indigo-950/50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <BookOpen className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <p className="text-sm font-bold text-neutral-900 dark:text-white mb-1">
+                          Write Schema
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed mb-3">
+                          Define your schema manually in JSON, YAML, or XML format
+                        </p>
+                        <span className="flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 group-hover:gap-2 transition-all">
+                          Start writing <ArrowRight className="h-3 w-3" />
+                        </span>
+                      </motion.button>
+
+                      {/* Option B — Import from SRS */}
+                      <motion.button
+                        whileHover={{ y: -3 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowSrsUpload(true)}
+                        className="group flex flex-col items-start p-4 rounded-2xl border-2 border-purple-200 dark:border-purple-800/60 bg-gradient-to-br from-purple-50/60 to-indigo-50/40 dark:from-purple-950/30 dark:to-indigo-950/20 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-lg hover:shadow-purple-100/60 dark:hover:shadow-purple-900/40 transition-all text-left relative overflow-hidden"
+                      >
+                        {/* NEW badge */}
+                        <span className="absolute top-3 right-3 text-[9px] font-extrabold tracking-widest text-white bg-gradient-to-r from-purple-500 to-indigo-500 px-1.5 py-0.5 rounded-full">
+                          NEW
+                        </span>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/60 dark:to-indigo-900/60 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <p className="text-sm font-bold text-neutral-900 dark:text-white mb-1">
+                          Import from SRS
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed mb-3">
+                          Upload a PDF or DOCX — AI extracts user stories and generates your schema
+                        </p>
+                        <span className="flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400 group-hover:gap-2 transition-all">
+                          Upload document <ArrowRight className="h-3 w-3" />
+                        </span>
+                        {/* Decorative shimmer */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out pointer-events-none" />
+                      </motion.button>
+                    </div>
+
+                    {/* Divider with "or" */}
+                    <div className="flex items-center gap-3 mt-5 w-full max-w-[480px]">
+                      <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
+                      <span className="text-xs text-neutral-400 font-medium">or drag a .json/.yaml/.xml file here</span>
+                      <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-700" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Monaco Editor — hidden behind overlay when empty state visible */}
+              <div className={`h-full ${isEmpty && showEmptyState ? "invisible" : ""}`}>
               <Editor
                 height="100%"
                 language={
@@ -1382,6 +1519,7 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
                   automaticLayout: true,
                 }}
               />
+              </div>
             </CardContent>
           </Card>
 
@@ -1518,5 +1656,26 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         />
       )}
     </div>
+
+    {/* ── SRS Import Modals ──────────────────────────────────── */}
+    <AnimatePresence>
+      {showSrsUpload && (
+        <SrsUploadModal
+          onClose={() => setShowSrsUpload(false)}
+          onStoriesExtracted={handleSrsExtracted}
+        />
+      )}
+      {srsResult && (
+        <UserStorySelectorModal
+          result={srsResult}
+          projectName={srsProjName}
+          token={token ?? ""}
+          onClose={() => setSrsResult(null)}
+          onProjectSaved={() => {}}
+          onSchemaGenerated={handleSchemaGenerated}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 };

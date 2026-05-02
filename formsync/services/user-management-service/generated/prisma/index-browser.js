@@ -155,6 +155,33 @@ exports.Prisma.FormTemplateScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SrsProjectScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UserStoryScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  role: 'role',
+  action: 'action',
+  benefit: 'benefit',
+  acceptanceCriteria: 'acceptanceCriteria',
+  suggestedFields: 'suggestedFields',
+  featureArea: 'featureArea',
+  confidence: 'confidence',
+  status: 'status',
+  generatedSchemaId: 'generatedSchemaId',
+  rawText: 'rawText',
+  projectId: 'projectId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -184,7 +211,9 @@ exports.Prisma.JsonNullValueFilter = {
 exports.Prisma.ModelName = {
   User: 'User',
   Schema: 'Schema',
-  FormTemplate: 'FormTemplate'
+  FormTemplate: 'FormTemplate',
+  SrsProject: 'SrsProject',
+  UserStory: 'UserStory'
 };
 
 /**

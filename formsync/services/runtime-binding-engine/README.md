@@ -298,6 +298,126 @@ npm test
 
 ---
 
+## Testing OpenAPI & Swagger
+
+Use these steps to verify that **OpenAPI spec generation** and **Swagger** work correctly.
+
+### 1. Start the Runtime Binding Engine
+
+From this directory:
+
+```bash
+npm run dev
+```
+
+By default it listens on **3013** (or the port in `RUNTIME_ENGINE_PORT` / `PORT`). Use that as `$ENGINE_URL` below (e.g. `http://localhost:3013`).
+
+### 2. Test OpenAPI spec generation (Phase 1)
+
+Request a **preview** (JSON list of generated files) and confirm `openapi.yaml` is present and valid:
+
+```bash
+curl -s -X POST http://localhost:3013/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Employee",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "required": ["fullName", "email"]
+    },
+    "config": { "includeSwagger": true },
+    "preview": true
+  }' | jq '.files[] | select(.path | test("openapi\\.yaml")) | .path'
+```
+
+You should see:
+
+- `openapi.yaml`
+- `src/main/resources/static/openapi.yaml`
+
+To inspect the spec content (first 80 lines):
+
+```bash
+curl -s -X POST http://localhost:3013/generate \
+  -H "Content-Type: application/json" \
+  -d '{"schema":{"$schema":"http://json-schema.org/draft-07/schema#","title":"Employee","type":"object","properties":{"fullName":{"type":"string"},"email":{"type":"string","format":"email"}},"required":["fullName","email"]},"config":{"includeSwagger":true},"preview":true}' \
+  | jq -r '.files[] | select(.path == "openapi.yaml") | .content' | head -80
+```
+
+Check for `openapi: 3.0.3`, `info:`, `paths:`, and `components.schemas:` (e.g. `EmployeeRequest`, `EmployeeResponse`).
+
+### 3. Test Swagger in the generated backend (Phase 2)
+
+Generate a zip, unzip, run the Spring Boot app, then open Swagger UI.
+
+**3a. Generate and unzip**
+
+```bash
+curl -s -X POST http://localhost:3013/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Employee",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      },
+      "required": ["fullName", "email"]
+    },
+    "config": { "includeSwagger": true, "serverPort": 8080 }
+  }' -o /tmp/springboot-server.zip
+
+unzip -o /tmp/springboot-server.zip -d /tmp/springboot-server
+cd /tmp/springboot-server
+```
+
+**3b. Build and run**
+
+```bash
+mvn clean spring-boot:run
+```
+
+**3c. Verify**
+
+- **Swagger UI**: Open **http://localhost:8080/swagger-ui.html**  
+  You should see the API title (e.g. "Employee"), tags, and CRUD operations (GET/POST/PUT/DELETE) with descriptions and request/response schemas.
+
+- **OpenAPI JSON**: Open **http://localhost:8080/v3/api-docs**  
+  You should get a JSON document with `openapi`, `info`, `paths`, and `components.schemas`.
+
+- **Static openapi.yaml**: If the app serves static resources, **http://localhost:8080/openapi.yaml** may serve the generated spec (depending on static path config).
+
+**3d. Quick API check**
+
+```bash
+# List (empty at first)
+curl -s http://localhost:8080/api/employees
+
+# Create one
+curl -s -X POST http://localhost:8080/api/employees \
+  -H "Content-Type: application/json" \
+  -d '{"fullName":"Jane Doe","email":"jane@example.com"}'
+```
+
+### 4. Optional: run the test script
+
+From the runtime-binding-engine directory you can run:
+
+```bash
+./scripts/test-openapi-swagger.sh
+```
+
+This script runs step 2 (preview + openapi.yaml check) and prints what to do for step 3 (generate zip, run server, open Swagger UI). It requires `curl` and `jq`.
+
+---
+
 ## Environment Variables
 
 | Variable          | Default                              | Description                         |

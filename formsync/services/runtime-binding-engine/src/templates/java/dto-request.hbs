@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+{{#if includeSwagger}}
+import io.swagger.v3.oas.annotations.media.Schema;
+{{/if}}
 import java.util.*;
 import java.time.*;
 import java.math.*;
@@ -14,6 +17,9 @@ import java.math.*;
  * Request DTO for creating/updating {{name}}.
  * Contains all validation constraints from the JSON Schema.
  */
+{{#if includeSwagger}}
+@Schema(description = "Request body for creating/updating {{name}}")
+{{/if}}
 @Data
 @Builder
 @NoArgsConstructor
@@ -21,6 +27,9 @@ import java.math.*;
 public class {{name}}Request {
 
 {{#each fields}}
+{{#if ../includeSwagger}}
+    @Schema(description = "{{#if description}}{{description}}{{else}}{{name}} field{{/if}}"{{#if constraints.required}}, required = true{{/if}}{{#if constraints.example}}, example = "{{escapeSchemaExample constraints.example}}"{{/if}})
+{{/if}}
 {{#if description}}
     /**
      * {{description}}

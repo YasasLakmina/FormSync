@@ -106,7 +106,47 @@ export interface SuggestNameRequest {
   schemaContent?: any;
 }
 
+export interface ParseSrsResponse {
+  projectName: string;
+  userStories: ExtractedUserStory[];
+  totalFound: number;
+  rawTextPreview: string;
+  processingNotes?: string[];
+}
+
+export interface SuggestedField {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'array';
+  required: boolean;
+  format?: string;
+  label: string;
+  placeholder?: string;
+  validationHint?: string;
+}
+
+export interface ExtractedUserStory {
+  id: string;
+  title: string;
+  role: string;
+  action: string;
+  benefit: string;
+  acceptanceCriteria: string[];
+  suggestedFields: SuggestedField[];
+  featureArea: string;
+  confidence: number;
+  rawText: string;
+}
+
 export const schemaApi = {
+  // Parse SRS document (PDF/DOCX) and extract user stories
+  parseSrs: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<ParseSrsResponse>('/schema/parse-srs', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   // Convert schema
   convert: (data: ConvertSchemaRequest) => apiClient.post('/schema/convert', data),
 

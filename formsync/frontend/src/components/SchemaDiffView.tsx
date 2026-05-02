@@ -91,8 +91,13 @@ function computeDiff(beforeLines: string[], afterLines: string[]): DiffLine[] {
 }
 
 /** Collapse long runs of unchanged lines into a summary row (context: 3 lines). */
-function collapseUnchanged(lines: DiffLine[], context = 3): Array<DiffLine | { kind: "collapse"; count: number; startIdx: number }> {
-  const result: Array<DiffLine | { kind: "collapse"; count: number; startIdx: number }> = [];
+function collapseUnchanged(
+  lines: DiffLine[],
+  context = 3,
+): Array<DiffLine | { kind: "collapse"; count: number; startIdx: number }> {
+  const result: Array<
+    DiffLine | { kind: "collapse"; count: number; startIdx: number }
+  > = [];
   let unchangedRun: { start: number; end: number } | null = null;
 
   const flush = (_endIdx: number) => {
@@ -108,7 +113,11 @@ function collapseUnchanged(lines: DiffLine[], context = 3): Array<DiffLine | { k
       for (let k = start; k < start + context && k <= end; k++)
         result.push(lines[k]);
       // Collapse middle
-      result.push({ kind: "collapse", count: len - context * 2, startIdx: start + context });
+      result.push({
+        kind: "collapse",
+        count: len - context * 2,
+        startIdx: start + context,
+      });
       // Keep `context` lines at end
       for (let k = end - context + 1; k <= end; k++) result.push(lines[k]);
     }
@@ -131,10 +140,29 @@ function collapseUnchanged(lines: DiffLine[], context = 3): Array<DiffLine | { k
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const LINE_STYLES: Record<LineKind, { bg: string; text: string; gutter: string; prefix: string }> = {
-  added:     { bg: "bg-emerald-50 dark:bg-emerald-950/25",  text: "text-emerald-800 dark:text-emerald-300",  gutter: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-500",   prefix: "+" },
-  removed:   { bg: "bg-red-50 dark:bg-red-950/25",          text: "text-red-800 dark:text-red-300",          gutter: "bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-500",                   prefix: "−" },
-  unchanged: { bg: "",                                       text: "text-neutral-700 dark:text-neutral-300",  gutter: "text-neutral-400 dark:text-neutral-600",                                          prefix: " " },
+const LINE_STYLES: Record<
+  LineKind,
+  { bg: string; text: string; gutter: string; prefix: string }
+> = {
+  added: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/25",
+    text: "text-emerald-800 dark:text-emerald-300",
+    gutter:
+      "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-500",
+    prefix: "+",
+  },
+  removed: {
+    bg: "bg-red-50 dark:bg-red-950/25",
+    text: "text-red-800 dark:text-red-300",
+    gutter: "bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-500",
+    prefix: "−",
+  },
+  unchanged: {
+    bg: "",
+    text: "text-neutral-700 dark:text-neutral-300",
+    gutter: "text-neutral-400 dark:text-neutral-600",
+    prefix: " ",
+  },
 };
 
 interface DiffLineRowProps {
@@ -146,19 +174,27 @@ const DiffLineRow: React.FC<DiffLineRowProps> = ({ line }) => {
   return (
     <div className={`flex font-mono text-xs leading-5 ${s.bg}`}>
       {/* Before line number */}
-      <span className={`select-none w-10 shrink-0 text-right pr-2 py-0.5 ${s.gutter} border-r border-neutral-200 dark:border-neutral-700`}>
+      <span
+        className={`select-none w-10 shrink-0 text-right pr-2 py-0.5 ${s.gutter} border-r border-neutral-200 dark:border-neutral-700`}
+      >
         {line.lineNum.before ?? ""}
       </span>
       {/* After line number */}
-      <span className={`select-none w-10 shrink-0 text-right pr-2 py-0.5 ${s.gutter} border-r border-neutral-200 dark:border-neutral-700`}>
+      <span
+        className={`select-none w-10 shrink-0 text-right pr-2 py-0.5 ${s.gutter} border-r border-neutral-200 dark:border-neutral-700`}
+      >
         {line.lineNum.after ?? ""}
       </span>
       {/* Diff gutter symbol */}
-      <span className={`select-none w-6 shrink-0 text-center py-0.5 ${s.gutter} ${s.text} border-r border-neutral-200 dark:border-neutral-700`}>
+      <span
+        className={`select-none w-6 shrink-0 text-center py-0.5 ${s.gutter} ${s.text} border-r border-neutral-200 dark:border-neutral-700`}
+      >
         {s.prefix}
       </span>
       {/* Content */}
-      <span className={`flex-1 py-0.5 px-3 whitespace-pre ${s.text} overflow-x-auto`}>
+      <span
+        className={`flex-1 py-0.5 px-3 whitespace-pre ${s.text} overflow-x-auto`}
+      >
         {line.content}
       </span>
     </div>
@@ -312,7 +348,10 @@ export const SchemaDiffView: React.FC<SchemaDiffViewProps> = ({
           </div>
 
           {/* Diff body */}
-          <div className="flex-1 overflow-y-auto font-mono" style={{ minHeight: 0 }}>
+          <div
+            className="flex-1 overflow-y-auto font-mono"
+            style={{ minHeight: 0 }}
+          >
             {!hasChanges ? (
               <div className="flex flex-col items-center justify-center h-48 text-neutral-400 dark:text-neutral-500 gap-2">
                 <Equal className="h-8 w-8" />
@@ -334,7 +373,8 @@ export const SchemaDiffView: React.FC<SchemaDiffViewProps> = ({
                       >
                         <ChevronDown className="h-3 w-3" />
                         <span>
-                          {item.count} unchanged line{item.count !== 1 ? "s" : ""} — click to expand
+                          {item.count} unchanged line
+                          {item.count !== 1 ? "s" : ""} — click to expand
                         </span>
                       </div>
                     );

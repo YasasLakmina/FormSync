@@ -27,6 +27,7 @@ import {
   type BackendLanguage,
 } from "../services/generationService";
 import { useAuth } from "../context/AuthContext";
+import { projectApi } from "../api/projectApi";
 
 export interface GenerationStage {
   name: string;
@@ -37,7 +38,7 @@ export interface GenerationStage {
 export const EditorPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { currentSchema, validationResults, loadSchema } = useSchemaStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [schemaFromBuilder, setSchemaFromBuilder] = useState<string>(""); // Schema transferred from Template Builder
@@ -47,6 +48,10 @@ export const EditorPage: React.FC = () => {
 
   // Tracks whether the schema was opened from a saved template (already enhanced)
   const [isLoadedFromTemplate, setIsLoadedFromTemplate] = useState(false);
+
+  // SRS story tracking — set when schema was loaded from a user story in Projects
+  const [srsStoryId, setSrsStoryId] = useState<string | null>(null);
+  const [srsProjectId, setSrsProjectId] = useState<string | null>(null);
 
   // Save-as-template dialog state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -64,6 +69,25 @@ export const EditorPage: React.FC = () => {
     { name: "DTO Generation", status: "pending", progress: 0 },
     { name: "Test Generation", status: "pending", progress: 0 },
   ]);
+
+  // Pre-load schema from SRS import (sessionStorage bridge)
+  useEffect(() => {
+    const fromSrs = searchParams.get("fromSrs");
+    if (fromSrs) {
+      const preload = sessionStorage.getItem("srs_preload_schema");
+      if (preload) {
+        setSchemaFromBuilder(preload);
+        setIsLoadedFromTemplate(true);
+        setActiveTab("technical");
+        sessionStorage.removeItem("srs_preload_schema");
+        // Capture story/project IDs if they were set (came from Projects page)
+        const storyId = sessionStorage.getItem("srs_story_id");
+        const projectId = sessionStorage.getItem("srs_project_id");
+        if (storyId) { setSrsStoryId(storyId); sessionStorage.removeItem("srs_story_id"); }
+        if (projectId) { setSrsProjectId(projectId); sessionStorage.removeItem("srs_project_id"); }
+      }
+    }
+  }, [searchParams]);
 
   // Load schema if a schemaId is provided in URL
   useEffect(() => {
@@ -271,6 +295,14 @@ export const EditorPage: React.FC = () => {
       setShowSaveDialog(false);
       // Clear any pending session schema since we now have a real saved ID
       sessionStorage.removeItem("formsync_pending_schema");
+
+      // If this schema came from an SRS user story, mark that story as generated
+      if (srsStoryId && srsProjectId && token) {
+        projectApi
+          .updateStoryStatus(token, srsProjectId, srsStoryId, "generated", savedSchema.id)
+          .catch(() => {}); // non-blocking — don't fail the save if this errors
+      }
+
       goToBuilder(savedSchema.id);
     } catch (error) {
       toast.error("Failed to save template.", {
@@ -417,6 +449,7 @@ export const EditorPage: React.FC = () => {
                     stages={stages}
                     schemaFromBuilder={schemaFromBuilder}
                     isLoadedFromTemplate={isLoadedFromTemplate}
+                    isLoadedFromSrs={!!srsStoryId}
                   />
                 </TabsContent>
 

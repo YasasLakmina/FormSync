@@ -2,7 +2,9 @@ package {{basePackage}}.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "Enum: {{name}}", enumAsRef = true)
 public enum {{name}} {
 {{#each values}}
     {{toEnumConstant this}}("{{this}}"){{#unless @last}},{{/unless}}{{#if @last}};{{/if}}

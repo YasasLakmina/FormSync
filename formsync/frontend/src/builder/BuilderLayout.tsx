@@ -18,7 +18,10 @@ export const BuilderLayout: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  type Stage = { name: string; status: "pending" | "loading" | "complete" | "error" };
+  type Stage = {
+    name: string;
+    status: "pending" | "loading" | "complete" | "error";
+  };
 
   const [stages, setStages] = useState<Stage[]>([
     { name: "Enter Schema", status: "complete" },
@@ -35,7 +38,9 @@ export const BuilderLayout: React.FC = () => {
     stages.find((s) => s.name === "Frontend Generation")?.status === "complete";
 
   const markStage = (name: string, status: Stage["status"]) =>
-    setStages((prev) => prev.map((s) => (s.name === name ? { ...s, status } : s)));
+    setStages((prev) =>
+      prev.map((s) => (s.name === name ? { ...s, status } : s)),
+    );
 
   const handleExport = async () => {
     try {
@@ -44,7 +49,9 @@ export const BuilderLayout: React.FC = () => {
       markStage("Frontend Generation", "complete");
     } catch (error) {
       console.error("Export failed:", error);
-      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      alert(
+        `Export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       markStage("Frontend Generation", "error");
     } finally {
       setIsExporting(false);
@@ -72,7 +79,9 @@ export const BuilderLayout: React.FC = () => {
           const result = generationService.generateFromSchema(schema);
           sessionStorage.removeItem("formsync_schema_raw");
           if (result.success && result.data) {
-            navigate("/generated", { state: { generatedCode: result.data, schema } });
+            navigate("/generated", {
+              state: { generatedCode: result.data, schema },
+            });
             return;
           }
         }
@@ -81,7 +90,9 @@ export const BuilderLayout: React.FC = () => {
       }
     } catch {
       alert("Generation failed. Please try again.");
-      setStages((prev) => prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)));
+      setStages((prev) =>
+        prev.map((s, i) => (i >= 4 ? { ...s, status: "error" } : s)),
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -94,7 +105,6 @@ export const BuilderLayout: React.FC = () => {
 
       {/* ── Main 3-col body — panels flush to navbar ── */}
       <div className="builder-body">
-
         {/* ── Left: field palette ── */}
         <aside className="builder-sidebar builder-sidebar--left">
           <LeftPanel />
@@ -102,7 +112,6 @@ export const BuilderLayout: React.FC = () => {
 
         {/* ── Center: stepper → wizard bar → canvas ── */}
         <main className="builder-canvas-col">
-
           {/* Progress stepper — contained in canvas column */}
           <div className="canvas-stepper">
             <FlowDiagram stages={stages} />

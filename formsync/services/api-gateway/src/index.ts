@@ -94,6 +94,10 @@ app.get("/health", healthHandler);
 
 // ─── Proxy helpers ────────────────────────────────────────────────────────────
 
+/**
+ * Standard proxy — calls fixRequestBody so that JSON bodies that were
+ * consumed by express.json() are re-serialised onto the proxy request.
+ */
 function proxy(target: string, options: Record<string, any> = {}) {
   return createProxyMiddleware({
     target,
@@ -114,7 +118,42 @@ function proxy(target: string, options: Record<string, any> = {}) {
   });
 }
 
+/**
+ * Raw-stream proxy — does NOT call fixRequestBody.
+ * Use this for multipart/form-data uploads so that the raw byte stream
+ * (including file buffers) is forwarded untouched to the downstream service.
+ * Calling fixRequestBody on a multipart body corrupts the stream and causes
+ * the downstream service to receive an empty/broken file.
+ */
+function proxyRaw(target: string, options: Record<string, any> = {}) {
+  return createProxyMiddleware({
+    target,
+    changeOrigin: true,
+    on: {
+      error: (err, _req, res: any) => {
+        console.error(`[Gateway] Proxy error → ${target}:`, err.message);
+        if (!res.headersSent) {
+          res.status(502).json({
+            error: "Bad Gateway",
+            message: `Upstream service unavailable: ${target}`,
+          });
+        }
+      },
+    },
+    ...options,
+  });
+}
+
 // ─── Route proxies ────────────────────────────────────────────────────────────
+
+// Schema Enhancement Engine — multipart file upload route (MUST be before /schema)
+// Uses proxyRaw so the raw multipart stream is forwarded without being corrupted.
+app.use(
+  "/schema/parse-srs",
+  proxyRaw(SERVICES.schemaEnhancementEngine.url, {
+    pathRewrite: () => `/schema/parse-srs`,
+  }),
+);
 
 // Schema Enhancement Engine  →  /schema/*  (preserve /schema prefix)
 app.use(
@@ -141,6 +180,12 @@ app.use(
   "/template",
   proxy(SERVICES.userManagementService.url, {
     pathRewrite: (path) => `/template${path}`,
+  }),
+);
+app.use(
+  "/project",
+  proxy(SERVICES.userManagementService.url, {
+    pathRewrite: (path) => `/project${path}`,
   }),
 );
 

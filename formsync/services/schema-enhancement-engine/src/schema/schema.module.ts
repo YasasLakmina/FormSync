@@ -16,6 +16,7 @@ import { ParserService } from './parser.service';
 import { ValidatorService } from './validator.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OpenAILLMPlugin } from '../plugins/llm/openai-llm.plugin';
+import { SrsParserService } from './srs-parser.service';
 
 @Module({
   controllers: [SchemaController],
@@ -30,6 +31,7 @@ import { OpenAILLMPlugin } from '../plugins/llm/openai-llm.plugin';
     ValidatorService,
     PrismaService,
     OpenAILLMPlugin,
+    SrsParserService,
   ],
 })
 export class SchemaModule {}

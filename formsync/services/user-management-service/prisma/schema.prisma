@@ -14,14 +14,15 @@ datasource db {
 }
 
 model User {
-  id        String         @id @default(uuid())
-  email     String         @unique
-  name      String?
-  password  String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  schemas   Schema[]
-  templates FormTemplate[]
+  id          String         @id @default(uuid())
+  email       String         @unique
+  name        String?
+  password    String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  schemas     Schema[]
+  templates   FormTemplate[]
+  srsProjects SrsProject[]
 }
 
 model Schema {
@@ -50,4 +51,38 @@ model FormTemplate {
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
+}
+
+model SrsProject {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userStories UserStory[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model UserStory {
+  id                 String     @id @default(uuid())
+  title              String
+  role               String
+  action             String
+  benefit            String
+  acceptanceCriteria String[]
+  suggestedFields    Json
+  featureArea        String     @default("General")
+  confidence         Float      @default(0)
+  status             String     @default("draft")
+  generatedSchemaId  String?
+  rawText            String     @default("")
+  projectId          String
+  project            SrsProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@index([projectId])
 }

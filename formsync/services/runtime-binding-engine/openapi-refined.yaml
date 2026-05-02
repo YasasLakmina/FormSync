@@ -1,0 +1,376 @@
+# -----------------------------------------------------------------------------
+# OpenAPI 3.0.3 — Refactored from auto-generated spec
+# -----------------------------------------------------------------------------
+# Summary of improvements:
+# 1. Domain & naming: Replaced incorrect entity name "OpenAPI" with
+#    "Job Application". Paths changed from /api/open-a-p-is to
+#    /api/job-applications. Schemas renamed from OpenAPIRequest/OpenAPIResponse
+#    to JobApplicationRequest/JobApplicationResponse.
+# 2. RESTful design: Plural resource path, consistent tags and operationIds.
+# 3. Schemas: Expanded address from a bare "object" into a full Address
+#    component (street, city, state, postalCode, country). Preserved
+#    validation (minLength, maxLength, enum, format, minimum, maximum).
+# 4. Error responses: Added reusable ErrorResponse schema; 400, 404, and 500
+#    now document a structured response body.
+# 5. Documentation: Clear summaries, descriptions, and operationIds; single
+#    tag "Job Applications" for all operations.
+# 6. Spring Boot alignment: CRUD-only, DTO-style request/response models,
+#    validation constraints suitable for @Valid and Bean Validation.
+# -----------------------------------------------------------------------------
+
+openapi: 3.0.3
+
+info:
+  title: Job Applications API
+  description: |
+    REST API for managing job applications (candidate submissions).
+    Designed for a Spring Boot backend with DTOs and Bean Validation.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /api/job-applications:
+    get:
+      tags:
+        - Job Applications
+      summary: List all job applications
+      description: Returns all job applications. Order is not guaranteed.
+      operationId: listJobApplications
+      responses:
+        '200':
+          description: List of job applications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobApplicationResponse'
+              example:
+                - id: 1
+                  fullName: Jane Doe
+                  email: jane.doe@example.com
+                  department: Engineering
+                  experienceLevel: Senior
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Job Applications
+      summary: Create a job application
+      description: Submits a new job application. Request body is validated.
+      operationId: createJobApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobApplicationRequest'
+            example:
+              fullName: John Smith
+              email: john.smith@example.com
+              dateOfBirth: '1990-05-15'
+              salary: 95000
+              department: Engineering
+              experienceLevel: Mid-level
+              address:
+                street: 123 Main St
+                city: San Francisco
+                state: CA
+                postalCode: '94102'
+                country: USA
+              startDate: '2026-04-01'
+      responses:
+        '201':
+          description: Job application created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobApplicationResponse'
+        '400':
+          description: Validation error (invalid or missing fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/job-applications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Unique identifier of the job application.
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+    get:
+      tags:
+        - Job Applications
+      summary: Get job application by ID
+      description: Returns a single job application by its ID.
+      operationId: getJobApplicationById
+      responses:
+        '200':
+          description: Job application found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobApplicationResponse'
+        '404':
+          description: Job application not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Job Applications
+      summary: Update a job application
+      description: Updates an existing job application by ID. Request body is validated.
+      operationId: updateJobApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobApplicationRequest'
+      responses:
+        '200':
+          description: Job application updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobApplicationResponse'
+        '400':
+          description: Validation error (invalid or missing fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Job application not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Job Applications
+      summary: Delete a job application
+      description: Deletes a job application by ID. Returns no content on success.
+      operationId: deleteJobApplication
+      responses:
+        '204':
+          description: Job application deleted. No response body.
+        '404':
+          description: Job application not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    JobApplicationRequest:
+      type: object
+      description: Request body for creating or updating a job application.
+      required:
+        - fullName
+        - email
+      properties:
+        fullName:
+          type: string
+          description: Full name of the applicant.
+          minLength: 1
+          maxLength: 100
+          example: Jane Doe
+        email:
+          type: string
+          format: email
+          description: Email address of the applicant.
+          example: jane.doe@example.com
+        dateOfBirth:
+          type: string
+          format: date
+          description: Date of birth (YYYY-MM-DD).
+          example: '1990-05-15'
+        salary:
+          type: number
+          description: Expected or current salary. Must be non-negative.
+          minimum: 0
+          example: 95000
+        department:
+          type: string
+          description: Department or area of interest.
+          enum:
+            - Engineering
+            - Design
+            - Product
+            - Sales
+            - HR
+            - Finance
+          example: Engineering
+        experienceLevel:
+          type: string
+          description: Professional experience level.
+          enum:
+            - Junior
+            - Mid-level
+            - Senior
+            - Lead
+            - Principal
+          example: Senior
+        startDate:
+          type: string
+          format: date
+          description: Earliest available start date (YYYY-MM-DD).
+          example: '2026-04-01'
+        address:
+          $ref: '#/components/schemas/Address'
+
+    JobApplicationResponse:
+      type: object
+      description: Job application as returned by the API (includes server-assigned ID).
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier assigned by the server.
+          example: 1
+        fullName:
+          type: string
+          description: Full name of the applicant.
+        email:
+          type: string
+          format: email
+          description: Email address of the applicant.
+        dateOfBirth:
+          type: string
+          format: date
+          description: Date of birth (YYYY-MM-DD).
+        salary:
+          type: number
+          description: Salary value.
+        department:
+          type: string
+          enum:
+            - Engineering
+            - Design
+            - Product
+            - Sales
+            - HR
+            - Finance
+        experienceLevel:
+          type: string
+          enum:
+            - Junior
+            - Mid-level
+            - Senior
+            - Lead
+            - Principal
+        startDate:
+          type: string
+          format: date
+          description: Earliest available start date (YYYY-MM-DD).
+        address:
+          $ref: '#/components/schemas/Address'
+
+    Address:
+      type: object
+      description: Postal address (nested in job application).
+      properties:
+        street:
+          type: string
+          description: Street address line.
+          maxLength: 200
+          example: 123 Main St
+        city:
+          type: string
+          description: City name.
+          maxLength: 100
+          example: San Francisco
+        state:
+          type: string
+          description: State, province, or region.
+          maxLength: 100
+          example: CA
+        postalCode:
+          type: string
+          description: Postal or ZIP code.
+          pattern: '^[0-9]{5}(-[0-9]{4})?$'
+          maxLength: 20
+          example: '94102'
+        country:
+          type: string
+          description: Country name or code.
+          maxLength: 100
+          example: USA
+
+    ErrorResponse:
+      type: object
+      description: Standard error payload for 400, 404, and 500 responses.
+      properties:
+        status:
+          type: integer
+          description: HTTP status code.
+          example: 400
+        error:
+          type: string
+          description: Error type or category.
+          example: Validation Failed
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Request body has 2 validation error(s).
+        path:
+          type: string
+          description: Request path that caused the error.
+          example: /api/job-applications
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the error occurred (ISO-8601).
+        validationErrors:
+          type: array
+          description: Field-level validation errors (present for 400 responses).
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: must be a valid email address
+              rejectedValue: {}

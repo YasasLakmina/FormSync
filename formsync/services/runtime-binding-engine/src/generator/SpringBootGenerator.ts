@@ -4,7 +4,15 @@ import { SpringBootGeneratorConfig } from '../model/InputContract';
 import { TemplateService } from '../service/TemplateService';
 import { FileWriter } from '../service/FileWriter';
 import { ContextualTestGenerator } from '../service/ContextualTestGenerator';
+import { buildOpenApiSpec } from '../openapi/OpenApiSpecBuilder';
+import * as yaml from 'js-yaml';
 import * as path from 'path';
+
+/** Derives a Java base package from a schema name (e.g. "Employee" -> "com.employee"). */
+function schemaNameToBasePackage(name: string): string {
+    const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'app';
+    return `com.${normalized}`;
+}
 
 /**
  * Generates a complete, ready-to-run Spring Boot backend server
@@ -38,11 +46,9 @@ export class SpringBootGenerator {
 
     async generate(schema: any, config?: SpringBootGeneratorConfig): Promise<void> {
         const outputDir = config?.outputDir || './generated-output';
-        const basePackage = config?.basePackage || 'com.example.demo';
         const serverPort = config?.serverPort || 8080;
         const includeSwagger = config?.includeSwagger ?? true;
         const database = config?.database || 'h2';
-        const packagePath = basePackage.replace(/\./g, '/');
 
         try {
             let internalModel: InternalSchema;
@@ -58,6 +64,8 @@ export class SpringBootGenerator {
             }
 
             const appName = internalModel.appName;
+            const basePackage = config?.basePackage ?? schemaNameToBasePackage(appName);
+            const packagePath = basePackage.replace(/\./g, '/');
 
             // ── 1. pom.xml ──
             const pomContent = this.templateService.render('pom', {
@@ -75,7 +83,10 @@ export class SpringBootGenerator {
                 name: appName,
                 serverPort,
                 basePackage,
-                database
+                database,
+                includeSwagger,
+                version: internalModel.version,
+                description: internalModel.description
             });
             this.fileWriter.write(
                 path.join(outputDir, 'src/main/resources/application.yml'),
@@ -111,6 +122,20 @@ export class SpringBootGenerator {
                 exHandlerContent
             );
 
+            // ── 4b. OpenAPI config (when Swagger enabled) ──
+            if (includeSwagger) {
+                const openApiConfigContent = this.templateService.render('openapi-config', {
+                    basePackage,
+                    appName,
+                    version: internalModel.version,
+                    description: internalModel.description,
+                });
+                this.fileWriter.write(
+                    path.join(outputDir, 'src/main/java', packagePath, 'config', 'OpenApiConfig.java'),
+                    openApiConfigContent
+                );
+            }
+
             // ── 5. Enums ──
             for (const enumDef of internalModel.enums) {
                 const enumContent = this.templateService.render('enum', {
@@ -123,10 +148,27 @@ export class SpringBootGenerator {
                 );
             }
 
+            // ── 5b. OpenAPI 3 spec (openapi.yaml) ──
+            const openApiDoc = buildOpenApiSpec(internalModel);
+            const openApiYaml = yaml.dump(openApiDoc, { lineWidth: -1 });
+            this.fileWriter.write(path.join(outputDir, 'openapi.yaml'), openApiYaml);
+            this.fileWriter.write(
+                path.join(outputDir, 'src/main/resources/static/openapi.yaml'),
+                openApiYaml
+            );
+
             // ── 6. Per-entity generation ──
             for (const entity of internalModel.entities) {
                 const nameLower = entity.name.charAt(0).toLowerCase() + entity.name.slice(1);
-                const context = { ...entity, basePackage, nameLower };
+                const context = {
+                    ...entity,
+                    basePackage,
+                    nameLower,
+                    includeSwagger,
+                    appName,
+                    version: internalModel.version,
+                    description: internalModel.description
+                };
 
                 // Entity
                 const entityContent = this.templateService.render('entity', context);

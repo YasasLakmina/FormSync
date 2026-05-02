@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { authService } from "../services/authService";
 import { schemaApi } from "../api/schemaApi";
+import { projectApi, SrsProject } from "../api/projectApi";
+import { ParseSrsResponse } from "../api/schemaApi";
+import { SrsUploadModal } from "../components/SrsUploadModal";
+import { UserStorySelectorModal } from "../components/UserStorySelectorModal";
 import { toast } from "sonner";
 import {
   FileJson2,
@@ -25,6 +29,10 @@ import {
   EyeOff,
   ShieldCheck,
   ChevronDown,
+  FolderOpen,
+  Upload,
+  Wand2,
+  FileText,
 } from "lucide-react";
 
 const SCHEMA_API_URL = import.meta.env.VITE_API_URL || "";
@@ -66,13 +74,20 @@ export const ProfilePage: React.FC = () => {
     setHeaderEmail(updated.email);
   };
 
-  const [activeTab, setActiveTab] = useState<"schemas" | "templates">(
+  const [activeTab, setActiveTab] = useState<"schemas" | "templates" | "projects">(
     "schemas",
   );
   const [schemas, setSchemas] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [projects, setProjects] = useState<SrsProject[]>([]);
   const [loadingSchemas, setLoadingSchemas] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // SRS import flow state
+  const [showSrsUpload, setShowSrsUpload] = useState(false);
+  const [srsResult, setSrsResult] = useState<ParseSrsResponse | null>(null);
+  const [srsProjName, setSrsProjName] = useState("");
 
   /* ── redirect ─────────────────────────────────────────── */
   useEffect(() => {
@@ -101,6 +116,26 @@ export const ProfilePage: React.FC = () => {
       .finally(() => setLoadingTemplates(false));
   }, [activeTab, token]);
 
+  /* ── fetch projects (eager — needed for stats strip count) ── */
+  useEffect(() => {
+    if (!token) return;
+    setLoadingProjects(true);
+    projectApi
+      .list(token)
+      .then((r) => setProjects(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {}) // silently ignore on initial load; tab will retry
+      .finally(() => setLoadingProjects(false));
+  }, [token]);
+
+  /* ── re-fetch projects when switching to projects tab ────── */
+  useEffect(() => {
+    if (activeTab !== "projects" || !token) return;
+    projectApi
+      .list(token)
+      .then((r) => setProjects(Array.isArray(r.data) ? r.data : []))
+      .catch(() => toast.error("Failed to load projects"));
+  }, [activeTab, token]);
+
   const handleDeleteSchema = async (id: string) => {
     try {
       await schemaApi.delete(id);
@@ -118,6 +153,29 @@ export const ProfilePage: React.FC = () => {
       toast.success("Template deleted");
     } catch {
       toast.error("Failed to delete template");
+    }
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    if (!token) return;
+    try {
+      await projectApi.delete(token, id);
+      setProjects((p) => p.filter((proj) => proj.id !== id));
+      toast.success("Project deleted");
+    } catch {
+      toast.error("Failed to delete project");
+    }
+  };
+
+  const handleSrsExtracted = (result: ParseSrsResponse, projectName: string) => {
+    setSrsResult(result);
+    setSrsProjName(projectName);
+    setShowSrsUpload(false);
+  };
+
+  const handleProjectSaved = (_projectId: string) => {
+    if (activeTab === "projects") {
+      projectApi.list(token!).then((r) => setProjects(Array.isArray(r.data) ? r.data : []));
     }
   };
 
@@ -294,10 +352,10 @@ export const ProfilePage: React.FC = () => {
                 accent: "border-indigo-100 bg-indigo-50/60",
               },
               {
-                label: "Total Assets",
-                value: schemas.length + templates.length,
-                icon: <Sparkles className="w-4 h-4 text-violet-500" />,
-                accent: "border-violet-100 bg-violet-50/60",
+                label: "SRS Projects",
+                value: projects.length,
+                icon: <FolderOpen className="w-4 h-4 text-emerald-500" />,
+                accent: "border-emerald-100 bg-emerald-50/60",
               },
             ].map((s, i) => (
               <motion.div
@@ -347,11 +405,20 @@ export const ProfilePage: React.FC = () => {
             <div className="bg-white rounded-3xl border border-neutral-200/80 shadow-sm overflow-hidden">
               {/* Tabs header */}
               <div className="px-5 pt-5 pb-0">
-                <h2 className="text-base font-bold text-neutral-900 mb-4">
-                  My Library
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-bold text-neutral-900">My Library</h2>
+                  {activeTab === "projects" && (
+                    <button
+                      onClick={() => setShowSrsUpload(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-semibold hover:shadow-md hover:shadow-purple-200 transition-all hover:-translate-y-0.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Import SRS
+                    </button>
+                  )}
+                </div>
                 <div className="flex gap-1 bg-neutral-100/80 p-1 rounded-xl w-fit mb-0">
-                  {(["schemas", "templates"] as const).map((tab) => (
+                  {(["schemas", "templates", "projects"] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
@@ -365,19 +432,19 @@ export const ProfilePage: React.FC = () => {
                         <>
                           <FileJson2 className="w-3.5 h-3.5" />
                           JSON Schemas{" "}
-                          <TabBadge
-                            count={schemas.length}
-                            active={activeTab === tab}
-                          />
+                          <TabBadge count={schemas.length} active={activeTab === tab} />
                         </>
-                      ) : (
+                      ) : tab === "templates" ? (
                         <>
                           <Palette className="w-3.5 h-3.5" />
                           Templates{" "}
-                          <TabBadge
-                            count={templates.length}
-                            active={activeTab === tab}
-                          />
+                          <TabBadge count={templates.length} active={activeTab === tab} />
+                        </>
+                      ) : (
+                        <>
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          Projects{" "}
+                          <TabBadge count={projects.length} active={activeTab === tab} />
                         </>
                       )}
                     </button>
@@ -388,7 +455,50 @@ export const ProfilePage: React.FC = () => {
               {/* Tab content */}
               <div className="p-5 pt-4 min-h-[320px]">
                 <AnimatePresence mode="wait">
-                  {activeTab === "schemas" ? (
+                  {activeTab === "projects" ? (
+                    <motion.div
+                      key="projects"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {loadingProjects ? (
+                        <SkeletonGrid />
+                      ) : projects.length === 0 ? (
+                        <EmptyState
+                          icon={<FolderOpen className="w-9 h-9 text-neutral-300" />}
+                          title="No SRS projects yet"
+                          description="Upload an SRS document to automatically extract user stories and generate forms."
+                          action={
+                            <button
+                              onClick={() => setShowSrsUpload(true)}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-purple-200 transition-all hover:-translate-y-0.5"
+                            >
+                              <Upload className="w-4 h-4" />
+                              Import SRS Document
+                            </button>
+                          }
+                        />
+                      ) : (
+                        <motion.div
+                          variants={stagger}
+                          initial="hidden"
+                          animate="show"
+                          className="grid gap-3 sm:grid-cols-2"
+                        >
+                          {projects.map((proj, i) => (
+                            <motion.div key={proj.id} custom={i} variants={fadeUp}>
+                              <ProjectCard
+                                project={proj}
+                                onDelete={() => handleDeleteProject(proj.id)}
+                              />
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ) : activeTab === "schemas" ? (
                     <motion.div
                       key="schemas"
                       initial={{ opacity: 0, y: 8 }}
@@ -476,6 +586,24 @@ export const ProfilePage: React.FC = () => {
           </motion.div>
         </div>
       </div>
+      {/* SRS modals */}
+      <AnimatePresence>
+        {showSrsUpload && (
+          <SrsUploadModal
+            onClose={() => setShowSrsUpload(false)}
+            onStoriesExtracted={handleSrsExtracted}
+          />
+        )}
+        {srsResult && token && (
+          <UserStorySelectorModal
+            result={srsResult}
+            projectName={srsProjName}
+            token={token}
+            onClose={() => setSrsResult(null)}
+            onProjectSaved={handleProjectSaved}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -924,6 +1052,183 @@ const TemplateCard: React.FC<{ template: any; onDelete: () => void }> = ({
         </span>
         <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full font-semibold">
           {fieldCount} {fieldCount === 1 ? "field" : "fields"}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Project Card ───────────────────────────────────────── */
+const STORY_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  generated: { label: "Generated", cls: "bg-emerald-100 text-emerald-700" },
+  draft:     { label: "Draft",     cls: "bg-neutral-100 text-neutral-500" },
+};
+
+const AREA_DOT_COLORS: Record<string, string> = {
+  Authentication: "bg-blue-400",
+  Registration:   "bg-indigo-400",
+  Profile:        "bg-purple-400",
+  Search:         "bg-cyan-400",
+  Checkout:       "bg-amber-400",
+  Payment:        "bg-emerald-400",
+  Dashboard:      "bg-violet-400",
+};
+
+const ProjectCard: React.FC<{ project: SrsProject; onDelete: () => void }> = ({
+  project,
+  onDelete,
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const stories = project.userStories ?? [];
+  const generated = stories.filter((s) => s.status === "generated").length;
+  const areas = [...new Set(stories.map((s) => s.featureArea).filter(Boolean))];
+
+  return (
+    <div className="group bg-neutral-50/70 rounded-2xl border border-neutral-200/70 p-4 hover:border-purple-300 hover:bg-white hover:shadow-md hover:shadow-purple-100/60 transition-all duration-200 flex flex-col">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+            <FolderOpen className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-neutral-900 truncate max-w-[140px]">{project.name}</p>
+            <p className="text-xs text-neutral-400">{stories.length} {stories.length === 1 ? "story" : "stories"}</p>
+          </div>
+        </div>
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-all"
+          title="Delete project"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Feature area dots */}
+      {areas.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {areas.slice(0, 4).map((a) => (
+            <span
+              key={a}
+              className="flex items-center gap-1 text-[10px] text-neutral-500 px-1.5 py-0.5 bg-white border border-neutral-200/70 rounded-full"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${AREA_DOT_COLORS[a] ?? "bg-neutral-400"}`} />
+              {a}
+            </span>
+          ))}
+          {areas.length > 4 && (
+            <span className="text-[10px] text-neutral-400 px-1.5 py-0.5">+{areas.length - 4} more</span>
+          )}
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {stories.length > 0 && (
+        <div className="mb-3">
+          <div className="flex justify-between text-xs text-neutral-400 mb-1">
+            <span>{generated}/{stories.length} forms generated</span>
+            <span>{Math.round((generated / stories.length) * 100)}%</span>
+          </div>
+          <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full transition-all duration-500"
+              style={{ width: `${(generated / stories.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Expandable stories list */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between text-xs text-neutral-500 hover:text-neutral-700 transition-colors mt-auto pt-2 border-t border-neutral-200/60"
+      >
+        <span className="flex items-center gap-1">
+          <FileText className="w-3 h-3" />
+          {expanded ? "Hide" : "Show"} user stories
+        </span>
+        <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="w-3 h-3" />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="overflow-hidden"
+          >
+            <div className="pt-2 space-y-1.5">
+              {stories.map((story) => {
+                const sc = STORY_STATUS_CONFIG[story.status] ?? STORY_STATUS_CONFIG.draft;
+                return (
+                  <div
+                    key={story.id}
+                    className="flex items-center justify-between px-2.5 py-2 bg-neutral-50 border border-neutral-200/60 rounded-xl"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${AREA_DOT_COLORS[story.featureArea] ?? "bg-neutral-400"}`} />
+                      <span className="text-xs text-neutral-700 font-medium truncate">{story.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${sc.cls}`}>
+                        {sc.label}
+                      </span>
+                      {story.status !== "generated" && (
+                        <button
+                          onClick={() => {
+                            // Build JSON Schema Draft-07 from the stored suggested fields
+                            const properties: Record<string, any> = {};
+                            const required: string[] = [];
+                            (story.suggestedFields ?? []).forEach((f: any) => {
+                              const prop: any = { type: f.type };
+                              if (f.format) prop.format = f.format;
+                              if (f.label) prop["x-accessibility"] = { label: f.label, hint: f.placeholder ?? "" };
+                              if (f.placeholder) prop.examples = [f.placeholder];
+                              if (f.validationHint) prop.description = f.validationHint;
+                              properties[f.name] = prop;
+                              if (f.required) required.push(f.name);
+                            });
+                            const schema = {
+                              $schema: "http://json-schema.org/draft-07/schema#",
+                              title: story.title,
+                              description: `As a ${story.role}, I want to ${story.action}, so that ${story.benefit}.`,
+                              type: "object",
+                              properties,
+                              ...(required.length ? { required } : {}),
+                              "x-formsync-metadata": {
+                                source: "srs-import",
+                                featureArea: story.featureArea,
+                                acceptanceCriteria: story.acceptanceCriteria,
+                              },
+                            };
+                            sessionStorage.setItem("srs_preload_schema", JSON.stringify(schema, null, 2));
+                            sessionStorage.setItem("srs_story_id", story.id);
+                            sessionStorage.setItem("srs_project_id", project.id);
+                            window.location.href = "/editor?fromSrs=1";
+                          }}
+                          className="p-1 rounded-lg text-neutral-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all"
+                          title="Generate form in editor"
+                        >
+                          <Wand2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-200/60">
+        <span className="text-xs text-neutral-400 flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {new Date(project.createdAt).toLocaleDateString()}
         </span>
       </div>
     </div>
