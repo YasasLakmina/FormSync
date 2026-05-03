@@ -15,9 +15,11 @@ import { toast } from "sonner";
 import {
   generationService,
   type BackendLanguage,
+  type FrontendStack,
 } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
+import { FrontendStackSelector } from "../components/FrontendStackSelector";
 import type { FormModel, JsonSchema } from "../types";
 import { FORMSYNC_BUILDER_EXPORT_FORM_KEY } from "../context/BuilderContext";
 
@@ -142,6 +144,8 @@ export const GeneratedCodePage: React.FC = () => {
     return !rs?.generatedCode;
   });
   const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
+  const [isDownloadingStaticFrontend, setIsDownloadingStaticFrontend] =
+    React.useState(false);
   const backendLanguageFromSession = sessionStorage.getItem(
     "formsync_backend_language",
   ) as BackendLanguage | null;
@@ -152,6 +156,14 @@ export const GeneratedCodePage: React.FC = () => {
     "springBoot";
   const [backendLanguage, setBackendLanguage] =
     React.useState<BackendLanguage>(initialBackendLanguage);
+
+  const frontendStackFromSession = sessionStorage.getItem(
+    "formsync_frontend_stack",
+  ) as FrontendStack | null;
+  const initialFrontendStack: FrontendStack =
+    frontendStackFromSession === "htmlBootstrap" ? "htmlBootstrap" : "react";
+  const [frontendStack, setFrontendStack] =
+    React.useState<FrontendStack>(initialFrontendStack);
 
   /** Tracks backendLanguage for regenerating preview only when the user changes the selector. */
   const prevBackendLanguageRef = React.useRef<BackendLanguage | null>(null);
@@ -181,15 +193,15 @@ export const GeneratedCodePage: React.FC = () => {
       if (schemaId && syncedFromBuilder) {
         setIsLoading(true);
         try {
-          const result = await generationService.generateAll(
-            syncedFromBuilder,
-            backendLanguage,
-          );
           try {
             sessionStorage.removeItem(FORMSYNC_BUILDER_EXPORT_FORM_KEY);
           } catch {
             /* ignore */
           }
+          const result = await generationService.generateAll(
+            syncedFromBuilder,
+            backendLanguage,
+          );
           if (result.success && result.data) {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
@@ -362,10 +374,12 @@ export const GeneratedCodePage: React.FC = () => {
     setIsDownloadingBackend(true);
     try {
       sessionStorage.setItem("formsync_backend_language", backendLanguage);
+      sessionStorage.setItem("formsync_frontend_stack", frontendStack);
       await generationService.downloadFullstackZip(
         state.formModel,
         state.schema,
         backendLanguage,
+        frontendStack,
       );
       toast.success("Fullstack project downloaded successfully!");
     } catch (error: any) {
@@ -373,6 +387,25 @@ export const GeneratedCodePage: React.FC = () => {
       toast.error(error.message || "Failed to download fullstack project");
     } finally {
       setIsDownloadingBackend(false);
+    }
+  };
+
+  const handleDownloadStaticFrontendOnly = async () => {
+    if (!state.formModel) {
+      toast.error(
+        "Open this page from the Form Builder with your form to download the HTML frontend.",
+      );
+      return;
+    }
+    setIsDownloadingStaticFrontend(true);
+    try {
+      await generationService.downloadStaticFrontendZip(state.formModel);
+      toast.success("Static HTML frontend downloaded!");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Download failed";
+      toast.error(message);
+    } finally {
+      setIsDownloadingStaticFrontend(false);
     }
   };
 
@@ -404,20 +437,47 @@ export const GeneratedCodePage: React.FC = () => {
               Your complete application code is ready! Review, copy, or
               download.
             </p>
-            <div className="mt-4 max-w-3xl">
-              <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
-                Backend Language
-              </label>
-              <BackendLanguageSelector
-                selected={backendLanguage}
-                onChange={(selected) => {
-                  setBackendLanguage(selected);
-                  sessionStorage.setItem(
-                    "formsync_backend_language",
-                    selected,
-                  );
-                }}
-              />
+            <div className="mt-4 max-w-3xl space-y-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                  Backend Language
+                </label>
+                <BackendLanguageSelector
+                  selected={backendLanguage}
+                  onChange={(selected) => {
+                    setBackendLanguage(selected);
+                    sessionStorage.setItem(
+                      "formsync_backend_language",
+                      selected,
+                    );
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                  Frontend Stack
+                </label>
+                <FrontendStackSelector
+                  selected={frontendStack}
+                  onChange={(stack) => {
+                    setFrontendStack(stack);
+                    sessionStorage.setItem("formsync_frontend_stack", stack);
+                  }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDownloadingStaticFrontend}
+                  onClick={() => void handleDownloadStaticFrontendOnly()}
+                >
+                  {isDownloadingStaticFrontend
+                    ? "Downloading…"
+                    : "Download HTML frontend only"}
+                </Button>
+              </div>
             </div>
           </div>
 

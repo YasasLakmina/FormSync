@@ -6,6 +6,14 @@ WORKDIR /workspace
 # Shared tsconfig — frontend/tsconfig.json extends ../config/tsconfig.base.json
 COPY config/ config/
 
+# Workspace package required by file:../packages/form-types in package.json
+COPY packages/form-types ./packages/form-types
+WORKDIR /workspace/packages/form-types
+RUN npm install && npm run build
+
+# Destination paths are relative to WORKDIR — reset so COPY lands under /workspace
+WORKDIR /workspace
+
 # Install dependencies first (cache layer)
 COPY frontend/package*.json frontend/
 WORKDIR /workspace/frontend

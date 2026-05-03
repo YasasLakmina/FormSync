@@ -1,0 +1,31 @@
+{
+  "name": "static-frontend-generator",
+  "version": "1.0.0",
+  "description": "Generates static HTML + Bootstrap + JS from FormModel",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "@formsync/form-types": "file:../../packages/form-types",
+    "@formsync/formgen-shared": "file:../../packages/formgen-shared",
+    "archiver": "^7.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.3"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.2.2"
+  }
+}

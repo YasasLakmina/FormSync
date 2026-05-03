@@ -1,0 +1,16 @@
+{
+  "name": "@formsync/form-types",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared FormModel / FieldModel types for FormSync builder and generators",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

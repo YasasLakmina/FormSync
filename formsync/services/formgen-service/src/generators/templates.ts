@@ -444,6 +444,21 @@ This form was generated from FormSync Form Builder.
 ${formModel.meta?.title ? `- **Title**: ${formModel.meta.title}` : ''}
 ${formModel.meta?.description ? `- **Description**: ${formModel.meta.description}` : ''}
 
+## ZIP export (builder palette parity)
+
+Exported React and wired POST payloads align with the builder **field types**: text through calculated/repeater/typeahead, plus **unknown** (fallback).
+
+- **Files**: uploaded files are sent as **Base64 / data URL strings inside JSON** (not multipart). Expect practical limits on payload size from browsers and servers.
+- **Rich text**: exported as a **textarea** (HTML string). Bundle a rich-text library if you need WYSIWYG.
+- **Repeater**: values serialize as **arrays of objects** (indexed names like \`items.0.field\` → JSON arrays after submit wiring).
+- **Typeahead**: optional async URL must allow **CORS** from your dev origin; placeholder is \`{query}\`.
+
+### Manual smoke checklist
+
+1. Export fullstack ZIP with **group + repeater + file + calculated** fields; run frontend and POST to generated API.
+2. Confirm repeater rows produce a JSON **array** at the expected path.
+3. Confirm a small image/PDF file round-trips as Base64 in the JSON body (size stays reasonable).
+
 ## Customization
 
 - Edit \`src/App.tsx\` to modify the form structure

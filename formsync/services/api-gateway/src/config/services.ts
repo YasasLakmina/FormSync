@@ -40,7 +40,7 @@ export const SERVICES: Record<string, ServiceConfig> = {
   formgenService: {
     name: 'formgen-service',
     url: process.env.FORMGEN_SERVICE_URL || 'http://localhost:3014',
-    description: 'Generates standalone React app from FormModel',
+    description: 'React app ZIP and fullstack orchestration (React or static HTML)',
     healthPath: '/health',
   },
   nodeBackendGenerator: {
@@ -53,6 +53,12 @@ export const SERVICES: Record<string, ServiceConfig> = {
     name: 'dotnet-backend-generator',
     url: process.env.DOTNET_BACKEND_GENERATOR_URL || 'http://localhost:3016',
     description: 'Generates ASP.NET Core Web API backend from JSON Schema',
+    healthPath: '/health',
+  },
+  staticFrontendGenerator: {
+    name: 'static-frontend-generator',
+    url: process.env.STATIC_FRONTEND_GENERATOR_URL || 'http://localhost:3017',
+    description: 'Generates static HTML + Bootstrap + JavaScript from FormModel',
     healthPath: '/health',
   },
 };
