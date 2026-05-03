@@ -56,7 +56,10 @@ export const FrontendStackSelector: React.FC<FrontendStackSelectorProps> = ({
 }) => {
   return (
     <div
-      className={cn("grid w-full grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3", className)}
+      className={cn(
+        "grid w-full grid-cols-3 gap-2 sm:gap-3",
+        className,
+      )}
       role="radiogroup"
       aria-label="Frontend generation stack"
     >
@@ -71,31 +74,53 @@ export const FrontendStackSelector: React.FC<FrontendStackSelectorProps> = ({
             role="radio"
             aria-checked={isSelected}
             onClick={() => onChange(opt.id)}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
             className={cn(
-              "relative flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-colors",
+              "relative flex min-w-0 w-full items-center gap-2 sm:gap-3 px-2 py-3 sm:px-4 rounded-xl transition-all duration-200",
+              "border-2 cursor-pointer group",
+              isSelected
+                ? `${opt.borderColor} shadow-lg scale-[1.02]`
+                : `border-neutral-200 dark:border-neutral-700 ${opt.hoverBorderColor}`,
               opt.bgColor,
-              isSelected ? opt.borderColor : "border-transparent",
-              opt.hoverBorderColor,
             )}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
           >
             <div
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm",
-                opt.color,
+                "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                isSelected &&
+                  `bg-gradient-to-br ${opt.color} text-white shadow-md`,
+                !isSelected &&
+                  "bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400",
               )}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="w-5 h-5" />
             </div>
-            <div>
-              <div className={cn("font-semibold", opt.textColor)}>{opt.label}</div>
-              <p className="text-xs text-neutral-600 dark:text-neutral-400">
+
+            <div className="text-left min-w-0">
+              <div
+                className={cn(
+                  "font-semibold text-sm",
+                  isSelected
+                    ? opt.textColor
+                    : "text-neutral-700 dark:text-neutral-300",
+                )}
+              >
+                {opt.label}
+              </div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-500 line-clamp-2">
                 {opt.description}
-              </p>
+              </div>
             </div>
+
             {isSelected && (
-              <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-current opacity-80" />
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className={`absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br ${opt.color} rounded-full flex items-center justify-center shadow-lg`}
+              >
+                <span className="text-white text-xs font-bold">✓</span>
+              </motion.div>
             )}
           </motion.button>
         );

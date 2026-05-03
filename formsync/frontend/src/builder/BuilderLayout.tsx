@@ -5,13 +5,46 @@ import { Canvas } from "./Canvas";
 import { RightPanel } from "./RightPanel";
 import { WizardControls } from "./WizardControls";
 import { useBuilder, BuilderExportPayload, FORMSYNC_BUILDER_EXPORT_FORM_KEY } from "../context/BuilderContext";
-import { generationService, BackendLanguage } from "../services/generationService";
+import {
+  generationService,
+  BackendLanguage,
+  type FrontendStack,
+} from "../services/generationService";
 import { formModelToJsonSchema, validateBuilderJsonSchema } from "../types";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { Undo2 } from "lucide-react";
 import { Navbar } from "../components/layout/Navbar";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
+
+function readFrontendStackFromSession(): FrontendStack | undefined {
+  try {
+    const fe = sessionStorage.getItem("formsync_frontend_stack");
+    if (fe === "react" || fe === "htmlBootstrap") return fe;
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+function appendStackPreferences(p: URLSearchParams): void {
+  try {
+    const be = sessionStorage.getItem(
+      "formsync_backend_language",
+    ) as BackendLanguage | null;
+    if (
+      be === "nodeExpress" ||
+      be === "springBoot" ||
+      be === "dotnetWebApi"
+    ) {
+      p.set("backendLanguage", be);
+    }
+    const fe = readFrontendStackFromSession();
+    if (fe) p.set("frontendStack", fe);
+  } catch {
+    /* ignore */
+  }
+}
 
 export const BuilderLayout: React.FC = () => {
   const { state, dispatch, canUndo } = useBuilder();
@@ -102,8 +135,16 @@ export const BuilderLayout: React.FC = () => {
           /* ignore */
         }
 
-        navigate(`/generated?schemaId=${state.schemaId}`, {
-          state: { schema: synced, formModel: state.form },
+        const genQs = new URLSearchParams();
+        genQs.set("schemaId", state.schemaId);
+        appendStackPreferences(genQs);
+        const fe = readFrontendStackFromSession();
+        navigate(`/generated?${genQs.toString()}`, {
+          state: {
+            schema: synced,
+            formModel: state.form,
+            ...(fe ? { frontendStack: fe } : {}),
+          },
         });
         return;
       } else {
@@ -121,12 +162,17 @@ export const BuilderLayout: React.FC = () => {
           );
           sessionStorage.removeItem("formsync_schema_raw");
           if (result.success && result.data) {
-            navigate("/generated", {
+            const fe = readFrontendStackFromSession();
+            const genQs = new URLSearchParams();
+            appendStackPreferences(genQs);
+            const qs = genQs.toString();
+            navigate(qs ? `/generated?${qs}` : "/generated", {
               state: {
                 generatedCode: result.data,
                 schema,
                 formModel: state.form,
                 backendLanguage: storedBackend,
+                ...(fe ? { frontendStack: fe } : {}),
               },
             });
             return;
@@ -163,32 +209,30 @@ export const BuilderLayout: React.FC = () => {
           <LeftPanel />
         </aside>
 
-        {/* ── Center: stepper → wizard bar → canvas ── */}
+        {/* ── Center: pipeline strip + wizard + canvas (single chrome band) ── */}
         <main className="builder-canvas-col">
-          {/* Progress stepper — contained in canvas column */}
-          <div className="canvas-stepper">
-            <FlowDiagram stages={stages} />
-          </div>
-
-          {/* Wizard controls + Undo on the same bar */}
-          <div className="canvas-toolbar">
-            <WizardControls />
-            <div className="canvas-toolbar-actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => dispatch({ type: "UNDO" })}
-                disabled={!canUndo}
-                className="gap-1.5 text-neutral-500 h-7 px-2.5 text-xs"
-                title="Undo"
-              >
-                <Undo2 className="h-3.5 w-3.5" />
-                Undo
-              </Button>
+          <div className="builder-canvas-header">
+            <div className="canvas-stepper" aria-label="Generation pipeline">
+              <FlowDiagram stages={stages} variant="strip" />
+            </div>
+            <div className="canvas-toolbar">
+              <WizardControls />
+              <div className="canvas-toolbar-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => dispatch({ type: "UNDO" })}
+                  disabled={!canUndo}
+                  className="gap-1.5 text-neutral-500 h-7 px-2.5 text-xs"
+                  title="Undo"
+                >
+                  <Undo2 className="h-3.5 w-3.5" />
+                  Undo
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Scrollable form canvas */}
           <div className="canvas-wrapper">
             <Canvas />
           </div>

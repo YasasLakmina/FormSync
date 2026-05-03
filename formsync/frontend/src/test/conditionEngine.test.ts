@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { evaluateCondition, evaluateCalcExpression, filterVisibleFields } from '../lib/conditionEngine';
+import { evaluateCondition, evaluateCalcExpression, filterVisibleFields, pruneFieldsForWizardStep } from '../lib/conditionEngine';
 import type { FieldModel } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -149,6 +149,31 @@ describe('filterVisibleFields', () => {
         const result = filterVisibleFields([f1, f2], { name: 'Alice' }, 0);
         expect(result).toHaveLength(1);
         expect(result[0].key).toBe('name');
+    });
+
+    it('treats missing stepIndex as step 0 for wizard filtering', () => {
+        const unassigned = makeField({ id: 'fu', key: 'extra', type: 'text', label: 'Extra' });
+        expect(filterVisibleFields([unassigned], {}, 0)).toHaveLength(1);
+        expect(filterVisibleFields([unassigned], {}, 1)).toHaveLength(0);
+    });
+
+    it('pruneFieldsForWizardStep keeps groups when a nested child matches the step', () => {
+        const inner = makeField({ id: 'c1', key: 'child', type: 'text', label: 'Child', stepIndex: 1 });
+        const grp = makeField({
+            id: 'g1',
+            key: 'g',
+            type: 'group',
+            label: 'Group',
+            stepIndex: 0,
+            children: [inner],
+        });
+        const pruned0 = pruneFieldsForWizardStep([grp], 0);
+        expect(pruned0).toHaveLength(0);
+        const pruned1 = pruneFieldsForWizardStep([grp], 1);
+        expect(pruned1).toHaveLength(1);
+        expect(pruned1[0].type).toBe('group');
+        expect(pruned1[0].children).toHaveLength(1);
+        expect(pruned1[0].children![0].key).toBe('child');
     });
 
     it('filters by conditions within a step', () => {

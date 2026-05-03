@@ -49,6 +49,28 @@ describe('SchemaMapper', () => {
         expect(ageField?.constraints.max).toBe(150);
     });
 
+    it('should set persistAsLob for x-field-type signature, file, and richtext', () => {
+        const payload: SchemaPayload = {
+            name: 'Jobs',
+            content: {
+                type: 'object',
+                properties: {
+                    signaturePad: { type: 'string', 'x-field-type': 'signature' },
+                    attachment: { type: 'string', 'x-field-type': 'file' },
+                    notes: { type: 'string', 'x-field-type': 'richtext' },
+                    title: { type: 'string', 'x-field-type': 'typeahead' },
+                },
+            },
+        };
+
+        const result = mapper.map(payload);
+        const fields = result.entities[0].fields;
+        expect(fields.find((f) => f.name === 'signaturePad')?.persistAsLob).toBe(true);
+        expect(fields.find((f) => f.name === 'attachment')?.persistAsLob).toBe(true);
+        expect(fields.find((f) => f.name === 'notes')?.persistAsLob).toBe(true);
+        expect(fields.find((f) => f.name === 'title')?.persistAsLob).toBeFalsy();
+    });
+
     it('should map email format to email constraint', () => {
         const payload: SchemaPayload = {
             name: 'User',
@@ -91,6 +113,37 @@ describe('SchemaMapper', () => {
         expect(numField?.type).toBe(DataType.DOUBLE);
         expect(numField?.constraints.min).toBe(0);
         expect(numField?.constraints.max).toBe(1000000);
+    });
+
+    it('should map array of objects to List with PascalCase item embeddable name', () => {
+        const payload: SchemaPayload = {
+            name: 'NewForm',
+            content: {
+                type: 'object',
+                properties: {
+                    repeatingTable: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                text: { type: 'string' },
+                                age: { type: 'integer' },
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = mapper.map(payload);
+        const itemEntity = result.entities.find((e) => e.name === 'RepeatingTableItem');
+        expect(itemEntity).toBeDefined();
+        expect(itemEntity?.fields.map((f) => f.name).sort()).toEqual(['age', 'text']);
+
+        const root = result.entities.find((e) => e.name === 'NewForm');
+        const rtField = root?.fields.find((f) => f.name === 'repeatingTable');
+        expect(rtField?.type).toBe(DataType.LIST);
+        expect(rtField?.referenceType).toBe('RepeatingTableItem');
     });
 
     it('should map nested objects to separate entities', () => {

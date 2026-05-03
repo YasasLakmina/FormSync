@@ -7,16 +7,39 @@ interface PipelineStage {
   status: "pending" | "loading" | "complete" | "error";
 }
 
-interface FlowDiagramProps {
+export interface FlowDiagramProps {
   stages: PipelineStage[];
+  /**
+   * `card` — padded panel with border (pages, marketing-style).
+   * `strip` — dense single-row pipeline for the form builder toolbar (no card chrome).
+   */
+  variant?: "card" | "strip";
 }
 
-export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
+export const FlowDiagram: React.FC<FlowDiagramProps> = ({
+  stages,
+  variant = "card",
+}) => {
   const completedCount = stages.filter((s) => s.status === "complete").length;
+  const strip = variant === "strip";
+
+  const outerClass = strip
+    ? "w-full min-w-0 bg-transparent py-0.5"
+    : "px-8 py-6 bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm";
+
+  const nodeSize = strip ? "w-7 h-7 border-2" : "w-9 h-9 border-2";
+  const iconClass = strip ? "h-3.5 w-3.5" : "h-4 w-4";
+  const numClass = strip
+    ? "text-[10px] font-semibold"
+    : "text-xs font-semibold";
+  const labelClass = strip ? "text-[10px]" : "text-[11px]";
+  const colGap = strip ? "gap-1.5" : "gap-2.5";
+  const connectorMb = strip ? "mb-5" : "mb-7";
+  const connectorMx = strip ? "mx-0.5" : "mx-1";
 
   return (
-    <div className="px-8 py-6 bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
-      <div className="flex items-center">
+    <div className={outerClass}>
+      <div className="flex min-w-0 items-center">
         {stages.map((stage, index) => {
           const isComplete = stage.status === "complete";
           const isLoading = stage.status === "loading";
@@ -26,8 +49,9 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
 
           return (
             <React.Fragment key={stage.name}>
-              {/* Node + Label */}
-              <div className="flex flex-col items-center gap-2.5 flex-shrink-0">
+              <div
+                className={`flex min-w-0 flex-col items-center ${colGap} flex-shrink-0`}
+              >
                 <motion.div
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -37,7 +61,7 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                     ease: "easeOut",
                   }}
                   className={`
-                    relative w-9 h-9 rounded-full border-2 flex items-center justify-center
+                    relative ${nodeSize} rounded-full flex items-center justify-center
                     transition-all duration-300
                     ${
                       isComplete
@@ -60,7 +84,7 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                         transition={{ duration: 0.15 }}
                       >
                         <Check
-                          className="h-4 w-4 text-white"
+                          className={`${iconClass} text-white`}
                           strokeWidth={2.5}
                         />
                       </motion.div>
@@ -73,7 +97,9 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                         exit={{ scale: 0 }}
                         transition={{ duration: 0.15 }}
                       >
-                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                        <Loader2
+                          className={`${iconClass} text-white animate-spin`}
+                        />
                       </motion.div>
                     )}
                     {isError && (
@@ -84,7 +110,7 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                         exit={{ scale: 0 }}
                         transition={{ duration: 0.15 }}
                       >
-                        <AlertCircle className="h-4 w-4 text-white" />
+                        <AlertCircle className={`${iconClass} text-white`} />
                       </motion.div>
                     )}
                     {!isComplete && !isLoading && !isError && (
@@ -94,9 +120,11 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                         animate={{ scale: 1 }}
                         exit={{ scale: 0 }}
                         transition={{ duration: 0.15 }}
-                        className="w-full h-full flex items-center justify-center"
+                        className="flex h-full w-full items-center justify-center"
                       >
-                        <span className="text-xs font-semibold leading-none text-neutral-400 dark:text-neutral-500 select-none">
+                        <span
+                          className={`${numClass} leading-none text-neutral-400 dark:text-neutral-500 select-none`}
+                        >
                           {index + 1}
                         </span>
                       </motion.div>
@@ -104,9 +132,8 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                   </AnimatePresence>
                 </motion.div>
 
-                {/* Label */}
                 <span
-                  className={`text-[11px] font-medium text-center leading-tight whitespace-nowrap transition-colors duration-300 ${
+                  className={`${labelClass} max-w-[5.5rem] truncate font-medium text-center leading-tight sm:max-w-none sm:whitespace-nowrap transition-colors duration-300 ${
                     isComplete
                       ? "text-emerald-600 dark:text-emerald-400"
                       : isLoading
@@ -115,16 +142,18 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({ stages }) => {
                           ? "text-red-500"
                           : "text-neutral-400 dark:text-neutral-500"
                   }`}
+                  title={stage.name}
                 >
                   {stage.name}
                 </span>
               </div>
 
-              {/* Connector line between nodes */}
               {!isLast && (
-                <div className="flex-1 mx-1 mb-7 relative h-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
+                <div
+                  className={`relative flex-1 ${connectorMx} ${connectorMb} h-0.5 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700`}
+                >
                   <motion.div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
+                    className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
                     initial={{ width: "0%" }}
                     animate={{ width: connectorFilled ? "100%" : "0%" }}
                     transition={{

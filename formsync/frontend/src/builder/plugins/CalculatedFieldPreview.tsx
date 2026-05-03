@@ -1,8 +1,10 @@
 import React from 'react';
 import { FieldPluginProps, registerPlugin } from './FieldPlugin';
+import { resolveFieldStyleOverrides } from './fieldPreviewStyles';
 
-const CalculatedFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
+const CalculatedFieldPreview: React.FC<FieldPluginProps> = ({ field, theme }) => {
     const formula = field['x-calc'] ?? '';
+    const { border, surface, label, hint } = resolveFieldStyleOverrides(field, theme);
 
     return (
         <div style={{ pointerEvents: 'none' }}>
@@ -10,21 +12,20 @@ const CalculatedFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    border: '1px solid #d1d5db',
+                    border: `1px solid ${border}`,
                     borderRadius: 6,
-                    background: '#f9fafb',
+                    background: `color-mix(in srgb, ${hint} 6%, ${surface})`,
                     padding: '0 0.75rem',
                     height: '38px',
                     gap: '0.5rem',
                     cursor: 'not-allowed',
                 }}
             >
-                {/* = symbol badge */}
                 <span
                     style={{
                         fontSize: '0.85rem',
                         fontWeight: 700,
-                        color: '#6b7280',
+                        color: hint,
                         fontFamily: 'monospace',
                     }}
                 >
@@ -34,7 +35,7 @@ const CalculatedFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                     style={{
                         flex: 1,
                         fontSize: '0.875rem',
-                        color: formula ? '#1f2937' : '#9ca3af',
+                        color: formula ? label : hint,
                         fontFamily: 'monospace',
                         fontStyle: formula ? 'normal' : 'italic',
                         overflow: 'hidden',
@@ -44,13 +45,12 @@ const CalculatedFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 >
                     {formula || 'No formula defined — edit in properties'}
                 </span>
-                {/* Read-only badge */}
                 <span
                     style={{
                         fontSize: '0.68rem',
                         padding: '2px 6px',
-                        background: '#e5e7eb',
-                        color: '#6b7280',
+                        background: `color-mix(in srgb, ${border} 40%, ${surface})`,
+                        color: hint,
                         borderRadius: 10,
                         fontWeight: 600,
                         whiteSpace: 'nowrap',
@@ -60,8 +60,18 @@ const CalculatedFieldPreview: React.FC<FieldPluginProps> = ({ field }) => {
                 </span>
             </div>
             {formula && (
-                <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: '#6b7280' }}>
-                    Formula: <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{formula}</code>
+                <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: hint }}>
+                    Formula:{' '}
+                    <code
+                        style={{
+                            background: `color-mix(in srgb, ${hint} 10%, ${surface})`,
+                            padding: '1px 4px',
+                            borderRadius: 3,
+                            color: label,
+                        }}
+                    >
+                        {formula}
+                    </code>
                 </div>
             )}
         </div>

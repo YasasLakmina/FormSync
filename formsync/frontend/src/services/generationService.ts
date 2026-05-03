@@ -295,21 +295,32 @@ export const generationService = {
   };
 
   const onSubmit = async (data: ${componentName}Data) => {
-    const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:${defaultPort}";
-    const API_PATH = import.meta.env.VITE_API_PATH ?? ${JSON.stringify(apiPath)};
-    const jsonBody = stripEmptyJsonValues(data as unknown);
-    const res = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(jsonBody !== undefined ? jsonBody : {}),
-    });
-    if (!res.ok) {
-      throw new Error(\`Submit failed (\${res.status})\`);
+    setSubmitBanner(null);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:${defaultPort}";
+      const API_PATH = import.meta.env.VITE_API_PATH ?? ${JSON.stringify(apiPath)};
+      const jsonBody = stripEmptyJsonValues(data as unknown);
+      const res = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonBody !== undefined ? jsonBody : {}),
+      });
+      if (!res.ok) {
+        throw new Error(\`Submit failed (\${res.status})\`);
+      }
+      setSubmitBanner({
+        kind: "success",
+        message: "Submitted successfully.",
+      });
+    } catch (e: unknown) {
+      setSubmitBanner({
+        kind: "error",
+        message: e instanceof Error ? e.message : "Submit failed",
+      });
     }
-    alert("Submitted successfully");
   }`;
 
-    const frontend = `import React from 'react';
+    const frontend = `import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 interface ${componentName}Data {
@@ -318,11 +329,26 @@ ${tsInterface}
 
 export const ${componentName}: React.FC = () => {
   const { register, handleSubmit } = useForm<${componentName}Data>();
+  const [submitBanner, setSubmitBanner] = useState<
+    { kind: "success" | "error"; message: string } | null
+  >(null);
 
 ${onSubmitFn}
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {submitBanner ? (
+        <div
+          role="alert"
+          className={
+            submitBanner.kind === "success"
+              ? "rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900"
+              : "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+          }
+        >
+          {submitBanner.message}
+        </div>
+      ) : null}
 ${formInputs}
       <button type="submit">Submit</button>
     </form>

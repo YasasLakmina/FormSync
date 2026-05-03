@@ -20,7 +20,14 @@ import java.math.*;
 @Data
 @Builder
 @NoArgsConstructor
+{{!-- Omit @AllArgsConstructor when embeddable has no fields: Lombok would duplicate the no-arg ctor with @NoArgsConstructor. --}}
+{{#if isRoot}}
 @AllArgsConstructor
+{{else}}
+{{#if fields.length}}
+@AllArgsConstructor
+{{/if}}
+{{/if}}
 {{#if isRoot}}
 @Entity
 @Table(name = "{{toSnakeCase name}}")
@@ -80,12 +87,26 @@ public class {{name}} {
 {{#if constraints.pattern}}
     @Pattern(regexp = "{{escapeJava constraints.pattern}}", message = "{{name}} must match the required pattern")
 {{/if}}
+{{#if persistAsLob}}
+    @Lob
+{{/if}}
 {{#eq type 'Object'}}
     @Embedded
 {{else}}
 {{#eq type 'List'}}
+{{#if ../isRoot}}
+    @ElementCollection
+    @CollectionTable(
+        name = "{{toSnakeCase ../name}}_{{toSnakeCase name}}",
+        joinColumns = @JoinColumn(name = "{{toSnakeCase ../name}}_id", referencedColumnName = "id")
+    )
+{{#unless (listElementIsEmbeddable referenceType)}}
+    @Column(name = "{{toSnakeCase name}}_val")
+{{/unless}}
+{{else}}
     @ElementCollection
     @CollectionTable(name = "{{toSnakeCase ../name}}_{{toSnakeCase name}}")
+{{/if}}
 {{else}}
 {{#eq type 'Enum'}}
     @Enumerated(EnumType.STRING)
@@ -102,4 +123,17 @@ public class {{name}} {
     private {{toJavaType type referenceType}} {{name}};
 
 {{/each}}
+{{#unless isRoot}}
+{{#unless fields.length}}
+{{#if (endsWith name "Item")}}
+    /**
+     * Repeater row embeddable with no columns yet: Hibernate cannot map an empty embeddable
+     * in ElementCollection. Remove this field after adding repeater columns in the builder.
+     */
+    @Column(name = "formsync_row_placeholder", nullable = true)
+    private String formsyncRowPlaceholder;
+
+{{/if}}
+{{/unless}}
+{{/unless}}
 }

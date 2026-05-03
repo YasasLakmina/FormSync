@@ -35,6 +35,8 @@ interface LocationState {
   /** Fresh JSON Schema from Form Builder (preferred over re-fetch by schemaId). */
   schema?: any;
   backendLanguage?: BackendLanguage;
+  /** Defaults from Schema Editor / session; user can change on this page. */
+  frontendStack?: FrontendStack;
   /** Present when arriving from Form Builder so fullstack ZIP matches canvas customizations */
   formModel?: FormModel;
 }
@@ -135,6 +137,7 @@ export const GeneratedCodePage: React.FC = () => {
   const backendLanguageFromQuery = query.get(
     "backendLanguage",
   ) as BackendLanguage | null;
+  const frontendStackFromQuery = query.get("frontendStack");
 
   const [localState, setLocalState] = React.useState<LocationState | null>(
     (location.state as LocationState | null) ?? null,
@@ -144,15 +147,22 @@ export const GeneratedCodePage: React.FC = () => {
     return !rs?.generatedCode;
   });
   const [isDownloadingBackend, setIsDownloadingBackend] = React.useState(false);
-  const [isDownloadingStaticFrontend, setIsDownloadingStaticFrontend] =
-    React.useState(false);
   const backendLanguageFromSession = sessionStorage.getItem(
     "formsync_backend_language",
   ) as BackendLanguage | null;
+  const routeStateInitial = location.state as LocationState | null;
   const initialBackendLanguage: BackendLanguage =
-    backendLanguageFromQuery ||
-    (location.state as LocationState | null)?.backendLanguage ||
-    backendLanguageFromSession ||
+    (backendLanguageFromQuery === "nodeExpress" ||
+    backendLanguageFromQuery === "springBoot" ||
+    backendLanguageFromQuery === "dotnetWebApi"
+      ? backendLanguageFromQuery
+      : null) ||
+    routeStateInitial?.backendLanguage ||
+    (backendLanguageFromSession === "nodeExpress" ||
+    backendLanguageFromSession === "springBoot" ||
+    backendLanguageFromSession === "dotnetWebApi"
+      ? backendLanguageFromSession
+      : null) ||
     "springBoot";
   const [backendLanguage, setBackendLanguage] =
     React.useState<BackendLanguage>(initialBackendLanguage);
@@ -160,8 +170,13 @@ export const GeneratedCodePage: React.FC = () => {
   const frontendStackFromSession = sessionStorage.getItem(
     "formsync_frontend_stack",
   ) as FrontendStack | null;
+  const parseFrontendStack = (v: string | null | undefined): FrontendStack | null =>
+    v === "react" || v === "htmlBootstrap" ? v : null;
   const initialFrontendStack: FrontendStack =
-    frontendStackFromSession === "htmlBootstrap" ? "htmlBootstrap" : "react";
+    parseFrontendStack(frontendStackFromQuery) ??
+    parseFrontendStack(routeStateInitial?.frontendStack) ??
+    parseFrontendStack(frontendStackFromSession) ??
+    "react";
   const [frontendStack, setFrontendStack] =
     React.useState<FrontendStack>(initialFrontendStack);
 
@@ -390,25 +405,6 @@ export const GeneratedCodePage: React.FC = () => {
     }
   };
 
-  const handleDownloadStaticFrontendOnly = async () => {
-    if (!state.formModel) {
-      toast.error(
-        "Open this page from the Form Builder with your form to download the HTML frontend.",
-      );
-      return;
-    }
-    setIsDownloadingStaticFrontend(true);
-    try {
-      await generationService.downloadStaticFrontendZip(state.formModel);
-      toast.success("Static HTML frontend downloaded!");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Download failed";
-      toast.error(message);
-    } finally {
-      setIsDownloadingStaticFrontend(false);
-    }
-  };
-
   return (
     <PageTransition>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -440,6 +436,18 @@ export const GeneratedCodePage: React.FC = () => {
             <div className="mt-4 max-w-3xl space-y-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                  Frontend Stack
+                </label>
+                <FrontendStackSelector
+                  selected={frontendStack}
+                  onChange={(stack) => {
+                    setFrontendStack(stack);
+                    sessionStorage.setItem("formsync_frontend_stack", stack);
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
                   Backend Language
                 </label>
                 <BackendLanguageSelector
@@ -452,31 +460,6 @@ export const GeneratedCodePage: React.FC = () => {
                     );
                   }}
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
-                  Frontend Stack
-                </label>
-                <FrontendStackSelector
-                  selected={frontendStack}
-                  onChange={(stack) => {
-                    setFrontendStack(stack);
-                    sessionStorage.setItem("formsync_frontend_stack", stack);
-                  }}
-                />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isDownloadingStaticFrontend}
-                  onClick={() => void handleDownloadStaticFrontendOnly()}
-                >
-                  {isDownloadingStaticFrontend
-                    ? "Downloading…"
-                    : "Download HTML frontend only"}
-                </Button>
               </div>
             </div>
           </div>

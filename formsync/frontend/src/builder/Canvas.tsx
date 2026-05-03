@@ -1,9 +1,9 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBuilder } from '../context/BuilderContext';
 import { FieldModel } from '../types';
 import { getPlugin } from './plugins/FieldPlugin';
-import { filterVisibleFields, evaluateCalcExpression } from '../lib/conditionEngine';
+import { filterVisibleFields, evaluateCalcExpression, pruneFieldsForWizardStep } from '../lib/conditionEngine';
 
 // ── Register all plugins ───────────────────────────────────────────────────────
 import './plugins/FileFieldPreview';
@@ -189,8 +189,8 @@ const FieldRenderer: React.FC<FieldRendererProps> = ({ field, isSelected, onSele
 
     return (
         <div style={wrapStyle} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
-            {/* Label row */}
-            {field.type !== 'checkbox' && (
+            {/* Label row — repeaters draw their own legend/title inside the plugin */}
+            {field.type !== 'checkbox' && field.type !== 'repeater' && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <label style={{ fontSize: '0.8rem', fontWeight: 600, color: overrides?.labelColor || 'var(--color-text)' }}>
                         {field.label}
@@ -268,17 +268,31 @@ const WizardStepHeader: React.FC<{
                         }} />
                     )}
                     <button
+                        type="button"
                         onClick={() => onStepClick(i)}
                         style={{
-                            width: 28, height: 28, borderRadius: '50%', border: 'none',
-                            cursor: 'pointer', fontWeight: 700, fontSize: '0.75rem', flexShrink: 0,
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            flexShrink: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             background: i === activeStep ? 'var(--color-primary)' : i < activeStep ? '#10b981' : '#e5e7eb',
                             color: i <= activeStep ? '#fff' : '#9ca3af',
                             transition: 'all 0.2s',
                         }}
                         title={step.title}
                     >
-                        {i < activeStep ? '✓' : i + 1}
+                        {i < activeStep ? (
+                            <Check size={14} strokeWidth={2.5} aria-hidden />
+                        ) : (
+                            i + 1
+                        )}
                     </button>
                 </React.Fragment>
             ))}
@@ -329,15 +343,19 @@ export const Canvas: React.FC = () => {
     const visibleFields = showPreview
         ? filterVisibleFields(orderedFields, previewValues, isWizardMode ? activeStep : undefined)
         : isWizardMode
-            ? orderedFields.filter((f) => f.stepIndex === undefined || f.stepIndex === activeStep)
+            ? pruneFieldsForWizardStep(orderedFields, activeStep)
             : orderedFields;
 
     const setPreviewValue = (key: string, value: unknown) =>
         dispatch({ type: 'SET_PREVIEW_VALUE', payload: { key, value } });
 
     return (
-        <div className="canvas-area" onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}>
-            <div className="form-preview" style={themeVars} onClick={(e) => e.stopPropagation()}>
+        <div
+            className="canvas-area"
+            style={themeVars}
+            onClick={() => dispatch({ type: 'SELECT_FIELD', payload: null })}
+        >
+            <div className="form-preview" onClick={(e) => e.stopPropagation()}>
 
                 {/* ── Mode banner ─────────────────────────────────────────────── */}
                 <div style={{

@@ -25,11 +25,13 @@ import { toast } from "sonner";
 import {
   generationService,
   type BackendLanguage,
+  type FrontendStack,
 } from "../services/generationService";
 import { useAuth } from "../context/AuthContext";
 import { FORMSYNC_BUILDER_SCHEMA_ID_KEY } from "../context/BuilderContext";
 import { projectApi } from "../api/projectApi";
 import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
+import { FrontendStackSelector } from "../components/FrontendStackSelector";
 
 export interface GenerationStage {
   name: string;
@@ -47,6 +49,32 @@ export const EditorPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("technical"); // Control which tab is active
   const [backendLanguage, setBackendLanguage] =
     useState<BackendLanguage>("springBoot");
+  const [frontendStack, setFrontendStack] =
+    useState<FrontendStack>("react");
+
+  // Restore stack picks from session (defaults on /generated and after refresh)
+  useEffect(() => {
+    try {
+      const be = sessionStorage.getItem(
+        "formsync_backend_language",
+      ) as BackendLanguage | null;
+      if (
+        be === "nodeExpress" ||
+        be === "springBoot" ||
+        be === "dotnetWebApi"
+      ) {
+        setBackendLanguage(be);
+      }
+      const fe = sessionStorage.getItem(
+        "formsync_frontend_stack",
+      ) as FrontendStack | null;
+      if (fe === "react" || fe === "htmlBootstrap") {
+        setFrontendStack(fe);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // Tracks whether the schema was opened from a saved template (already enhanced)
   const [isLoadedFromTemplate, setIsLoadedFromTemplate] = useState(false);
@@ -212,11 +240,17 @@ export const EditorPage: React.FC = () => {
       if (result.success && result.data) {
         toast.success("Code generation complete!");
         sessionStorage.setItem("formsync_backend_language", backendLanguage);
-        navigate(`/generated?backendLanguage=${backendLanguage}`, {
+        sessionStorage.setItem("formsync_frontend_stack", frontendStack);
+        const genParams = new URLSearchParams({
+          backendLanguage,
+          frontendStack,
+        });
+        navigate(`/generated?${genParams.toString()}`, {
           state: {
             generatedCode: result.data,
             schema: currentSchema,
             backendLanguage,
+            frontendStack,
           },
         });
       } else {
@@ -368,20 +402,34 @@ export const EditorPage: React.FC = () => {
                 Define your data structure, validate and enhance it with AI,
                 then generate complete application code in one click.
               </p>
-              <div className="mt-6 max-w-3xl">
-                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
-                  Backend Language
-                </label>
-                <BackendLanguageSelector
-                  selected={backendLanguage}
-                  onChange={(selected) => {
-                    setBackendLanguage(selected);
-                    sessionStorage.setItem(
-                      "formsync_backend_language",
-                      selected,
-                    );
-                  }}
-                />
+              <div className="mt-6 max-w-3xl space-y-6">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                    Frontend Stack
+                  </label>
+                  <FrontendStackSelector
+                    selected={frontendStack}
+                    onChange={(stack) => {
+                      setFrontendStack(stack);
+                      sessionStorage.setItem("formsync_frontend_stack", stack);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-neutral-800 dark:text-neutral-500 mb-2">
+                    Backend Language
+                  </label>
+                  <BackendLanguageSelector
+                    selected={backendLanguage}
+                    onChange={(selected) => {
+                      setBackendLanguage(selected);
+                      sessionStorage.setItem(
+                        "formsync_backend_language",
+                        selected,
+                      );
+                    }}
+                  />
+                </div>
               </div>
             </motion.div>
 

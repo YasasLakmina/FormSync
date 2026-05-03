@@ -1,7 +1,24 @@
 import React from 'react';
-import { useBuilder } from '../context/BuilderContext';
-import { findFieldInTree } from '../context/BuilderContext';
-import { FieldModel, ThemeConfig, ConditionRule, ConditionOperator, FieldConditions } from '../types';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { useBuilder, findFieldInTree, createField, collectAllFieldKeys } from '../context/BuilderContext';
+import { FieldModel, FieldType, ThemeConfig, ConditionRule, ConditionOperator, FieldConditions } from '../types';
+
+/** Field types that can be added as repeater column / row content (nested repeaters omitted — unsupported in export). */
+const REPEATER_CHILD_TYPES: { type: FieldType; label: string }[] = [
+    { type: 'text', label: 'Text' },
+    { type: 'email', label: 'Email' },
+    { type: 'password', label: 'Password' },
+    { type: 'number', label: 'Number' },
+    { type: 'date', label: 'Date' },
+    { type: 'select', label: 'Dropdown' },
+    { type: 'textarea', label: 'Text area' },
+    { type: 'checkbox', label: 'Checkbox' },
+    { type: 'file', label: 'File' },
+    { type: 'richtext', label: 'Rich text' },
+    { type: 'signature', label: 'Signature' },
+    { type: 'typeahead', label: 'Typeahead' },
+    { type: 'calculated', label: 'Calculated' },
+];
 
 const THEME_PRESETS = {
     light: {
@@ -121,6 +138,26 @@ const ColorRow: React.FC<{ label: string; value: string; onChange: (v: string) =
     </div>
 );
 
+// ─── Generate Code footer (theme panel + field inspector) ───────────────────
+
+const GenerateCodeFooter: React.FC<{
+    onGenerate?: () => void;
+    isGenerating: boolean;
+}> = ({ onGenerate, isGenerating }) => (
+    <div className="panel-footer">
+        <button
+            type="button"
+            onClick={onGenerate}
+            disabled={isGenerating || !onGenerate}
+            className="btn-primary"
+            style={{ width: '100%', justifyContent: 'center', padding: '0.6rem 1rem' }}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+            {isGenerating ? 'Generating…' : 'Generate Code'}
+        </button>
+    </div>
+);
+
 // ─── Right Panel ──────────────────────────────────────────────────────────────
 
 interface RightPanelProps {
@@ -159,6 +196,42 @@ export const RightPanel: React.FC<RightPanelProps> = ({
         if (!selectedField) return;
         const currentXUI = state.form.fields.find((f) => f.id === selectedField.id)?.ui?.['x-ui'] ?? {};
         handleUiUpdate('x-ui', { ...currentXUI, ...patch });
+    };
+
+    const addRepeaterColumnField = (type: FieldType) => {
+        if (!selectedField || selectedField.type !== 'repeater') return;
+        if (type === 'repeater') return;
+        const keys = collectAllFieldKeys(state.form.fields);
+        const stepIndex = isWizardMode ? state.activeStep : undefined;
+        const newChild = createField(type, stepIndex, keys);
+        const nextChildren = [...(selectedField.children ?? []), newChild];
+        dispatch({
+            type: 'UPDATE_FIELD',
+            payload: { fieldId: selectedField.id, updates: { children: nextChildren } },
+        });
+    };
+
+    const removeRepeaterColumn = (parentRepeaterId: string, childId: string) => {
+        dispatch({ type: 'REMOVE_FIELD', payload: childId });
+        dispatch({ type: 'SELECT_FIELD', payload: parentRepeaterId });
+    };
+
+    const moveRepeaterColumn = (parentRepeaterId: string, fromIndex: number, delta: -1 | 1) => {
+        const parent = findFieldInTree(state.form.fields, parentRepeaterId);
+        if (!parent || parent.type !== 'repeater') return;
+        const children = [...(parent.children ?? [])];
+        const toIndex = fromIndex + delta;
+        if (toIndex < 0 || toIndex >= children.length) return;
+        const [row] = children.splice(fromIndex, 1);
+        children.splice(toIndex, 0, row);
+        dispatch({
+            type: 'UPDATE_FIELD',
+            payload: { fieldId: parentRepeaterId, updates: { children } },
+        });
+    };
+
+    const updateRepeaterChildColumnHeader = (childId: string, label: string) => {
+        dispatch({ type: 'UPDATE_FIELD', payload: { fieldId: childId, updates: { label } } });
     };
 
     const handleThemeUpdate = (updates: Partial<ThemeConfig>) =>
@@ -230,17 +303,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     </Group>
                 </div>
 
-                <div className="panel-footer">
-                    <button
-                        onClick={onGenerate}
-                        disabled={isGenerating || !onGenerate}
-                        className="btn-primary"
-                        style={{ width: '100%', justifyContent: 'center', padding: '0.6rem 1rem' }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-                        {isGenerating ? 'Generating…' : 'Generate Code'}
-                    </button>
-                </div>
+                <GenerateCodeFooter onGenerate={onGenerate} isGenerating={isGenerating} />
             </div>
         );
     }
@@ -276,6 +339,187 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <Group label="Help Text">
                     <textarea className="control-input" style={{ height: '56px', resize: 'vertical', paddingTop: '0.5rem' }} value={selectedField.ui?.helpText ?? ''} onChange={(e) => handleUiUpdate('helpText', e.target.value)} placeholder="Describe this field…" />
                 </Group>
+
+                {selectedField.type === 'repeater' && (
+                    <>
+                        <Divider title="Repeater columns" />
+                        <p style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '0.5rem', lineHeight: 1.45 }}>
+                            Each row below is one column. Edit the column header to set table headings and card labels. End users only add rows at runtime, not new columns.
+                        </p>
+                        {(selectedField.children ?? []).length === 0 ? (
+                            <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.45rem' }}>No columns yet — add a field type below.</p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.55rem' }}>
+                                {(selectedField.children ?? []).map((c, idx, arr) => (
+                                    <div
+                                        key={c.id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem',
+                                            padding: '0.25rem 0.35rem',
+                                            borderRadius: 5,
+                                            border: `1px solid ${state.selectedFieldId === c.id ? 'rgba(99,102,241,0.45)' : '#e2e8f0'}`,
+                                            background: state.selectedFieldId === c.id ? 'rgba(99,102,241,0.07)' : '#fff',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                                            <button
+                                                type="button"
+                                                title="Move up"
+                                                disabled={idx === 0}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    moveRepeaterColumn(selectedField.id, idx, -1);
+                                                }}
+                                                style={{
+                                                    padding: 0,
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                                    color: idx === 0 ? '#cbd5e1' : '#64748b',
+                                                    lineHeight: 1,
+                                                }}
+                                            >
+                                                <ChevronUp size={14} strokeWidth={2} aria-hidden />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="Move down"
+                                                disabled={idx === arr.length - 1}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    moveRepeaterColumn(selectedField.id, idx, 1);
+                                                }}
+                                                style={{
+                                                    padding: 0,
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    cursor: idx === arr.length - 1 ? 'not-allowed' : 'pointer',
+                                                    color: idx === arr.length - 1 ? '#cbd5e1' : '#64748b',
+                                                    lineHeight: 1,
+                                                }}
+                                            >
+                                                <ChevronDown size={14} strokeWidth={2} aria-hidden />
+                                            </button>
+                                        </div>
+                                        <div
+                                            style={{
+                                                flex: 1,
+                                                minWidth: 0,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.2rem',
+                                            }}
+                                        >
+                                            <label className="control-label" style={{ fontSize: '0.58rem', marginBottom: 0, color: '#94a3b8' }}>
+                                                Column header
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <input
+                                                    type="text"
+                                                    className="control-input"
+                                                    value={c.label}
+                                                    onChange={(e) => updateRepeaterChildColumnHeader(c.id, e.target.value)}
+                                                    placeholder="Header label"
+                                                    aria-label={`Column header (${c.type})`}
+                                                    style={{
+                                                        flex: 1,
+                                                        minWidth: 0,
+                                                        fontSize: '0.78rem',
+                                                        padding: '0.35rem 0.45rem',
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    title="Open field settings (validation, placeholder…)"
+                                                    onClick={() => dispatch({ type: 'SELECT_FIELD', payload: c.id })}
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        fontSize: '0.58rem',
+                                                        padding: '0.25rem 0.35rem',
+                                                        borderRadius: 4,
+                                                        border: '1px solid #e2e8f0',
+                                                        background:
+                                                            state.selectedFieldId === c.id ? 'rgba(99,102,241,0.1)' : '#f8fafc',
+                                                        color: '#64748b',
+                                                        fontFamily: 'monospace',
+                                                        cursor: 'pointer',
+                                                        maxWidth: '4.5rem',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                    }}
+                                                >
+                                                    {c.type}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            title="Remove column"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeRepeaterColumn(selectedField.id, c.id);
+                                            }}
+                                            style={{
+                                                padding: '0.25rem',
+                                                border: 'none',
+                                                borderRadius: 4,
+                                                background: 'transparent',
+                                                cursor: 'pointer',
+                                                color: '#94a3b8',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                            aria-label={`Remove ${c.label}`}
+                                        >
+                                            <Trash2 size={15} strokeWidth={2} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div style={{ fontSize: '0.62rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Add column</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.3rem' }}>
+                            {REPEATER_CHILD_TYPES.map(({ type, label }) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => addRepeaterColumnField(type)}
+                                    className="control-input"
+                                    style={{
+                                        padding: '0.35rem 0.25rem',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 500,
+                                        cursor: 'pointer',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: 5,
+                                        background: '#f8fafc',
+                                        color: '#475569',
+                                    }}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <Divider title="Repeater layout" />
+                        <Group label="Row layout">
+                            <select
+                                className="control-input"
+                                value={(selectedField.ui as { displayMode?: string } | undefined)?.displayMode === 'table' ? 'table' : 'cards'}
+                                onChange={(e) => handleUiUpdate('displayMode', e.target.value)}
+                            >
+                                <option value="cards">Stacked cards</option>
+                                <option value="table">Data table</option>
+                            </select>
+                            <p style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                                Use stacked cards for tall rows or a data table for dense grids; exports match this choice. Submit payloads use JSON arrays (your API must accept them). Nested repeaters inside a repeater are not supported in React or static HTML export.
+                            </p>
+                        </Group>
+                    </>
+                )}
 
                 {/* Dropdown options — visible for select fields */}
                 {(selectedField.type === 'select') && (
@@ -448,6 +692,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     <small style={{ color: '#94a3b8', fontSize: '0.7rem', fontFamily: 'monospace' }}>id: {selectedField.id}</small>
                 </div>
             </div>
+
+            <GenerateCodeFooter onGenerate={onGenerate} isGenerating={isGenerating} />
         </div>
     );
 };

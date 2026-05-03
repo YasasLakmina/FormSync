@@ -16,7 +16,10 @@ export function buildVanillaWiredSubmitReplacement(
   const apiPathEsc = opts.apiPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   return `/* FORMSYNC_API_SUBMIT_START */
     var statusEl = document.getElementById("form-status");
-    if (statusEl) statusEl.textContent = "";
+    if (statusEl) {
+      statusEl.textContent = "";
+      statusEl.className = "mb-3";
+    }
     try {
       var API_BASE_URL = "${apiBase}";
       var API_PATH = "${apiPathEsc}";
@@ -190,12 +193,19 @@ export function buildVanillaWiredSubmitReplacement(
         throw new Error("Submission failed (" + response.status + ")");
       }
 
-      alert("Submitted successfully");
+      if (statusEl) {
+        statusEl.textContent =
+          "Submitted successfully. Your response was sent to the server.";
+        statusEl.className = "alert alert-success mb-3";
+      }
       console.log("Form submitted:", jsonBody !== undefined ? jsonBody : {});
     } catch (err) {
       var msg = err && err.message ? err.message : "Submission failed";
-      var statusEl = document.getElementById("form-status");
-      if (statusEl) statusEl.textContent = msg;
+      var statusErr = document.getElementById("form-status");
+      if (statusErr) {
+        statusErr.textContent = msg;
+        statusErr.className = "alert alert-danger mb-3";
+      }
     }
     /* FORMSYNC_API_SUBMIT_END */`;
 }

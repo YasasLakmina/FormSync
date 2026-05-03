@@ -1,11 +1,63 @@
 import React, { useState } from 'react';
-import { useBuilder, createField, collectAllFieldKeys } from '../context/BuilderContext';
+import {
+    DndContext,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    arrayMove,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+    useBuilder,
+    createField,
+    collectAllFieldKeys,
+    findFieldInTree,
+    type CreateFieldOptions,
+} from '../context/BuilderContext';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { FieldModel, FieldType } from '../types';
-import { LucideIcon, Type, Mail, Lock, Hash, AlignLeft, Calendar, ChevronDown, CheckSquare, List, Upload, FileText, PenLine, Search, Calculator, Folder } from 'lucide-react';
+import {
+    LucideIcon,
+    Type,
+    Mail,
+    Lock,
+    Hash,
+    AlignLeft,
+    Calendar,
+    ChevronDown,
+    CheckSquare,
+    List,
+    Upload,
+    FileText,
+    PenLine,
+    Search,
+    Calculator,
+    Folder,
+    GripVertical,
+    Table2,
+} from 'lucide-react';
 
 // ─── Palette Config ───────────────────────────────────────────────────────────
 
-type PaletteEntry = { type: FieldType; label: string; Icon: LucideIcon };
+type PaletteEntry = { type: FieldType; label: string; Icon: LucideIcon; repeaterAsTable?: boolean };
 type PaletteGroup = { title: string; fields: PaletteEntry[] };
 
 const PALETTE_GROUPS: PaletteGroup[] = [
@@ -32,6 +84,7 @@ const PALETTE_GROUPS: PaletteGroup[] = [
         fields: [
             { type: 'group', label: 'Group', Icon: Folder },
             { type: 'repeater', label: 'Repeater', Icon: List },
+            { type: 'repeater', label: 'Repeating table', Icon: Table2, repeaterAsTable: true },
         ],
     },
     {
@@ -54,8 +107,10 @@ const PaletteButton: React.FC<{
     onClick: () => void;
 }> = ({ label, Icon, onClick }) => (
     <button
+        type="button"
         onClick={onClick}
         title={`Add ${label}`}
+        aria-label={`Add ${label} field`}
         style={{
             display: 'flex',
             alignItems: 'center',
@@ -92,57 +147,131 @@ const PaletteButton: React.FC<{
 
 const FieldTreeItem: React.FC<{
     field: FieldModel;
-    isSelected: boolean;
-    onSelect: () => void;
-    onRemove: () => void;
+    selectedFieldId: string | null;
+    onSelect: (id: string) => void;
+    onRemove: (id: string) => void;
     indent?: number;
-}> = ({ field, isSelected, onSelect, onRemove, indent = 0 }) => (
-    <div>
-        <div
+    /** Drag handle shown only on root row (indent 0) in Layers */
+    dragHandle?: React.ReactNode;
+}> = ({ field, selectedFieldId, onSelect, onRemove, indent = 0, dragHandle }) => {
+    const isSelected = selectedFieldId === field.id;
+    return (
+        <div>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.28rem 0.5rem',
+                    paddingLeft: `${0.5 + indent * 1}rem`,
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: '0.72rem',
+                    background: isSelected ? 'rgba(99,102,241,0.08)' : 'transparent',
+                    border: `1px solid ${isSelected ? 'rgba(99,102,241,0.3)' : 'transparent'}`,
+                    marginBottom: 1,
+                }}
+                onClick={() => onSelect(field.id)}
+            >
+                {indent === 0 && dragHandle ? dragHandle : null}
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#6366f1' : '#334155' }}>
+                    {field.label}
+                </span>
+                <span style={{ fontSize: '0.6rem', color: 'rgba(0,0,0,0.4)', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onRemove(field.id); }}
+                    title="Remove"
+                    aria-label={`Remove ${field.label}`}
+                    style={{
+                        padding: '0 4px', lineHeight: '16px', fontSize: '0.85rem',
+                        border: 'none', background: 'transparent', color: 'rgba(0,0,0,0.4)',
+                        cursor: 'pointer', flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(0,0,0,0.4)'; }}
+                >
+                    ×
+                </button>
+            </div>
+            {field.children?.map((child) => (
+                <FieldTreeItem
+                    key={child.id}
+                    field={child}
+                    selectedFieldId={selectedFieldId}
+                    onSelect={onSelect}
+                    onRemove={onRemove}
+                    indent={indent + 1}
+                />
+            ))}
+        </div>
+    );
+};
+
+const SortableRootFieldBlock: React.FC<{
+    field: FieldModel;
+    selectedFieldId: string | null;
+    onSelect: (id: string) => void;
+    onRemove: (id: string) => void;
+}> = ({ field, selectedFieldId, onSelect, onRemove }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: field.id,
+    });
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.88 : 1,
+    };
+    const handle = (
+        <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Drag to reorder"
+            title="Drag to reorder"
             style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.28rem 0.5rem',
-                paddingLeft: `${0.5 + indent * 1}rem`,
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: '0.72rem',
-                background: isSelected ? 'rgba(99,102,241,0.08)' : 'transparent',
-                border: `1px solid ${isSelected ? 'rgba(99,102,241,0.3)' : 'transparent'}`,
-                marginBottom: 1,
+                justifyContent: 'center',
+                padding: '2px',
+                border: 'none',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'grab',
+                flexShrink: 0,
+                touchAction: 'none',
             }}
-            onClick={onSelect}
         >
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400, color: isSelected ? '#6366f1' : '#334155' }}>
-                {field.label}
-            </span>
-            <span style={{ fontSize: '0.6rem', color: 'rgba(0,0,0,0.4)', flexShrink: 0, fontFamily: 'monospace' }}>{field.type}</span>
-            <button
-                onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                title="Remove"
-                style={{
-                    padding: '0 4px', lineHeight: '16px', fontSize: '0.85rem',
-                    border: 'none', background: 'transparent', color: 'rgba(0,0,0,0.4)',
-                    cursor: 'pointer', flexShrink: 0,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(0,0,0,0.4)'; }}
-            >
-                ×
-            </button>
+            <GripVertical size={14} strokeWidth={2} aria-hidden />
+        </button>
+    );
+    return (
+        <div ref={setNodeRef} style={style}>
+            <FieldTreeItem
+                field={field}
+                selectedFieldId={selectedFieldId}
+                onSelect={onSelect}
+                onRemove={onRemove}
+                indent={0}
+                dragHandle={handle}
+            />
         </div>
-        {field.children?.map((child) => (
-            <FieldTreeItem key={child.id} field={child} isSelected={false} onSelect={() => { }} onRemove={() => { }} indent={indent + 1} />
-        ))}
-    </div>
-);
+    );
+};
 
 // ─── Left Panel ───────────────────────────────────────────────────────────────
 
 export const LeftPanel: React.FC = () => {
     const { state, dispatch, isWizardMode } = useBuilder();
     const [tab, setTab] = useState<'palette' | 'tree'>('palette');
+    const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+    const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
 
     const orderedFields = state.form.layout.order
         .map((id) => state.form.fields.find((f) => f.id === id))
@@ -150,17 +279,32 @@ export const LeftPanel: React.FC = () => {
     const unlistedFields = state.form.fields.filter((f) => !state.form.layout.order.includes(f.id));
     const displayFields = [...orderedFields, ...unlistedFields];
 
-    const handleAdd = (type: FieldType) => {
+    const handleAdd = (type: FieldType, palette?: CreateFieldOptions) => {
         const stepIndex = isWizardMode ? state.activeStep : undefined;
         const existingKeys = collectAllFieldKeys(state.form.fields);
         dispatch({
             type: 'ADD_FIELD',
-            payload: createField(type, stepIndex, existingKeys),
+            payload: createField(type, stepIndex, existingKeys, palette),
         });
     };
 
-    const handleRemove = (id: string) => {
-        if (window.confirm('Remove this field?')) dispatch({ type: 'REMOVE_FIELD', payload: id });
+    const requestRemove = (id: string) => {
+        setPendingRemoveId(id);
+        setRemoveDialogOpen(true);
+    };
+
+    const pendingField = pendingRemoveId ? findFieldInTree(state.form.fields, pendingRemoveId) : undefined;
+
+    const rootIds = displayFields.map((f) => f.id);
+
+    const handleLayersDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        const oldIndex = rootIds.indexOf(active.id as string);
+        const newIndex = rootIds.indexOf(over.id as string);
+        if (oldIndex < 0 || newIndex < 0) return;
+        const nextOrder = arrayMove(rootIds, oldIndex, newIndex);
+        dispatch({ type: 'REORDER_FIELDS', payload: nextOrder });
     };
 
     const tabBtn = (active: boolean): React.CSSProperties => ({
@@ -193,8 +337,15 @@ export const LeftPanel: React.FC = () => {
                                     {group.title}
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.2rem' }}>
-                                    {group.fields.map(({ type, label, Icon }) => (
-                                        <PaletteButton key={type} label={label} Icon={Icon} onClick={() => handleAdd(type)} />
+                                    {group.fields.map(({ type, label, Icon, repeaterAsTable }) => (
+                                        <PaletteButton
+                                            key={`${type}-${label}`}
+                                            label={label}
+                                            Icon={Icon}
+                                            onClick={() =>
+                                                handleAdd(type, repeaterAsTable ? { repeaterAsTable: true } : undefined)
+                                            }
+                                        />
                                     ))}
                                 </div>
                             </div>
@@ -214,19 +365,60 @@ export const LeftPanel: React.FC = () => {
                                 No fields yet.<br />Use the Palette tab.
                             </div>
                         ) : (
-                            displayFields.map((field) => (
-                                <FieldTreeItem
-                                    key={field.id}
-                                    field={field}
-                                    isSelected={state.selectedFieldId === field.id}
-                                    onSelect={() => dispatch({ type: 'SELECT_FIELD', payload: field.id })}
-                                    onRemove={() => handleRemove(field.id)}
-                                />
-                            ))
+                            <>
+                                <p style={{ fontSize: '0.62rem', color: 'rgba(0,0,0,0.45)', marginBottom: '0.5rem', lineHeight: 1.35 }}>
+                                    Drag the grip to reorder top-level fields. Canvas and export order match this list.
+                                </p>
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLayersDragEnd}>
+                                    <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+                                        {displayFields.map((field) => (
+                                            <SortableRootFieldBlock
+                                                key={field.id}
+                                                field={field}
+                                                selectedFieldId={state.selectedFieldId}
+                                                onSelect={(id) => dispatch({ type: 'SELECT_FIELD', payload: id })}
+                                                onRemove={requestRemove}
+                                            />
+                                        ))}
+                                    </SortableContext>
+                                </DndContext>
+                            </>
                         )}
                     </div>
                 )}
             </div>
+
+            <AlertDialog
+                open={removeDialogOpen}
+                onOpenChange={(open) => {
+                    setRemoveDialogOpen(open);
+                    if (!open) setPendingRemoveId(null);
+                }}
+            >
+                <AlertDialogContent className="max-w-md rounded-xl border border-neutral-200 shadow-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove field?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {pendingField
+                                ? `“${pendingField.label}” will be removed from the form. You can undo afterward from the toolbar.`
+                                : 'This field will be removed from the form. You can undo afterward from the toolbar.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                            onClick={() => {
+                                if (pendingRemoveId) {
+                                    dispatch({ type: 'REMOVE_FIELD', payload: pendingRemoveId });
+                                }
+                            }}
+                        >
+                            Remove
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

@@ -398,15 +398,22 @@ function uniqueSemanticFieldKey(
     return `${stem}${n}`;
 }
 
+/** Optional defaults when inserting from the palette (e.g. repeater shown as a data table). */
+export type CreateFieldOptions = {
+    repeaterAsTable?: boolean;
+};
+
 /** Creates a new FieldModel with sensible defaults for a given type */
 export function createField(
     type: FieldType,
     stepIndex?: number,
     existingKeys?: Iterable<string>,
+    options?: CreateFieldOptions,
 ): FieldModel {
     const taken = new Set(existingKeys ?? []);
     const id = `field-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-    const baseLabel = labelForType(type);
+    const repeaterAsTable = type === 'repeater' && options?.repeaterAsTable === true;
+    const baseLabel = repeaterAsTable ? 'Repeating table' : labelForType(type);
     const key = uniqueSemanticFieldKey(baseLabel, type, taken);
     const base: FieldModel = {
         id,
@@ -414,9 +421,11 @@ export function createField(
         type,
         label: baseLabel,
         required: false,
-        ui: {
-            placeholder: `Enter ${baseLabel.toLowerCase()}...`
-        },
+        ui: repeaterAsTable
+            ? { displayMode: 'table' }
+            : {
+                  placeholder: `Enter ${baseLabel.toLowerCase()}...`,
+              },
         ...(stepIndex !== undefined ? { stepIndex } : {}),
     };
 

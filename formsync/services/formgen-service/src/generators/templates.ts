@@ -197,10 +197,12 @@ body {
 .form-container {
   max-width: 600px;
   width: 100%;
-  background: var(--color-bg);
+  /* Card/surface — distinct from page background (--color-bg on body) */
+  background: var(--color-surface);
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
 }
 
 .form-title {
@@ -213,6 +215,117 @@ body {
 .form-description {
   color: var(--color-muted);
   margin-bottom: 2rem;
+}
+
+/* Visible summary when validation fails (supplements per-field .field-error text). */
+.form-validation-summary {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--border-radius);
+  border: 1px solid color-mix(in srgb, var(--color-error) 45%, transparent);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.form-validation-summary.form-submit-success {
+  border-color: color-mix(in srgb, #16a34a 45%, transparent);
+  background: color-mix(in srgb, #16a34a 14%, transparent);
+}
+
+/* Success modal — shown after successful submit (demo or API) */
+.fs-success-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  animation: fs-success-fade-in 0.2s ease;
+}
+@keyframes fs-success-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fs-success-modal {
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.75rem 1.5rem 1.25rem;
+  border-radius: calc(var(--border-radius) + 4px);
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px color-mix(in srgb, #16a34a 15%, transparent);
+  text-align: center;
+  animation: fs-success-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes fs-success-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.fs-success-modal-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+.fs-success-modal-icon {
+  width: 3rem;
+  height: 3rem;
+  color: #16a34a;
+}
+.fs-success-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.fs-success-modal-text {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+.fs-success-modal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.fs-success-modal-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.45);
+}
+.fs-success-modal-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Field Styling */
@@ -267,6 +380,48 @@ input[type="checkbox"].field-input {
   color: var(--color-muted);
 }
 
+/* Rich text: toolbar + contenteditable (export uses document.execCommand) */
+.richtext-wrap {
+  width: 100%;
+}
+.richtext-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+.richtext-tool {
+  min-width: 2rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--field-border-color, var(--color-border));
+  border-radius: var(--border-radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.richtext-tool:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+.richtext-editable.field-input {
+  min-height: 6rem;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+.richtext-editable[contenteditable="true"]:empty:before {
+  content: attr(data-placeholder);
+  color: var(--color-muted);
+  pointer-events: none;
+}
+canvas.field-input.signature-pad-canvas {
+  display: block;
+  min-height: 10rem;
+  border: 2px solid var(--field-border-color, var(--color-border)) !important;
+  background: var(--field-bg-color, var(--color-input-bg)) !important;
+  border-radius: var(--border-radius);
+  cursor: crosshair;
+}
+
 .field-help-text {
   display: block;
   font-size: 0.875rem;
@@ -307,6 +462,31 @@ input[type="checkbox"].field-input {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Repeater with ui.displayMode === "table" (generated App) */
+.repeater-data-table {
+  border: 1px solid var(--color-border);
+}
+.repeater-data-table th,
+.repeater-data-table td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: middle;
+}
+.repeater-data-table thead th {
+  background: color-mix(in srgb, var(--color-surface) 82%, var(--color-border));
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+.repeater-table-cell .field-item {
+  margin-bottom: 0;
+}
+.repeater-table-actions {
+  text-align: right;
 }
 
 /* Grouped fields — theme-aware fieldset */
@@ -406,6 +586,53 @@ input[type="checkbox"].field-input {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+/* Wizard (generated React App — multi-step) */
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.wizard-footer-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.wizard-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.wizard-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.wizard-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.wizard-btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.wizard-btn:hover {
+  filter: brightness(1.05);
 }
 `;
 }

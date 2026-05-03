@@ -9,11 +9,12 @@ import { TemplateService } from '../service/TemplateService';
 import { FileWriter } from '../service/FileWriter';
 import { ContextualTestGenerator } from '../service/ContextualTestGenerator';
 import * as path from 'path';
+import { sanitizeJavaBasePackage } from './javaPackageUtils';
 
 /** Derives a Java base package from a schema name (e.g. "Employee" -> "com.employee"). */
 function schemaNameToBasePackage(name: string): string {
     const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'app';
-    return `com.${normalized}`;
+    return sanitizeJavaBasePackage(`com.${normalized}`);
 }
 
 /**
@@ -66,7 +67,9 @@ export class SpringBootGenerator {
             }
 
             const appName = internalModel.appName;
-            const basePackage = config?.basePackage ?? schemaNameToBasePackage(appName);
+            const basePackage = sanitizeJavaBasePackage(
+                config?.basePackage ?? schemaNameToBasePackage(appName),
+            );
             const packagePath = basePackage.replace(/\./g, '/');
 
             // ── 1. pom.xml ──
