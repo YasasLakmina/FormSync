@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout code
@@ -20,65 +20,65 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 25m
+          command_timeout: 30m
           script: |
             set -e
 
-            echo "🏠 Starting in directory: $(pwd)"
+            echo "🏠 Starting deployment..."
 
             # ================================
-            # 🐳 Install Docker if missing
+            # 🐳 Install Docker (universal)
             # ================================
             if ! command -v docker &> /dev/null; then
-              echo "🐳 Docker not found. Installing..."
-              sudo apt update -y
-              sudo apt install -y docker.io docker-compose-plugin
-              sudo systemctl start docker
+              echo "🐳 Installing Docker..."
+
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+
               sudo systemctl enable docker
+              sudo systemctl start docker
+
               sudo usermod -aG docker $USER
             else
               echo "✅ Docker already installed"
             fi
 
-            # Apply group permissions
+            # ================================
+            # 🔁 Fix permission for this session
+            # ================================
             newgrp docker <<'EONG'
 
             echo "🐳 Docker version:"
             docker --version
-            docker compose version
+
+            # Compose fallback function
+            dc() {
+              docker compose "$@" || docker-compose "$@"
+            }
 
             # ================================
-            # 📁 Setup project directory
+            # 📁 Setup project
             # ================================
             mkdir -p ~/formsync
             cd ~/formsync
 
-            echo "📁 Current directory: $(pwd)"
-
-            # ================================
-            # 📥 Git operations
-            # ================================
             if [ -d ".git" ]; then
-              echo "📥 Updating existing repository..."
+              echo "📥 Updating repo..."
               git fetch origin
               git reset --hard origin/Deployment
             else
-              echo "📥 Cloning fresh repository..."
+              echo "📥 Cloning repo..."
               rm -rf ./* .[^.]* 2>/dev/null || true
               git clone https://github.com/${{ github.repository }}.git .
               git checkout Deployment
             fi
 
-            echo "📁 Navigating to formsync subdirectory..."
             cd formsync
 
-            echo "📂 Current directory: $(pwd)"
-            ls -la
-
             # ================================
-            # ✅ Verify docker-compose
+            # ✅ Check compose file
             # ================================
-            if [ ! -f "docker-compose.yml" ]; then
+            if [ ! -f docker-compose.yml ]; then
               echo "❌ docker-compose.yml not found!"
               exit 1
             fi
@@ -86,58 +86,55 @@ jobs:
             # ================================
             # ⚙️ Create .env
             # ================================
-            echo "⚙️ Creating environment file..."
+            echo "⚙️ Creating .env..."
 
-            {
-              echo "NODE_ENV=production"
-              echo "JWT_EXPIRES_IN=7d"
-              echo "OPENAI_BASE_URL=https://api.groq.com/openai/v1"
-              echo "OPENAI_MODEL=llama-3.3-70b-versatile"
+            cat <<EOF > .env
+NODE_ENV=production
+JWT_EXPIRES_IN=7d
 
-              echo "GATEWAY_PORT=3000"
-              echo "SCHEMA_ENGINE_PORT=3010"
-              echo "USER_SERVICE_PORT=3011"
-              echo "DTO_GENERATOR_PORT=3012"
-              echo "RUNTIME_ENGINE_PORT=3013"
-              echo "FORMGEN_SERVICE_PORT=3014"
+OPENAI_BASE_URL=https://api.groq.com/openai/v1
+OPENAI_MODEL=llama-3.3-70b-versatile
 
-              echo "SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010"
-              echo "USER_SERVICE_URL=http://user-management-service:3011"
-              echo "DTO_GENERATOR_URL=http://backend-dto-generator:3012"
-              echo "RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013"
-              echo "FORMGEN_SERVICE_URL=http://formgen-service:3014"
+GATEWAY_PORT=3000
+SCHEMA_ENGINE_PORT=3010
+USER_SERVICE_PORT=3011
+DTO_GENERATOR_PORT=3012
+RUNTIME_ENGINE_PORT=3013
+FORMGEN_SERVICE_PORT=3014
 
-              echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema"
-              echo "FRONTEND_URL=http://localhost"
+SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010
+USER_SERVICE_URL=http://user-management-service:3011
+DTO_GENERATOR_URL=http://backend-dto-generator:3012
+RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013
+FORMGEN_SERVICE_URL=http://formgen-service:3014
 
-              echo "DOCKER_BUILDKIT=1"
-              echo "COMPOSE_DOCKER_CLI_BUILD=1"
+SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema
+FRONTEND_URL=http://localhost
 
-              echo "NPM_CONFIG_LOGLEVEL=warn"
-              echo "NPM_CONFIG_PROGRESS=false"
-              echo "NPM_CONFIG_AUDIT=false"
-              echo "NPM_CONFIG_FUND=false"
+DOCKER_BUILDKIT=1
+COMPOSE_DOCKER_CLI_BUILD=1
 
-              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
-              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
-              echo "DATABASE_URL=${{ secrets.DATABASE_URL }}"
-              echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}"
-              echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
-              echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}"
-            } > .env
+NPM_CONFIG_LOGLEVEL=warn
+NPM_CONFIG_PROGRESS=false
+NPM_CONFIG_AUDIT=false
+NPM_CONFIG_FUND=false
 
-            echo "📋 .env created (sensitive values hidden)"
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+DATABASE_URL=${{ secrets.DATABASE_URL }}
+POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+EOF
 
-            # ================================
-            # 🐳 Stop existing containers
-            # ================================
-            echo "🐳 Stopping existing containers..."
-            docker compose down || true
+            echo "✅ .env created"
 
             # ================================
             # 🧹 Cleanup
             # ================================
-            echo "🧹 Cleaning Docker system..."
+            echo "🧹 Cleaning old containers..."
+            dc down || true
+
             docker system prune -af --volumes || true
             docker builder prune -af || true
 
@@ -145,53 +142,50 @@ jobs:
             df -h /
 
             # ================================
-            # 🔨 Build services
+            # 🔨 Build (sequential)
             # ================================
-            echo "🔨 Building services sequentially..."
+            echo "🔨 Building services..."
 
             for svc in schema-enhancement-engine user-management-service backend-dto-generator runtime-binding-engine formgen-service api-gateway frontend; do
               echo "📦 Building $svc..."
-              docker compose build "$svc" || {
-                echo "⚠️ Retry build for $svc..."
+              dc build "$svc" || {
+                echo "⚠️ Retry $svc..."
                 docker builder prune -af || true
-                docker compose build "$svc"
+                dc build "$svc"
               }
-              docker builder prune -af || true
             done
 
             # ================================
-            # 🚀 Start containers
+            # 🚀 Run
             # ================================
-            echo "🚀 Starting containers..."
-            docker compose up -d --no-build
+            echo "🚀 Starting services..."
+            dc up -d --no-build
 
-            echo "⏳ Waiting for startup..."
             sleep 15
 
             # ================================
             # 📊 Status
             # ================================
-            echo "📊 Container status:"
+            echo "📊 Containers:"
             docker ps -a
 
-            echo "📈 Resource usage:"
+            echo "📈 Usage:"
             docker system df
 
             # ================================
-            # 🔍 Debug failed containers
+            # 🔍 Debug failures
             # ================================
-            NOT_RUNNING=$(docker ps -a --filter "status=exited" --filter "status=restarting" --format "{{.Names}}" | head -5)
+            FAILED=$(docker ps -a --filter "status=exited" --format "{{.Names}}")
 
-            if [ ! -z "$NOT_RUNNING" ]; then
-              echo "⚠️ Some containers failed:"
-              for c in $NOT_RUNNING; do
-                echo "=== Logs for $c ==="
+            if [ ! -z "$FAILED" ]; then
+              echo "⚠️ Failed containers:"
+              for c in $FAILED; do
+                echo "==== $c logs ===="
                 docker logs --tail 20 $c
               done
-            else
-              echo "✅ All containers running"
+              exit 1
             fi
 
-            echo "🎉 Deployment complete!"
+            echo "🎉 Deployment successful!"
 
             EONG
