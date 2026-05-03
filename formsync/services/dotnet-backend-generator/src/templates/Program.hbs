@@ -14,6 +14,19 @@ builder.Services.AddScoped<{{namespace}}.Services.I{{name}}Service, {{namespace}
 
 var app = builder.Build();
 
+const string FormsyncAscii = {{{formsyncBannerJson}}};
+
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    const string Purple = "\x1b[95m";
+    const string Reset = "\x1b[0m";
+    Console.Write(Purple);
+    Console.Write(FormsyncAscii.TrimEnd());
+    Console.WriteLine(Reset);
+    Console.WriteLine($"{Purple}:: FormSync ::{Reset}");
+    Console.WriteLine($"API listening at http://localhost:{{serverPort}}");
+});
+
 {{#if includeSwagger}}
 app.MapGet("/openapi.yaml", () =>
 {

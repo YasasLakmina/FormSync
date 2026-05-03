@@ -36,8 +36,13 @@ app.get("/health", (_req, res) => {
 
 // Export the app for supertest — only listen when run directly
 if (require.main === module) {
+  const FORMSYNC_ASCII = {{{formsyncBannerJs}}};
+  const PURPLE = "\x1b[95m";
+  const RESET = "\x1b[0m";
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(PURPLE + FORMSYNC_ASCII.trimEnd() + RESET);
+    console.log(PURPLE + ":: FormSync ::" + RESET);
+    console.log("Server running on port " + PORT);
 {{#if includeSwagger}}
     console.log(`OpenAPI YAML: http://localhost:${PORT}/openapi.yaml`);
     console.log(`Swagger UI: http://localhost:${PORT}/swagger`);

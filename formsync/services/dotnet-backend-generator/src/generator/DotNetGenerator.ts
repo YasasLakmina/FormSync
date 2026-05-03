@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { buildOpenApiYaml } from '@formsync/schema-openapi';
 import { FileWriter } from '../service/FileWriter';
@@ -156,6 +157,8 @@ export class DotNetGenerator {
       this.templateService.render('csproj', { namespace, appName, includeSwagger }),
     );
 
+    const bannerText = this.loadAsciiBannerText();
+
     // 2. Program.cs
     this.fileWriter.write(
       path.join(outputDir, 'Program.cs'),
@@ -167,6 +170,7 @@ export class DotNetGenerator {
         entities,
         apiVersion,
         apiDescription,
+        formsyncBannerJson: JSON.stringify(bannerText),
       }),
     );
 
@@ -251,5 +255,17 @@ export class DotNetGenerator {
     );
 
     console.log(`DotNetGenerator: Complete ASP.NET Core server generated at ${outputDir}`);
+  }
+
+  private loadAsciiBannerText(): string {
+    const dirs = [
+      path.resolve(__dirname, '../templates'),
+      path.resolve(__dirname, '../../src/templates'),
+    ];
+    const dir = dirs.find((d) => fs.existsSync(path.join(d, 'ascii-banner.txt')));
+    if (!dir) {
+      throw new Error('ascii-banner.txt not found under dotnet-backend-generator templates');
+    }
+    return fs.readFileSync(path.join(dir, 'ascii-banner.txt'), 'utf8').replace(/\r\n/g, '\n').trimEnd() + '\n';
   }
 }

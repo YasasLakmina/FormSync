@@ -54,12 +54,17 @@ export class NodeBackendGenerator {
     });
     this.fileWriter.write(path.join(outputDir, "package.json"), packageJson);
 
+    const templatesDir = this.resolveTemplatesDir();
+    const bannerPath = path.join(templatesDir, "ascii-banner.txt");
+    const bannerText = fs.readFileSync(bannerPath, "utf8").replace(/\r\n/g, "\n").trimEnd() + "\n";
+
     // ── src/server.js ──
     const serverJs = this.templateService.render("server-js", {
       entities,
       appName: normalized.name,
       includeSwagger,
       serverPort,
+      formsyncBannerJs: JSON.stringify(bannerText),
     });
     this.fileWriter.write(path.join(outputDir, "src/server.js"), serverJs);
 
@@ -193,6 +198,18 @@ export class NodeBackendGenerator {
       if (entry === "node_modules" || entry === "package-lock.json") continue;
       fs.rmSync(path.join(outputDir, entry), { recursive: true, force: true });
     }
+  }
+
+  private resolveTemplatesDir(): string {
+    const candidateDirs = [
+      path.resolve(__dirname, "../templates"),
+      path.resolve(__dirname, "../../src/templates"),
+    ];
+    const dir = candidateDirs.find((d) => fs.existsSync(path.join(d, "ascii-banner.txt")));
+    if (!dir) {
+      throw new Error("ascii-banner.txt not found under generator templates");
+    }
+    return dir;
   }
 
   private safeName(value: string): string {

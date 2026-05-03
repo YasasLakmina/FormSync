@@ -167,7 +167,8 @@ export const generationService = {
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
       throw new Error(
-        errorBody?.error ||
+        errorBody?.message ||
+          errorBody?.error ||
           `Fullstack bundle generation failed (${response.status})`,
       );
     }

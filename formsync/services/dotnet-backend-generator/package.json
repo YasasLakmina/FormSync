@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "postbuild": "npm run copy-templates",
-    "copy-templates": "cpx \"src/templates/**/*.hbs\" dist/templates",
+    "copy-templates": "cpx \"src/templates/**/*.{hbs,txt}\" dist/templates",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "lint": "eslint \"src/**/*.ts\" --fix",

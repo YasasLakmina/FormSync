@@ -8,6 +8,7 @@ import { SpringBootGeneratorConfig } from '../model/InputContract';
 import { TemplateService } from '../service/TemplateService';
 import { FileWriter } from '../service/FileWriter';
 import { ContextualTestGenerator } from '../service/ContextualTestGenerator';
+import * as fs from 'fs';
 import * as path from 'path';
 
 /** Derives a Java base package from a schema name (e.g. "Employee" -> "com.employee"). */
@@ -94,6 +95,9 @@ export class SpringBootGenerator {
                 path.join(outputDir, 'src/main/resources/application.yml'),
                 ymlContent
             );
+
+            const springBanner = this.buildSpringBannerTxt();
+            this.fileWriter.write(path.join(outputDir, 'src/main/resources/banner.txt'), springBanner);
 
             // ── 3. Main Application class ──
             const appContent = this.templateService.render('application', {
@@ -314,6 +318,23 @@ export class SpringBootGenerator {
             console.error('Error during Spring Boot generation:', error);
             throw error;
         }
+    }
+
+    private buildSpringBannerTxt(): string {
+        const dirs = [
+            path.resolve(__dirname, '../templates'),
+            path.resolve(__dirname, '../../src/templates'),
+        ];
+        const dir = dirs.find(d => fs.existsSync(path.join(d, 'ascii-banner.txt')));
+        if (!dir) {
+            throw new Error('ascii-banner.txt not found under runtime-binding-engine templates');
+        }
+        const ascii = fs.readFileSync(path.join(dir, 'ascii-banner.txt'), 'utf8').replace(/\r\n/g, '\n').trimEnd();
+        return (
+            '${AnsiColor.BRIGHT_MAGENTA}\n' +
+            ascii +
+            '\n${AnsiColor.BRIGHT_MAGENTA}:: FormSync ::${AnsiColor.DEFAULT}\n'
+        );
     }
 
     private buildContextualReadme(appName: string, entityNames: string[]): string {
