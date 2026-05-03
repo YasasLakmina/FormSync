@@ -2,8 +2,7 @@
  * Internal Model Definitions
  *
  * These types represent the schema in a format optimized for generating
- * a complete, ready-to-run Spring Boot server with controllers, services,
- * repositories, entities, DTOs, validations, and exception handling.
+ * server code and OpenAPI specifications from JSON Schema.
  */
 
 export enum DataType {

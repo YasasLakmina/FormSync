@@ -18,7 +18,7 @@ import {
 } from "../services/generationService";
 import { FlowDiagram } from "../components/shared/FlowDiagram";
 import { BackendLanguageSelector } from "../components/BackendLanguageSelector";
-import type { FormModel } from "../types";
+import type { FormModel, JsonSchema } from "../types";
 import { FORMSYNC_BUILDER_EXPORT_FORM_KEY } from "../context/BuilderContext";
 
 interface GeneratedCode {
@@ -37,19 +37,30 @@ interface LocationState {
   formModel?: FormModel;
 }
 
-function consumeBuilderExportForm(
+/**
+ * Reads and clears the one-shot builder export stash (full-page redirect safe).
+ * Supports legacy payloads with only `form`; prefer `syncedSchema` when present.
+ */
+function consumeBuilderExportPayload(
   id: string | null,
-): FormModel | undefined {
-  if (!id) return undefined;
+): { form?: FormModel; syncedSchema?: JsonSchema } {
+  if (!id) return {};
   try {
     const raw = sessionStorage.getItem(FORMSYNC_BUILDER_EXPORT_FORM_KEY);
-    if (!raw) return undefined;
-    const parsed = JSON.parse(raw) as { schemaId?: string; form?: FormModel };
-    if (parsed.schemaId !== id || !parsed.form) return undefined;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as {
+      schemaId?: string;
+      form?: FormModel;
+      syncedSchema?: JsonSchema;
+    };
+    if (parsed.schemaId !== id) return {};
     sessionStorage.removeItem(FORMSYNC_BUILDER_EXPORT_FORM_KEY);
-    return parsed.form;
+    return {
+      form: parsed.form,
+      syncedSchema: parsed.syncedSchema,
+    };
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -142,6 +153,9 @@ export const GeneratedCodePage: React.FC = () => {
   const [backendLanguage, setBackendLanguage] =
     React.useState<BackendLanguage>(initialBackendLanguage);
 
+  /** Tracks backendLanguage for regenerating preview only when the user changes the selector. */
+  const prevBackendLanguageRef = React.useRef<BackendLanguage | null>(null);
+
   // Define stages for the progress bar
   const completionStages: any[] = [
     { name: "Enter Schema", status: "complete", progress: 100 },
@@ -167,12 +181,21 @@ export const GeneratedCodePage: React.FC = () => {
       if (schemaId && syncedFromBuilder) {
         setIsLoading(true);
         try {
-          const result = await generationService.generateAll(syncedFromBuilder);
+          const result = await generationService.generateAll(
+            syncedFromBuilder,
+            backendLanguage,
+          );
+          try {
+            sessionStorage.removeItem(FORMSYNC_BUILDER_EXPORT_FORM_KEY);
+          } catch {
+            /* ignore */
+          }
           if (result.success && result.data) {
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
               schema: syncedFromBuilder,
               backendLanguage: routeState?.backendLanguage,
+              ...(routeState?.formModel && { formModel: routeState.formModel }),
             });
             toast.success("Code generated successfully");
           } else {
@@ -183,6 +206,7 @@ export const GeneratedCodePage: React.FC = () => {
           setLocalState({
             generatedCode: MOCK_CODE,
             schema: syncedFromBuilder,
+            ...(routeState?.formModel && { formModel: routeState.formModel }),
           });
           toast.info("Using demo data (Generation failed)");
         } finally {
@@ -192,22 +216,56 @@ export const GeneratedCodePage: React.FC = () => {
       }
 
       if (schemaId) {
+        const stash = consumeBuilderExportPayload(schemaId);
+
+        if (stash.syncedSchema) {
+          setIsLoading(true);
+          try {
+            const result = await generationService.generateAll(
+              stash.syncedSchema,
+              backendLanguage,
+            );
+            if (result.success && result.data) {
+              setLocalState({
+                generatedCode: { ...MOCK_CODE, ...result.data },
+                schema: stash.syncedSchema,
+                ...(stash.form && { formModel: stash.form }),
+              });
+              toast.success("Code generated successfully");
+            } else {
+              throw new Error(result.error || "Generation failed");
+            }
+          } catch (error) {
+            console.error("Error in GeneratedCodePage:", error);
+            setLocalState({
+              generatedCode: MOCK_CODE,
+              schema: stash.syncedSchema,
+              ...(stash.form && { formModel: stash.form }),
+            });
+            toast.info("Using demo data (Generation failed)");
+          } finally {
+            setIsLoading(false);
+          }
+          return;
+        }
+
         setIsLoading(true);
         try {
           const response = await fetch(`/schema/${schemaId}`);
           if (!response.ok) throw new Error("Failed to fetch schema");
 
           const schemaData = await response.json();
-          const schema = schemaData.content || schemaData;
 
-          const result = await generationService.generateAll(schema);
+          const result = await generationService.generateAll(
+            schemaData,
+            backendLanguage,
+          );
 
           if (result.success && result.data) {
-            const formModelFromExport = consumeBuilderExportForm(schemaId);
             setLocalState({
               generatedCode: { ...MOCK_CODE, ...result.data },
-              schema: schema,
-              ...(formModelFromExport && { formModel: formModelFromExport }),
+              schema: schemaData,
+              ...(stash.form && { formModel: stash.form }),
             });
             toast.success("Code generated successfully");
           } else {
@@ -235,6 +293,45 @@ export const GeneratedCodePage: React.FC = () => {
 
     void hydrate();
   }, [localState?.generatedCode, schemaId, location.state]);
+
+  React.useEffect(() => {
+    const schema = localState?.schema;
+    if (!schema || !localState?.generatedCode) return;
+
+    if (prevBackendLanguageRef.current === null) {
+      prevBackendLanguageRef.current = backendLanguage;
+      return;
+    }
+
+    if (prevBackendLanguageRef.current === backendLanguage) return;
+
+    prevBackendLanguageRef.current = backendLanguage;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await generationService.generateAll(schema, backendLanguage);
+        if (cancelled || !result.success || !result.data) return;
+        setLocalState((prev) =>
+          prev
+            ? {
+                ...prev,
+                generatedCode: {
+                  ...prev.generatedCode!,
+                  ...result.data!,
+                },
+              }
+            : prev,
+        );
+      } catch {
+        /* ignore */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backendLanguage, localState?.schema, localState?.generatedCode]);
 
   if (isLoading) {
     return (

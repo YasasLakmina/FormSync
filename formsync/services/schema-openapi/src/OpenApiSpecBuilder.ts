@@ -4,7 +4,7 @@ import {
     SchemaField,
     DataType,
     SchemaEnum,
-} from '../model/InternalModel';
+} from './InternalModel';
 
 /** Converts a string to kebab-case (e.g. "EmployeeOnboarding" -> "employee-onboarding"). */
 function toKebabCase(str: string): string {
@@ -195,7 +195,6 @@ export interface OpenApiDocument {
 /**
  * Builds an OpenAPI 3.0 specification from InternalSchema.
  * Produces paths and components.schemas for all root entities (CRUD).
- * Ensures all models appear in the Schemas tab: enums, nested entities (e.g. Address), Request/Response DTOs.
  */
 export function buildOpenApiSpec(schema: InternalSchema): OpenApiDocument {
     const rootEntities = schema.entities.filter((e) => e.isRoot);
@@ -203,7 +202,6 @@ export function buildOpenApiSpec(schema: InternalSchema): OpenApiDocument {
     const paths: Record<string, Record<string, unknown>> = {};
     const componentsSchemas: Record<string, Record<string, unknown>> = {};
 
-    // 1. Add all enums as separate schemas so they appear in the Schemas tab
     for (const enumDef of schema.enums) {
         componentsSchemas[enumDef.name] = {
             type: 'string',
@@ -212,17 +210,14 @@ export function buildOpenApiSpec(schema: InternalSchema): OpenApiDocument {
         } as Record<string, unknown>;
     }
 
-    // 2. Add all nested entities (e.g. Address) as separate schemas
     for (const entity of nestedEntities) {
         componentsSchemas[entity.name] = buildEntitySchema(entity, schema.enums);
     }
 
-    // 3. Add root entity model schema so it appears in Schemas tab (4 models: nested + entity + enums; 2 DTOs: Request + Response)
     for (const entity of rootEntities) {
         componentsSchemas[entity.name] = buildEntitySchema(entity, schema.enums);
     }
 
-    // 4. Add Request/Response DTOs and paths for each root entity
     for (const entity of rootEntities) {
         const resource = resourcePathSegment(entity.name);
         const basePath = `/api/${resource}`;
@@ -232,10 +227,8 @@ export function buildOpenApiSpec(schema: InternalSchema): OpenApiDocument {
         componentsSchemas[`${entity.name}Request`] = buildRequestSchema(entity, schema.enums);
         componentsSchemas[`${entity.name}Response`] = buildResponseSchema(entity, schema.enums);
 
-        const entityDesc = entity.description || entity.name;
         const nameLower = entity.name.charAt(0).toLowerCase() + entity.name.slice(1);
 
-        // GET /api/{resource}
         paths[basePath] = {
             get: {
                 summary: `List all ${nameLower}s`,
@@ -283,7 +276,6 @@ export function buildOpenApiSpec(schema: InternalSchema): OpenApiDocument {
             },
         };
 
-        // GET /api/{resource}/{id}, PUT /api/{resource}/{id}, DELETE /api/{resource}/{id}
         const pathWithId = `${basePath}/{id}`;
         paths[pathWithId] = {
             get: {

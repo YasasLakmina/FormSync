@@ -1,17 +1,18 @@
 # ── Build stage ────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
-WORKDIR /workspace
+WORKDIR /workspace/services
 
-# Shared tsconfig — services extend ../../config/tsconfig.base.json
-COPY config/ config/
+COPY config/ /workspace/config/
 
-# Install dependencies first (cache layer)
-COPY services/dotnet-backend-generator/package*.json services/dotnet-backend-generator/
+COPY services/schema-openapi ./schema-openapi
+WORKDIR /workspace/services/schema-openapi
+RUN npm install && npm run build
+
 WORKDIR /workspace/services/dotnet-backend-generator
+COPY services/dotnet-backend-generator/package*.json ./
 RUN npm install
 
-# Copy source and build
 COPY services/dotnet-backend-generator/ .
 RUN npm run build
 RUN cp -r src/templates dist/templates || true
@@ -19,12 +20,15 @@ RUN cp -r src/templates dist/templates || true
 # ── Runtime stage ──────────────────────────────────────────────
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /workspace/services
 
-COPY --from=builder /workspace/services/dotnet-backend-generator/dist ./dist
+COPY --from=builder /workspace/services/schema-openapi ./schema-openapi
 
+WORKDIR /workspace/services/dotnet-backend-generator
 COPY services/dotnet-backend-generator/package*.json ./
 RUN npm install --omit=dev
+
+COPY --from=builder /workspace/services/dotnet-backend-generator/dist ./dist
 
 EXPOSE 3016
 

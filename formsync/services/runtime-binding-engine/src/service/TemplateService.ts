@@ -1,7 +1,7 @@
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DataType } from '../model/InternalModel';
+import { DataType } from '@formsync/schema-openapi';
 
 function getCollectionItemDefault(referenceType?: string): string {
     if (!referenceType || referenceType === 'String') return '"test"';

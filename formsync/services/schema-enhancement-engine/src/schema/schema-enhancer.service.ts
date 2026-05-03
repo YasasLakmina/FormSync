@@ -269,7 +269,11 @@ export class SchemaEnhancerService {
   private validateSuggestions(suggestions: SchemaSuggestion[], schema: any): SchemaSuggestion[] {
     const validated: SchemaSuggestion[] = [];
 
-    for (const suggestion of suggestions) {
+    const safeList = Array.isArray(suggestions)
+      ? suggestions.filter((s): s is SchemaSuggestion => s != null && typeof s === 'object')
+      : [];
+
+    for (const suggestion of safeList) {
       const validation = this.validateSingleSuggestion(suggestion);
 
       if (validation.valid) {

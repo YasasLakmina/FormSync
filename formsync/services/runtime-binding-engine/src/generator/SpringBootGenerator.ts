@@ -1,11 +1,13 @@
-import { SchemaMapper } from '../mapper/SchemaMapper';
-import { InternalSchema } from '../model/InternalModel';
+import {
+    SchemaMapper,
+    InternalSchema,
+    buildOpenApiYamlFromInternal,
+    SchemaEntity,
+} from '@formsync/schema-openapi';
 import { SpringBootGeneratorConfig } from '../model/InputContract';
 import { TemplateService } from '../service/TemplateService';
 import { FileWriter } from '../service/FileWriter';
 import { ContextualTestGenerator } from '../service/ContextualTestGenerator';
-import { buildOpenApiSpec } from '../openapi/OpenApiSpecBuilder';
-import * as yaml from 'js-yaml';
 import * as path from 'path';
 
 /** Derives a Java base package from a schema name (e.g. "Employee" -> "com.employee"). */
@@ -149,8 +151,7 @@ export class SpringBootGenerator {
             }
 
             // ── 5b. OpenAPI 3 spec (openapi.yaml) ──
-            const openApiDoc = buildOpenApiSpec(internalModel);
-            const openApiYaml = yaml.dump(openApiDoc, { lineWidth: -1 });
+            const openApiYaml = buildOpenApiYamlFromInternal(internalModel);
             this.fileWriter.write(path.join(outputDir, 'openapi.yaml'), openApiYaml);
             this.fileWriter.write(
                 path.join(outputDir, 'src/main/resources/static/openapi.yaml'),
@@ -217,7 +218,9 @@ export class SpringBootGenerator {
             }
 
             // ── 7. README.md ──
-            const rootEntities = internalModel.entities.filter(e => e.isRoot).map(e => ({
+            const rootEntities = internalModel.entities
+                .filter((e: SchemaEntity) => e.isRoot)
+                .map((e: SchemaEntity) => ({
                 ...e,
                 nameLower: e.name.charAt(0).toLowerCase() + e.name.slice(1)
             }));
@@ -299,7 +302,10 @@ export class SpringBootGenerator {
             }
 
             // ── 12. Contextual tests README ──
-            const contextualReadme = this.buildContextualReadme(appName, internalModel.entities.filter(e => e.isRoot).map(e => e.name));
+            const contextualReadme = this.buildContextualReadme(
+                appName,
+                internalModel.entities.filter((e: SchemaEntity) => e.isRoot).map((e: SchemaEntity) => e.name),
+            );
             this.fileWriter.write(path.join(outputDir, 'contextual-tests', 'README.md'), contextualReadme);
 
             console.log(`SpringBootGenerator: Complete server generated at ${outputDir}`);

@@ -26,7 +26,21 @@ npm start
 npm run dev
 ```
 
-The server starts at **http://localhost:3000**
+The server starts at **http://localhost:{{serverPort}}**
+
+### OpenAPI specification
+
+An **OpenAPI 3.0** specification is included as `openapi.yaml` in the project root. Use it for API contracts, code generation, or documentation without running the server.
+
+{{#if includeSwagger}}
+
+### Swagger UI
+
+- **Swagger UI**: **http://localhost:{{serverPort}}/swagger**
+- **OpenAPI YAML**: **http://localhost:{{serverPort}}/openapi.yaml**
+
+For offline use, see **openapi.yaml** in the project root.
+{{/if}}
 
 ---
 
@@ -77,6 +91,7 @@ The server starts at **http://localhost:3000**
 ```
 ├── package.json
 ├── README.md
+├── openapi.yaml              ← OpenAPI 3.0 contract (same pipeline as Spring Boot)
 ├── src/
 │   ├── server.js              ← Express app entry point
 │   ├── routes/

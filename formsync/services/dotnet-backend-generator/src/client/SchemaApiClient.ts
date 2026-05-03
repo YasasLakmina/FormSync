@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
-import { SchemaPayload } from '../model/InputContract';
+import { SchemaPayload } from '@formsync/schema-openapi';
 
 export interface SchemaApiConfig {
   baseUrl: string;

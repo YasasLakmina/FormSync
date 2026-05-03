@@ -1,10 +1,19 @@
 import React, { createContext, useContext, useReducer, Dispatch, useEffect } from 'react';
-import { FormModel, FieldModel, FieldType, JsonSchema } from '../types';
+import { FormModel, FieldModel, FieldType, JsonSchema, formModelToJsonSchema } from '../types';
 
 export const FORMSYNC_BUILDER_DRAFT_KEY = 'formsync_builder_draft';
 export const FORMSYNC_BUILDER_SCHEMA_ID_KEY = 'formsync_builder_schema_id';
-/** One-shot payload so GeneratedCodePage can pass Form Builder customizations after a full-page redirect to `/generated?schemaId=…`. */
+/**
+ * One-shot sessionStorage payload after leaving the Form Builder for `/generated?schemaId=…`
+ * (supports full-page navigation). Carries the canonical JSON Schema for all generators.
+ */
 export const FORMSYNC_BUILDER_EXPORT_FORM_KEY = 'formsync_builder_export_form';
+
+export interface BuilderExportPayload {
+  schemaId: string;
+  form: FormModel;
+  syncedSchema: JsonSchema;
+}
 
 export function clearBuilderDraft(): void {
     try {
@@ -326,9 +335,18 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } catch {
                 /* quota or disabled storage */
             }
+            try {
+                const synced = formModelToJsonSchema(
+                    state.form,
+                    state.baseJsonSchema ?? undefined,
+                );
+                sessionStorage.setItem('formsync_schema_raw', JSON.stringify(synced));
+            } catch {
+                /* invalid or oversize form — skip */
+            }
         }, 400);
         return () => window.clearTimeout(t);
-    }, [state.form, state.activeStep, state.schemaId]);
+    }, [state.form, state.activeStep, state.schemaId, state.baseJsonSchema]);
 
     return (
         <BuilderContext.Provider value={{ state, dispatch, canUndo, isWizardMode, stepCount }}>

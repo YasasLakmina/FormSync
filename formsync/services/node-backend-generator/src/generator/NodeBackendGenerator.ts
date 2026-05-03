@@ -1,12 +1,10 @@
 import * as path from "path";
 import * as fs from "fs";
+import { buildOpenApiYaml } from "@formsync/schema-openapi";
 import { FileWriter } from "../service/FileWriter";
 import { TemplateService, computeJsLiteral } from "../service/TemplateService";
 import { ContextualTestGenerator } from "../service/ContextualTestGenerator";
-
-interface GeneratorConfig {
-  outputDir?: string;
-}
+import { NodeBackendGeneratorConfig } from "../model/InputContract";
 
 interface FieldDescriptor {
   name: string;
@@ -32,16 +30,27 @@ export class NodeBackendGenerator {
     this.contextualTestGenerator = new ContextualTestGenerator();
   }
 
-  async generate(schema: any, config?: GeneratorConfig): Promise<void> {
+  async generate(schema: any, config?: NodeBackendGeneratorConfig): Promise<void> {
     const outputDir = config?.outputDir || "./generated-node-backend";
+    const includeSwagger = config?.includeSwagger ?? true;
+    const serverPort = config?.serverPort ?? 3600;
     this.cleanOutputDir(outputDir);
     const normalized = this.normalizeSchema(schema);
     const entities = this.extractEntities(normalized.content, normalized.name);
+
+    const openApiYaml = buildOpenApiYaml({
+      name: normalized.name,
+      content: normalized.content,
+      version: normalized.version,
+      description: normalized.description ?? normalized.content?.description,
+    });
+    this.fileWriter.write(path.join(outputDir, "openapi.yaml"), openApiYaml);
 
     // ── package.json ──
     const packageJson = this.templateService.render("package-json", {
       appName: normalized.name,
       entities,
+      includeSwagger,
     });
     this.fileWriter.write(path.join(outputDir, "package.json"), packageJson);
 
@@ -49,6 +58,8 @@ export class NodeBackendGenerator {
     const serverJs = this.templateService.render("server-js", {
       entities,
       appName: normalized.name,
+      includeSwagger,
+      serverPort,
     });
     this.fileWriter.write(path.join(outputDir, "src/server.js"), serverJs);
 
@@ -106,22 +117,32 @@ export class NodeBackendGenerator {
     const readme = this.templateService.render("readme", {
       appName: normalized.name,
       entities,
+      includeSwagger,
+      serverPort,
     });
     this.fileWriter.write(path.join(outputDir, "README.md"), readme);
   }
 
   // ── Schema normalization ──────────────────────────────────────────────────
 
-  private normalizeSchema(schema: any): { name: string; content: any } {
+  private normalizeSchema(schema: any): {
+    name: string;
+    content: any;
+    version?: string;
+    description?: string;
+  } {
     if (schema?.content && (schema?.name || schema?.id)) {
       return {
         name: this.safeName(schema.name || schema.id || "GeneratedApi"),
         content: schema.content,
+        version: schema.version?.toString(),
+        description: schema.description,
       };
     }
     return {
       name: this.safeName(schema?.title || "GeneratedApi"),
       content: schema,
+      description: schema?.description,
     };
   }
 

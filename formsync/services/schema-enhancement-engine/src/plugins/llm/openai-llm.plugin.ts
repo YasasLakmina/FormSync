@@ -43,6 +43,46 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
     }
   }
 
+  /**
+   * Some OpenAI-compatible APIs (local LLMs, older gateways) reject `response_format: json_object`.
+   * Set OPENAI_SKIP_JSON_RESPONSE_FORMAT=true to omit it on first request.
+   */
+  private async chatCompletionCreate(params: {
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+    temperature: number;
+  }) {
+    const client = this.client!;
+    const payloadBase = {
+      model: this.model,
+      messages: params.messages,
+      temperature: params.temperature,
+    };
+    if (process.env.OPENAI_SKIP_JSON_RESPONSE_FORMAT === 'true') {
+      return client.chat.completions.create(payloadBase as any);
+    }
+    try {
+      return await client.chat.completions.create({
+        ...payloadBase,
+        response_format: { type: 'json_object' },
+      } as any);
+    } catch (err: any) {
+      const msg = String(err?.message ?? err);
+      const status = err?.status ?? err?.response?.status ?? err?.cause?.status;
+      const retry =
+        status === 400 ||
+        msg.toLowerCase().includes('response_format') ||
+        msg.includes('json_object') ||
+        msg.includes('unknown_parameter');
+      if (retry) {
+        console.warn(
+          '[OpenAILLMPlugin] Retrying without response_format (provider may not support json_object mode)',
+        );
+        return client.chat.completions.create(payloadBase as any);
+      }
+      throw err;
+    }
+  }
+
   async enhanceSchema(schema: any, options?: EnhancementOptions): Promise<EnhancementResult> {
     if (!this.isConfigured()) {
       return {
@@ -56,8 +96,7 @@ export class OpenAILLMPlugin implements LLMProviderPlugin {
       const prompt = this.buildPrompt(schema, options);
 
       // call the model (defensively accept different shapes)
-      const response = await this.client!.chat.completions.create({
-        model: this.model,
+      const response = await this.chatCompletionCreate({
         messages: [
           {
             role: 'system',
@@ -384,7 +423,6 @@ Before returning:
           { role: 'user', content: prompt },
         ],
         temperature: 0.2,
-        response_format: { type: 'json_object' },
       });
 
       // defensive extraction of JSON result

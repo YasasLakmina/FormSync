@@ -24,15 +24,69 @@ export interface GenerateResponse {
 
 const API_GATEWAY_URL = import.meta.env.VITE_API_URL || "";
 
+function toKebabCase(input: string): string {
+  return input
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[_\s]+/g, "-")
+    .replace(/-+/g, "-")
+    .toLowerCase()
+    .replace(/^-|-$/g, "");
+}
+
+function toPascalCase(str: string): string {
+  return (str || "")
+    .replace(/[_-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join("");
+}
+
+function pluralize(name: string): string {
+  if (/(?:s|x|z|ch|sh)$/i.test(name)) return name + "es";
+  if (/[^aeiou]y$/i.test(name)) return name.slice(0, -1) + "ies";
+  return name + "s";
+}
+
+/** Matches formgen-service getPrimaryApiPath / generated backends (Spring, Node, ASP.NET). */
+function getPrimaryApiPathFromRawTitle(
+  rawTitle: string,
+  backendLanguage: BackendLanguage,
+): string {
+  const routeBase = toKebabCase(rawTitle) || "resource";
+  if (backendLanguage === "springBoot") return `/api/${routeBase}s`;
+  if (backendLanguage === "dotnetWebApi") {
+    const plural = pluralize(toPascalCase(rawTitle));
+    return `/api/${plural}`;
+  }
+  return `/api/${routeBase}`;
+}
+
+function defaultBackendPort(backendLanguage: BackendLanguage): number {
+  if (backendLanguage === "springBoot") return 8080;
+  if (backendLanguage === "dotnetWebApi") return 5000;
+  return 3600;
+}
+
+/** Title used for routes — mirrors formgen buildFormModelFromSchema (content.title vs wrapper name). */
+function resolveRouteTitle(schemaBundle: any): string {
+  const inner = schemaBundle?.content ?? schemaBundle;
+  return (
+    (inner?.title as string) ||
+    (schemaBundle?.name as string) ||
+    "GeneratedForm"
+  );
+}
+
 export const generationService = {
   /**
    * Generate all code from validated schema
    */
-  async generateAll(validatedSchema: any): Promise<GenerateResponse> {
-    // Extract content if the schema is a DB record wrapper
-    const actualSchema = validatedSchema.content || validatedSchema;
-    // Generate code client-side from the schema (no external service required)
-    return this.generateFromSchema(actualSchema);
+  async generateAll(
+    validatedSchema: any,
+    backendLanguage: BackendLanguage = "springBoot",
+  ): Promise<GenerateResponse> {
+    return this.generateFromSchema(validatedSchema, backendLanguage);
   },
 
   /**
@@ -50,7 +104,9 @@ export const generationService = {
     const endpoint =
       backendLanguage === "dotnetWebApi"
         ? `${API_GATEWAY_URL}/dotnet-backend/generate`
-        : `${API_GATEWAY_URL}/runtime/generate`;
+        : backendLanguage === "nodeExpress"
+          ? `${API_GATEWAY_URL}/node-backend/generate`
+          : `${API_GATEWAY_URL}/runtime/generate`;
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -126,11 +182,18 @@ export const generationService = {
     document.body.removeChild(a);
   },
 
-  generateFromSchema(schema: any): GenerateResponse {
-    const props: Record<string, any> = schema?.properties || {};
-    const title = (schema?.title as string) || "GeneratedForm";
+  generateFromSchema(
+    schemaBundle: any,
+    backendLanguage: BackendLanguage = "springBoot",
+  ): GenerateResponse {
+    const inner = schemaBundle?.content || schemaBundle;
+    const props: Record<string, any> = inner?.properties || {};
+    const rawTitle = resolveRouteTitle(schemaBundle);
+    const title = rawTitle;
     const componentName = title.replace(/\s+/g, "");
     const fields = Object.entries(props);
+    const apiPath = getPrimaryApiPathFromRawTitle(rawTitle, backendLanguage);
+    const defaultPort = defaultBackendPort(backendLanguage);
 
     // --- Frontend React component ---
     const tsInterface = fields
@@ -166,7 +229,64 @@ export const generationService = {
       })
       .join("\n");
 
-    const frontend = `import React from 'react';\nimport { useForm } from 'react-hook-form';\n\ninterface ${componentName}Data {\n${tsInterface}\n}\n\nexport const ${componentName}: React.FC = () => {\n  const { register, handleSubmit } = useForm<${componentName}Data>();\n\n  const onSubmit = (data: ${componentName}Data) => {\n    console.log(data);\n  };\n\n  return (\n    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">\n${formInputs}\n      <button type="submit">Submit</button>\n    </form>\n  );\n};`;
+    const onSubmitFn = `  const stripEmptyJsonValues = (value: unknown): unknown => {
+    if (value === "" || value === null || value === undefined) return undefined;
+    if (typeof value !== "object") return value;
+    if (Array.isArray(value)) {
+      return value.map(stripEmptyJsonValues).filter((v) => v !== undefined);
+    }
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const s = stripEmptyJsonValues(v);
+      if (s === undefined) continue;
+      if (
+        typeof s === "object" &&
+        s !== null &&
+        !Array.isArray(s) &&
+        Object.keys(s as Record<string, unknown>).length === 0
+      ) {
+        continue;
+      }
+      out[k] = s;
+    }
+    return out;
+  };
+
+  const onSubmit = async (data: ${componentName}Data) => {
+    const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:${defaultPort}";
+    const API_PATH = import.meta.env.VITE_API_PATH ?? ${JSON.stringify(apiPath)};
+    const jsonBody = stripEmptyJsonValues(data as unknown);
+    const res = await fetch(\`\${API_BASE_URL}\${API_PATH}\`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(jsonBody !== undefined ? jsonBody : {}),
+    });
+    if (!res.ok) {
+      throw new Error(\`Submit failed (\${res.status})\`);
+    }
+    alert("Submitted successfully");
+  }`;
+
+    const frontend = `import React from 'react';
+import { useForm } from 'react-hook-form';
+
+interface ${componentName}Data {
+${tsInterface}
+}
+
+export const ${componentName}: React.FC = () => {
+  const { register, handleSubmit } = useForm<${componentName}Data>();
+
+${onSubmitFn}
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+${formInputs}
+      <button type="submit">Submit</button>
+    </form>
+  );
+};`;
 
     // --- Backend NestJS controller ---
     const backend = `import { Controller, Post, Body, Get, Param, Put, Delete } from '@nestjs/common';\nimport { Create${componentName}Dto } from './dto/${componentName.toLowerCase()}.dto';\nimport { ${componentName}Service } from './${componentName.toLowerCase()}.service';\n\n@Controller('${componentName.toLowerCase()}')\nexport class ${componentName}Controller {\n  constructor(private readonly service: ${componentName}Service) {}\n\n  @Post()\n  create(@Body() dto: Create${componentName}Dto) {\n    return this.service.create(dto);\n  }\n\n  @Get()\n  findAll() {\n    return this.service.findAll();\n  }\n\n  @Get(':id')\n  findOne(@Param('id') id: string) {\n    return this.service.findOne(id);\n  }\n\n  @Put(':id')\n  update(@Param('id') id: string, @Body() dto: Create${componentName}Dto) {\n    return this.service.update(id, dto);\n  }\n\n  @Delete(':id')\n  remove(@Param('id') id: string) {\n    return this.service.remove(id);\n  }\n}`;
@@ -174,7 +294,7 @@ export const generationService = {
     // --- DTOs ---
     const dtoDecorators = fields
       .map(([k, v]: [string, any]) => {
-        const required = ((schema?.required as string[]) || []).includes(k);
+        const required = ((inner?.required as string[]) || []).includes(k);
         const lines: string[] = [];
         if (v.type === "string" && !v.enum) lines.push("  @IsString()");
         if (v.enum)
@@ -216,10 +336,8 @@ export const generationService = {
     validatedSchema: any,
     _filename: string = "generated-project",
   ): Promise<void> {
-    // Extract content if the schema is a DB record wrapper
-    const actualSchema = validatedSchema.content || validatedSchema;
     // Generate client-side and download as individual files (no ZIP service needed)
-    const result = this.generateFromSchema(actualSchema);
+    const result = this.generateFromSchema(validatedSchema, "springBoot");
     if (!result.success || !result.data) throw new Error("Generation failed");
 
     const files: { name: string; content: string }[] = [

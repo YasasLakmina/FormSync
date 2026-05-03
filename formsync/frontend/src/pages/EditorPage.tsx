@@ -207,7 +207,7 @@ export const EditorPage: React.FC = () => {
       const USE_MOCK = true;
       const result = USE_MOCK
         ? await generationService.generateMock()
-        : await generationService.generateAll(currentSchema);
+        : await generationService.generateAll(currentSchema, backendLanguage);
 
       if (result.success && result.data) {
         toast.success("Code generation complete!");

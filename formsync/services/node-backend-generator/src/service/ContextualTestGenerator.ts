@@ -51,8 +51,9 @@ RULES — follow every rule or the tests will fail:
 6. DO NOT import any custom project classes (no DTOs, no repositories) — use raw JSON strings only
 7. For Test 3 use: String responseBody = ...; Long id = objectMapper.readTree(responseBody).get("id").asLong(); then GET with that id
 8. DO NOT test validation errors, missing fields, or bad data — only happy-path tests
-9. Use realistic values from the "examples" in the schema (e.g. for email use "john.doe@example.com", for age use 25)
+9. Use realistic values from the "examples" in the schema (e.g. for email use "john.doe@example.com", for age use 25). For nested object fields (e.g. address), use JSON objects — never a single string.
 10. Every test must call mockMvc.perform() and use andExpect(status().isXxx())
+11. If you use java.util types (List, Map, Optional, Set) or Collectors in assertions, add explicit imports (e.g. import java.util.List;) — never rely on implicit imports
 
 Required imports (include all):
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,13 +68,15 @@ import org.junit.jupiter.api.DisplayName;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.*;
+import java.util.List;
+import java.util.Map;
 
 Output ONLY the complete Java class. No markdown. No explanations. Just the raw Java code.`;
 
     try {
       const result = await this.callGroq(prompt);
       console.log(`[ContextualTestGenerator] Generated Java contextual tests for ${entityName}`);
-      return result;
+      return result ? this.ensureJavaUtilImports(result) : null;
     } catch (error: any) {
       console.error(`[ContextualTestGenerator] Java test generation failed for ${entityName}:`, error.message);
       return null;
@@ -115,7 +118,7 @@ RULES — follow every rule or the tests will fail:
 5. DO NOT test validation errors, missing fields, or boundary values — only happy-path tests
 6. Use async/await in every it() block
 7. Add afterAll((done) => { done(); }); at the top level
-8. Use realistic values from schema "examples" (e.g. email: "john.doe@example.com", age: 25)
+8. Use realistic values from schema "examples" (e.g. email: "john.doe@example.com", age: 25). Nested objects (e.g. address) must be object literals — never a string.
 
 Output ONLY the complete JavaScript test file. No markdown. No explanations. Just the raw JavaScript code.`;
 
@@ -141,6 +144,19 @@ Output ONLY the complete JavaScript test file. No markdown. No explanations. Jus
     return `{\n${pairs.join(',\n')}\n}`;
   }
 
+  private schemaTypes(def: any): string[] {
+    if (!def?.type) return [];
+    return Array.isArray(def.type) ? def.type : [def.type];
+  }
+
+  private buildJsonObjectFromProps(props: Record<string, any>): string {
+    const pairs: string[] = [];
+    for (const [key, propDef] of Object.entries(props)) {
+      pairs.push(`"${key}":${this.exampleValue(key, propDef)}`);
+    }
+    return `{${pairs.join(',')}}`;
+  }
+
   private buildJsObjectLiteral(schema: any): string {
     const props = schema?.properties || {};
     const pairs: string[] = [];
@@ -152,29 +168,60 @@ Output ONLY the complete JavaScript test file. No markdown. No explanations. Jus
   }
 
   private exampleValue(fieldName: string, def: any): string {
+    if (def == null) return 'null';
+
     const examples: any[] = def.examples || (def.example != null ? [def.example] : []);
     if (examples.length > 0) {
       const ex = examples[0];
-      if (typeof ex === 'string') return `"${ex}"`;
+      if (typeof ex === 'object' && ex !== null) {
+        return JSON.stringify(ex);
+      }
+      if (typeof ex === 'string') return JSON.stringify(ex);
       if (typeof ex === 'number' || typeof ex === 'boolean') return String(ex);
     }
-    if (def.type === 'boolean') return 'true';
-    if (def.type === 'integer' || def.type === 'number') {
+
+    const types = this.schemaTypes(def);
+    const isObject =
+      types.includes('object') ||
+      (def.properties && typeof def.properties === 'object' && Object.keys(def.properties).length > 0);
+    if (isObject) {
+      const props = def.properties;
+      if (props && Object.keys(props).length > 0) {
+        return this.buildJsonObjectFromProps(props);
+      }
+      return '{}';
+    }
+
+    if (types.includes('array') || def.type === 'array') {
+      const items = def.items;
+      if (items && typeof items === 'object') {
+        const el = this.exampleValue(`${fieldName}Item`, items);
+        return `[${el}]`;
+      }
+      return '[]';
+    }
+
+    if (types.includes('boolean') || def.type === 'boolean') return 'true';
+    if (
+      types.includes('integer') ||
+      types.includes('number') ||
+      def.type === 'integer' ||
+      def.type === 'number'
+    ) {
       const min = def.minimum ?? 0;
       const max = def.maximum;
       if (max !== undefined) return String(Math.floor((Number(min) + Number(max)) / 2));
       return String(Math.max(1, Number(min || 1)));
     }
-    if (def.type === 'array') return '[]';
-    if (def.format === 'email') return '"test@example.com"';
-    if (def.format === 'date') return '"2024-01-15"';
-    if (def.format === 'date-time') return '"2024-01-15T10:00:00.000Z"';
-    if (Array.isArray(def.enum) && def.enum.length > 0) return `"${def.enum[0]}"`;
+    if (def.format === 'email') return JSON.stringify('test@example.com');
+    if (def.format === 'date') return JSON.stringify('2024-01-15');
+    if (def.format === 'date-time') return JSON.stringify('2024-01-15T10:00:00.000Z');
+    if (Array.isArray(def.enum) && def.enum.length > 0) return JSON.stringify(def.enum[0]);
     const minLen = def.minLength || 1;
     const maxLen = def.maxLength || 30;
     const targetLen = Math.min(maxLen, Math.max(minLen, 8));
     const base = `test-${fieldName}`.slice(0, targetLen).padEnd(minLen, 'x');
-    return `"${base}"`;
+    return JSON.stringify(base);
   }
 
   private async callGroq(prompt: string): Promise<string> {
@@ -214,5 +261,22 @@ Output ONLY the complete JavaScript test file. No markdown. No explanations. Jus
       .replace(/([a-z])([A-Z])/g, '$1-$2')
       .replace(/[_\s]+/g, '-')
       .toLowerCase();
+  }
+
+  private ensureJavaUtilImports(code: string): string {
+    const pkgMatch = code.match(/^package\s+[^;]+;/m);
+    if (!pkgMatch || pkgMatch.index === undefined) return code;
+    const insertPos = pkgMatch.index + pkgMatch[0].length;
+    const needed: string[] = [];
+    const want = (imp: string, re: RegExp) => {
+      if (re.test(code) && !code.includes(imp)) needed.push(imp);
+    };
+    want('import java.util.List;', /\bList\b/);
+    want('import java.util.Map;', /\bMap\b/);
+    want('import java.util.Set;', /\bSet\b/);
+    want('import java.util.Optional;', /\bOptional\b/);
+    want('import java.util.stream.Collectors;', /\bCollectors\b/);
+    if (needed.length === 0) return code;
+    return code.slice(0, insertPos) + '\n' + needed.join('\n') + code.slice(insertPos);
   }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import {
   BuilderProvider,
   useBuilder,
@@ -7,27 +8,9 @@ import {
   FORMSYNC_BUILDER_SCHEMA_ID_KEY,
 } from "../context/BuilderContext";
 import { BuilderLayout } from "../builder/BuilderLayout";
-import { FormModel, parseJsonSchemaToFormModel } from "../types";
+import { FormModel, parseJsonSchemaToFormModel, type JsonSchema } from "../types";
 import { useAuth } from "../context/AuthContext";
 import "../builder/builder.css";
-
-function showLoadedToast() {
-  const n = document.createElement("div");
-  n.textContent = "✅ Schema loaded";
-  n.style.cssText =
-    "position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 4px 6px rgba(0,0,0,.1);";
-  document.body.appendChild(n);
-  setTimeout(() => n.remove(), 3000);
-}
-
-function showErrorToast(message: string) {
-  const n = document.createElement("div");
-  n.textContent = message;
-  n.style.cssText =
-    "position:fixed;top:20px;right:20px;background:#ef4444;color:white;padding:12px 24px;border-radius:8px;font-family:Inter,sans-serif;z-index:9999;";
-  document.body.appendChild(n);
-  setTimeout(() => n.remove(), 4000);
-}
 
 function setSchemaIdInUrl(schemaId: string) {
   const u = new URL(window.location.href);
@@ -53,6 +36,7 @@ const SchemaLoader: React.FC = () => {
     const storedSchemaId = sessionStorage.getItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY);
 
     const loadFromApi = async (schemaId: string) => {
+      toast.loading("Loading schema...");
       try {
         const response = await fetch(`/schema/${schemaId}`);
         if (!response.ok) {
@@ -62,23 +46,27 @@ const SchemaLoader: React.FC = () => {
         }
 
         const schemaData = await response.json();
-        const formModel = parseJsonSchemaToFormModel(schemaData.content);
+        const rawContent = schemaData.content as JsonSchema;
+        const formModel = parseJsonSchemaToFormModel(rawContent);
 
         clearBuilderDraft();
+        dispatch({ type: "SET_BASE_SCHEMA", payload: rawContent });
         dispatch({ type: "UPDATE_FORM", payload: formModel });
         dispatch({ type: "SET_SCHEMA_ID", payload: schemaId });
         setSchemaIdInUrl(schemaId);
-        showLoadedToast();
+        toast.dismiss();
+        toast.success("Schema loaded successfully");
       } catch (error) {
         console.error("Failed to load schema:", error);
+        toast.dismiss();
+        const detail =
+          error instanceof Error ? error.message : "Unknown error";
+        toast.error("Failed to load schema", { description: detail });
         try {
           sessionStorage.removeItem(FORMSYNC_BUILDER_SCHEMA_ID_KEY);
         } catch {
           /* ignore */
         }
-        showErrorToast(
-          `❌ Failed to load schema: ${error instanceof Error ? error.message : "API Error"}`,
-        );
         runSyncFallbacks();
       }
     };
@@ -88,10 +76,11 @@ const SchemaLoader: React.FC = () => {
       if (pending) {
         const loadAndSave = async () => {
           try {
-            const schema = JSON.parse(pending);
+            const schema = JSON.parse(pending) as JsonSchema;
             sessionStorage.setItem("formsync_schema_raw", pending);
             const formModel = parseJsonSchemaToFormModel(schema);
             clearBuilderDraft();
+            dispatch({ type: "SET_BASE_SCHEMA", payload: schema });
             dispatch({ type: "UPDATE_FORM", payload: formModel });
 
             if (user?.id) {
@@ -121,7 +110,7 @@ const SchemaLoader: React.FC = () => {
             }
 
             sessionStorage.removeItem("formsync_pending_schema");
-            showLoadedToast();
+            toast.success("Schema loaded successfully");
           } catch {
             sessionStorage.removeItem("formsync_pending_schema");
             tryHydrateDraftOrRawOrDemo();
@@ -154,7 +143,7 @@ const SchemaLoader: React.FC = () => {
             if (draft.schemaId) {
               dispatch({ type: "SET_SCHEMA_ID", payload: draft.schemaId });
             }
-            showLoadedToast();
+            toast.success("Schema loaded successfully");
             return;
           }
         } catch {
@@ -169,11 +158,12 @@ const SchemaLoader: React.FC = () => {
       const raw = sessionStorage.getItem("formsync_schema_raw");
       if (raw) {
         try {
-          const schema = JSON.parse(raw);
+          const schema = JSON.parse(raw) as JsonSchema;
           const formModel = parseJsonSchemaToFormModel(schema);
           clearBuilderDraft();
+          dispatch({ type: "SET_BASE_SCHEMA", payload: schema });
           dispatch({ type: "UPDATE_FORM", payload: formModel });
-          showLoadedToast();
+          toast.success("Schema loaded successfully");
           return;
         } catch {
           /* fall through */

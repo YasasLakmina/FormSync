@@ -1,9 +1,7 @@
-export interface SchemaPayload {
-  name: string;
-  description?: string;
-  content: any;
-  version?: string;
-  sourceFormat?: string;
-  tags?: string[];
-  status?: "draft" | "validated" | "enhanced" | "published";
+export interface NodeBackendGeneratorConfig {
+  outputDir?: string;
+  /** When true (default), Swagger UI and OpenAPI routes are enabled. */
+  includeSwagger?: boolean;
+  /** Default HTTP port for the generated server (README and server.js default). */
+  serverPort?: number;
 }

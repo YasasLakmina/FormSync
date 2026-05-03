@@ -574,20 +574,8 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
           ? baseSchema
           : targetSchema;
 
-      console.log("[DEBUG] Checking enhancement count:", {
-        schemaToCheck: schemaToCheck?.["x-formsync-metadata"],
-        targetSchema: targetSchema?.["x-formsync-metadata"],
-        baseSchema: baseSchema?.["x-formsync-metadata"],
-        hasSuggestions: suggestions && suggestions.length > 0,
-      });
-
       const metadata = schemaToCheck["x-formsync-metadata"];
       const enhancementCount = metadata?.enhancementCount || 0;
-
-      console.log("[DEBUG] Enhancement count check:", {
-        enhancementCount,
-        metadata,
-      });
 
       if (enhancementCount >= 2) {
         const error = new Error(
@@ -607,13 +595,6 @@ export const TechnicalEditor: React.FC<TechnicalEditorProps> = ({
         suggestions && suggestions.length > 0 && baseSchema
           ? baseSchema
           : targetSchema;
-
-      // Log for debugging
-      if (suggestions && suggestions.length > 0) {
-        console.log(
-          "[TechnicalEditor] Re-enhancing with baseSchema to preserve existing suggestions",
-        );
-      }
 
       clearError();
       // Capture the pre-enhancement schema once so diff always compares against the original
