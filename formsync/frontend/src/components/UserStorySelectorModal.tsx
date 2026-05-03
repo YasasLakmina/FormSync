@@ -168,6 +168,7 @@ export const UserStorySelectorModal: React.FC<Props> = ({
       if (pid) {
         toast.success(`Project "${projectName}" saved with ${result.totalFound} stories`);
         onClose();
+        navigate("/profile?tab=projects");
       } else {
         toast.error("Failed to save project");
       }

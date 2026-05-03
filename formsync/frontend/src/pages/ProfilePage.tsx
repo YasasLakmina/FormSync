@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { authService } from "../services/authService";
@@ -443,6 +443,7 @@ const ProjectDetailModal: React.FC<{
 export const ProfilePage: React.FC = () => {
   const { user, token, logout, isLoading: authLoading, updateUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [headerName, setHeaderName] = useState<string | null>(null);
   const [headerEmail, setHeaderEmail] = useState<string | null>(null);
@@ -457,7 +458,8 @@ export const ProfilePage: React.FC = () => {
     setHeaderEmail(updated.email);
   };
 
-  const [activeTab, setActiveTab] = useState<"schemas" | "projects">("schemas");
+  const initialTab = searchParams.get("tab") === "projects" ? "projects" : "schemas";
+  const [activeTab, setActiveTab] = useState<"schemas" | "projects">(initialTab);
   const [schemas, setSchemas] = useState<any[]>([]);
   const [projects, setProjects] = useState<SrsProject[]>([]);
   const [loadingSchemas, setLoadingSchemas] = useState(false);
