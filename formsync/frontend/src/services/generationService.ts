@@ -6,6 +6,8 @@
 
 export type BackendLanguage = "nodeExpress" | "springBoot" | "dotnetWebApi";
 
+export type FrontendStack = "react" | "htmlBootstrap";
+
 export interface GenerateRequest {
   schema: any;
   validatedSchema?: any;
@@ -146,13 +148,19 @@ export const generationService = {
     formModel: any | undefined,
     schema: any,
     backendLanguage: BackendLanguage = "springBoot",
+    frontendStack: FrontendStack = "react",
   ): Promise<void> {
     const response = await fetch(
       `${API_GATEWAY_URL}/bundle/generate-fullstack`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formModel, schema, backendLanguage }),
+        body: JSON.stringify({
+          formModel,
+          schema,
+          backendLanguage,
+          frontendStack,
+        }),
       },
     );
 
@@ -174,8 +182,41 @@ export const generationService = {
     const schemaSlug = String(schemaTitle)
       .toLowerCase()
       .replace(/\s+/g, "-");
-    const frontendSlug = "react";
+    const frontendSlug =
+      frontendStack === "htmlBootstrap" ? "html-bootstrap" : "react";
     a.download = `${schemaSlug}_fullstack-${frontendSlug}_${backendLanguage}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  /**
+   * Download static HTML + Bootstrap + JS only (ZIP), requires FormModel from builder.
+   */
+  async downloadStaticFrontendZip(formModel: any): Promise<void> {
+    const response = await fetch(`${API_GATEWAY_URL}/static-frontend/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formModel, preview: false }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(
+        errorBody?.error ||
+          `Static frontend generation failed (${response.status})`,
+      );
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const slug = String(formModel?.name || "form")
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    a.download = `${slug}-html-bootstrap.zip`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);

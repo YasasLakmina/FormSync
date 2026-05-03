@@ -4,6 +4,8 @@
   "description": "FormSync Component 1 - Intelligent Schema Definition & AI Integration",
   "private": true,
   "workspaces": [
+    "packages/form-types",
+    "packages/formgen-shared",
     "services/api-gateway",
     "services/schema-enhancement-engine",
     "services/user-management-service",
@@ -11,6 +13,7 @@
     "services/schema-openapi",
     "services/runtime-binding-engine",
     "services/formgen-service",
+    "services/static-frontend-generator",
     "services/node-backend-generator",
     "services/dotnet-backend-generator",
     "frontend"
@@ -22,6 +25,7 @@
     "dev:backend-gen": "npm run dev --workspace=backend-dto-generator",
     "dev:runtime": "npm run dev --workspace=runtime-binding-engine",
     "dev:formgen": "npm run dev --workspace=formgen-service",
+    "dev:static-frontend": "npm run dev --workspace=static-frontend-generator",
     "dev:node-backend": "npm run dev --workspace=node-backend-generator",
     "dev:gateway": "npm run dev --workspace=api-gateway",
     "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:schema:api\" \"npm run dev:user:api\" \"npm run dev:backend-gen\" \"npm run dev:runtime\" \"npm run dev:formgen\" \"npm run dev:node-backend\" \"npm run dev:schema:ui\"",
