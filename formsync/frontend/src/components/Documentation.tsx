@@ -30,6 +30,7 @@ const NAV: NavGroup[] = [
     items: [
       { id: "schema-editor",  label: "Schema Editor" },
       { id: "templates",      label: "Template Builder" },
+      { id: "form-builder",   label: "Form Builder" },
       { id: "formats",        label: "Input Formats" },
       { id: "form-preview",   label: "Form Preview" },
     ],
@@ -70,6 +71,9 @@ const NAV: NavGroup[] = [
       { id: "export",       label: "Exporting Schemas" },
       { id: "integration",  label: "External Systems" },
       { id: "code-gen",     label: "Code Generation" },
+      { id: "backend-spring-boot", label: "Spring Boot backend" },
+      { id: "backend-node", label: "Node.js (Express) backend" },
+      { id: "backend-dotnet", label: ".NET (ASP.NET Core) backend" },
     ],
   },
   {
@@ -301,6 +305,7 @@ export const Documentation: React.FC = () => {
                 {[
                   { icon: <FileJson2 className="w-4 h-4 text-indigo-500" />, title: "Schema Editor", desc: "Monaco-powered editor with syntax highlighting and live validation" },
                   { icon: <Layers className="w-4 h-4 text-purple-500" />, title: "Template Builder", desc: "Visual drag-and-drop form builder for non-technical users" },
+                  { icon: <Wand2 className="w-4 h-4 text-violet-500" />, title: "Form Builder", desc: "Full-page canvas, wizard steps, and export to generated code" },
                   { icon: <Sparkles className="w-4 h-4 text-amber-500" />, title: "AI Enhancement", desc: "Human-in-the-loop AI suggestions for quality improvements" },
                   { icon: <FileText className="w-4 h-4 text-emerald-500" />, title: "SRS Import", desc: "Extract user stories from PDF/DOCX requirements documents" },
                 ].map((f) => (
@@ -338,7 +343,7 @@ export const Documentation: React.FC = () => {
                     type: "Technical / Developer Users",
                     color: "border-indigo-400 bg-indigo-50/40",
                     badge: "bg-indigo-100 text-indigo-700",
-                    points: ["Write schemas directly in Monaco", "Paste JSON, YAML, or XML", "Import schemas from a URL", "Generate Java Spring Boot boilerplate"],
+                    points: ["Write schemas directly in Monaco", "Paste JSON, YAML, or XML", "Import schemas from a URL", "Generate Spring Boot, Node.js (Express), or ASP.NET Core backends from your schema"],
                   },
                   {
                     type: "Business Analysts",
@@ -401,6 +406,68 @@ export const Documentation: React.FC = () => {
                 { title: "Configure each field", desc: "Click a field to open its settings: label, placeholder, required toggle, validation rules." },
                 { title: "Transfer to Schema Editor", desc: 'Click "Use in Editor" to convert the visual layout to a JSON Schema and load it into the Monaco editor.' },
               ]} />
+            </DocSection>
+
+            <DocSection id="form-builder" title="Form Builder" badge="Core Features">
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                The <strong>Form Builder</strong> is a full-page visual workspace at <code className="text-xs bg-neutral-100 px-1.5 py-0.5 rounded font-mono">/builder</code>. It is separate from the Template Builder <em>tab</em> inside the editor: here you get a dedicated canvas, step/wizard controls, undo, and a generation flow that hands off to the Generated Code page with both your <strong>form model</strong> and synced JSON Schema (needed for fullstack ZIP and optional static HTML download).
+              </p>
+              <StepList steps={[
+                { title: "Open the Form Builder", desc: "From the Schema Editor, save your schema and choose to continue to the builder, or open /builder with a loaded schema from your library when available." },
+                { title: "Lay out the form", desc: "Use the left palette to add fields, the centre canvas to arrange steps and fields, and the right panel for field settings and theming." },
+                { title: "Undo and refine", desc: "Use Undo in the toolbar to revert canvas changes. Wizard controls manage multi-step flows when your form uses them." },
+                { title: "Generate", desc: "Click Generate in the right panel. FormSync validates the synced JSON Schema, updates a saved schema when you have a schema ID, then navigates to /generated with your form model so you can pick backend and frontend stack and download fullstack or HTML-only." },
+              ]} />
+              <Callout type="info" title="Backend choice">The builder respects your last backend selection from the editor (stored in the browser). Change targets on the Generated Code page before downloading if needed.</Callout>
+              <Callout type="tip" title="Template Builder vs Form Builder">Use the <strong>Template Builder</strong> tab for a quick in-editor layout that jumps straight into Monaco. Use the <strong>Form Builder</strong> when you want the full canvas experience, stepper, and export path tailored to generated code downloads.</Callout>
+
+              <p className="text-sm font-semibold text-neutral-900 mt-8 mb-2">Frontend generation</p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                The Generated Code page (<code className="text-xs bg-neutral-100 px-1 rounded">/generated</code>) shows a <strong>pipeline viewer</strong> with tabs for frontend, backend, DTOs, and tests. Those snippets are primarily <strong>illustrative</strong>; they preview structure and wiring. What you <strong>download</strong> is produced server-side and matches your selections below.
+              </p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                Because you arrived from the builder with a <strong>form model</strong>, fullstack generation can emit a frontend that mirrors your canvas: multi-step flows, advanced field types (including repeaters, files, and calculated fields where supported), and styling hooks. If you only passed a bare schema (no builder session), the bundle still builds from the schema but may not reflect canvas-only behaviour.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3 mb-5">
+                {[
+                  {
+                    title: "React (Vite)",
+                    badge: "frontendStack: react",
+                    points: [
+                      "TypeScript SPA with Vite — typical dev server on port 5170 (see generated vite.config.ts).",
+                      "Exports builder field types; file uploads are represented as Base64-in-JSON where applicable.",
+                      "Configure how the app talks to the API via generated frontend/.env (backend URL and path).",
+                    ],
+                  },
+                  {
+                    title: "HTML + Bootstrap",
+                    badge: "frontendStack: htmlBootstrap",
+                    points: [
+                      "Static HTML, Bootstrap, and JavaScript — no npm build step; serve the folder locally.",
+                      "Same broad palette as React for builder-driven controls (repeaters, files, calculated fields, etc.).",
+                      "Fullstack bundles embed the API base URL in frontend/js/app.js; adjust if your backend runs elsewhere.",
+                    ],
+                  },
+                ].map((col) => (
+                  <div key={col.title} className="rounded-xl border border-neutral-200 p-4 bg-neutral-50/50">
+                    <p className="text-sm font-semibold text-neutral-900">{col.title}</p>
+                    <p className="text-[10px] font-mono text-neutral-500 mb-3">{col.badge}</p>
+                    <ul className="space-y-2">
+                      {col.points.map((pt) => (
+                        <li key={pt} className="flex items-start gap-2 text-xs text-neutral-600 leading-relaxed">
+                          <Check className="w-3.5 h-3.5 text-purple-500 flex-shrink-0 mt-0.5" />{pt}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <StepList steps={[
+                { title: "Pick frontend + backend", desc: "Use Frontend Stack (React or HTML/Bootstrap) and Backend Language (Spring Boot, Node.js, or .NET) on /generated. Your choice is remembered in the browser for the next visit." },
+                { title: "Download fullstack", desc: "Produces a single ZIP with frontend/ and backend/ plus a root README. The archive name follows your schema title and selections (e.g. my-form_fullstack-react_springBoot.zip). The README explains prerequisites and how to run each side." },
+                { title: "Download HTML frontend only", desc: "Available when a form model is present (typical when coming from the builder). Generates static HTML/Bootstrap without the backend — useful for prototypes or pairing with your own API." },
+              ]} />
+              <Callout type="warning" title="CORS when testing locally">Opening the static or Vite dev frontend on a different origin than your API may require CORS to be enabled on the generated backend. The bundle README notes this for static frontends.</Callout>
             </DocSection>
 
             <DocSection id="formats" title="Input Formats" badge="Core Features">
@@ -732,11 +799,40 @@ export const Documentation: React.FC = () => {
             </DocSection>
 
             <DocSection id="code-gen" title="Code Generation" badge="Export">
-              <p className="text-neutral-600 leading-relaxed mb-4">Beyond exporting the schema, FormSync can generate framework boilerplate directly from your schema.</p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                Beyond exporting the schema, FormSync can generate application code. Choose a <strong>backend target</strong> on the Schema Editor or Generated Code page; your choice controls the default API URL in the React preview and the framework inside the <strong>fullstack ZIP</strong> download (bundled with React or HTML/Bootstrap frontend).
+              </p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                <strong>Fullstack generation</strong> calls the API gateway <code className="text-xs bg-neutral-100 px-1 rounded">/bundle/generate-fullstack</code> with <code className="text-xs bg-neutral-100 px-1 rounded">schema</code>, optional <code className="text-xs bg-neutral-100 px-1 rounded">formModel</code> (from the Form Builder), <code className="text-xs bg-neutral-100 px-1 rounded">backendLanguage</code> (<code className="text-xs">springBoot</code> | <code className="text-xs">nodeExpress</code> | <code className="text-xs">dotnetWebApi</code>), and <code className="text-xs bg-neutral-100 px-1 rounded">frontendStack</code> (<code className="text-xs">react</code> | <code className="text-xs">htmlBootstrap</code>). The service assembles a <code className="text-xs">frontend/</code> tree from the form model and schema, pulls a complete <code className="text-xs">backend/</code> from the matching generator (Runtime, Node, or .NET), and adds a top-level <code className="text-xs">README.md</code> with run commands for both sides.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-3 mb-5">
+                {[
+                  { name: "Spring Boot", sub: "Java · REST · production-ready server", anchor: "backend-spring-boot" },
+                  { name: "Node.js", sub: "Express · JavaScript backend", anchor: "backend-node" },
+                  { name: ".NET", sub: "ASP.NET Core · Web API · C#", anchor: "backend-dotnet" },
+                ].map((b) => (
+                  <a
+                    key={b.anchor}
+                    href={`#${b.anchor}`}
+                    className="block p-4 rounded-xl border border-neutral-200 hover:border-purple-300 hover:bg-purple-50/40 transition-all"
+                  >
+                    <p className="text-sm font-semibold text-neutral-900">{b.name}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{b.sub}</p>
+                    <span className="text-[10px] font-semibold text-purple-600 mt-2 inline-block">Read more →</span>
+                  </a>
+                ))}
+              </div>
+              <Callout type="info" title="Preview vs download">
+                The Generated Code page shows <strong>illustrative</strong> snippets in some tabs (structure and wiring). Your selected backend always drives the <strong>default API base URL and path</strong> in the React frontend preview. For framework-faithful projects (exact layout, dependencies, and endpoints), use <strong>Download fullstack</strong> — that archive matches Spring Boot, Express, or ASP.NET Core depending on your selection.
+              </Callout>
+              <p className="text-sm font-semibold text-neutral-800 mb-2">Spring-specific tooling</p>
+              <p className="text-neutral-600 text-sm leading-relaxed mb-3">
+                These services complement the main backends above when you want Java-only layers or a Spring REST ZIP via the API gateway (see <a href="#backend-spring-boot" className="text-purple-600 font-semibold hover:underline">Spring Boot backend</a>).
+              </p>
               <div className="space-y-3">
                 {[
                   { engine: "Backend DTO Generator", icon: <Terminal className="w-4 h-4 text-blue-500" />, desc: "Generates Java Spring Boot: Entity, Repository, Service, Controller, and pom.xml — all from your JSON Schema.", route: "/dto" },
-                  { engine: "Runtime Binding Engine", icon: <Code2 className="w-4 h-4 text-cyan-500" />, desc: "Generates a Spring Boot REST API skeleton with OpenAPI spec.", route: "/runtime" },
+                  { engine: "Runtime Binding Engine", icon: <Code2 className="w-4 h-4 text-cyan-500" />, desc: "Generates a Spring Boot REST API skeleton with OpenAPI spec (standalone ZIP: springboot-server.zip via the runtime service).", route: "/runtime" },
                 ].map((g) => (
                   <div key={g.engine} className="flex gap-3 p-4 rounded-xl border border-neutral-200 bg-neutral-50/50">
                     <div className="w-8 h-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center flex-shrink-0">{g.icon}</div>
@@ -748,6 +844,99 @@ export const Documentation: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </DocSection>
+
+            <DocSection id="backend-spring-boot" title="Spring Boot backend" badge="Export">
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                Spring Boot is the default backend in the UI. Generated projects align with the <strong>Runtime Binding Engine</strong> (REST API, layered structure, OpenAPI). Fullstack downloads combine your chosen React or HTML/Bootstrap frontend with this backend. To design the form visually before generating, use the <a href="#form-builder" className="text-purple-600 font-semibold hover:underline">Form Builder</a> at <code className="text-xs bg-neutral-100 px-1 rounded">/builder</code> — it hands off to Generated Code with your form model and schema.
+              </p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                The generated <code className="text-xs bg-neutral-100 px-1 rounded">backend/</code> folder is a <strong>Maven</strong> Spring Boot application (Java 17+): controllers and services mapped from your schema entities, OpenAPI metadata, and typical layers for persistence-ready REST. Run it with <code className="text-xs bg-neutral-100 px-1 rounded">mvn spring-boot:run</code> from <code className="text-xs bg-neutral-100 px-1 rounded">backend</code> after <code className="text-xs bg-neutral-100 px-1 rounded">mvn clean install</code> as described in the bundle README. Default service URL in docs and previews: <code className="text-xs bg-neutral-100 px-1 rounded">http://localhost:8080</code>.
+              </p>
+              <div className="rounded-xl border border-neutral-200 overflow-hidden mb-5">
+                <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">Spring Boot at a glance</div>
+                <div className="divide-y divide-neutral-100 text-sm">
+                  {[
+                    { k: "Default port", v: "8080" },
+                    { k: "Primary POST path (preview / generated client)", v: "/api/{kebab-schema-title}s — plural suffix on the kebab-case resource name" },
+                    { k: "Environment (React SPA)", v: "VITE_API_URL and VITE_API_PATH in the generated frontend align with this backend" },
+                    { k: "Standalone ZIP API", v: "POST /runtime/generate → springboot-server.zip" },
+                  ].map((row) => (
+                    <div key={row.k} className="grid sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 px-4 py-2.5">
+                      <span className="text-neutral-500 text-xs font-semibold">{row.k}</span>
+                      <span className="text-neutral-700 text-xs leading-relaxed">{row.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <StepList steps={[
+                { title: "Choose Spring Boot", desc: "On /editor, select the Spring Boot card under Backend Language, then run Generate. You can switch to another backend on /generated before downloading." },
+                { title: "Default URL in the React preview", desc: "The preview uses port 8080 and a primary POST path of the form /api/{kebab-case-title}s (the resource name is derived from your schema title or name)." },
+                { title: "Download fullstack", desc: "On the Generated Code page, pick your frontend stack (React or HTML/Bootstrap), then use Download fullstack. The ZIP includes a runnable Spring Boot service under backend/ plus the chosen frontend." },
+              ]} />
+              <Callout type="tip" title="Standalone backend ZIP">Programmatic or gateway downloads hit <code className="text-xs bg-neutral-100 px-1 rounded">/runtime/generate</code> and return <code className="text-xs bg-neutral-100 px-1 rounded">springboot-server.zip</code> (backend only, no Form Builder frontend).</Callout>
+            </DocSection>
+
+            <DocSection id="backend-node" title="Node.js (Express) backend" badge="Export">
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                The Node.js option generates an <strong>Express</strong> server in JavaScript: <code className="text-xs bg-neutral-100 px-1 rounded">src/server.js</code> bootstraps the app; each entity from your schema gets matching files under <code className="text-xs bg-neutral-100 px-1 rounded">routes/</code>, <code className="text-xs bg-neutral-100 px-1 rounded">controllers/</code>, and <code className="text-xs bg-neutral-100 px-1 rounded">services/</code>. The tree also includes <code className="text-xs bg-neutral-100 px-1 rounded">openapi.yaml</code>, <code className="text-xs bg-neutral-100 px-1 rounded">package.json</code>, and optional Swagger wiring when enabled in the generator.
+              </p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                For fullstack ZIPs, the same Express output is placed under <code className="text-xs bg-neutral-100 px-1 rounded">backend/</code>. Run it with <code className="text-xs bg-neutral-100 px-1 rounded">npm install</code> and <code className="text-xs bg-neutral-100 px-1 rounded">npm run start</code> (see README). Node.js 18+ is expected alongside npm.
+              </p>
+              <div className="rounded-xl border border-neutral-200 overflow-hidden mb-5">
+                <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">Node.js (Express) at a glance</div>
+                <div className="divide-y divide-neutral-100 text-sm">
+                  {[
+                    { k: "Default port", v: "3600" },
+                    { k: "Primary POST path", v: "/api/{kebab-schema-title} — no automatic trailing \"s\" (differs from Spring)" },
+                    { k: "Stack", v: "Express + JavaScript; REST handlers split by entity" },
+                    { k: "Standalone ZIP API", v: "POST /node-backend/generate → node-express-backend.zip" },
+                  ].map((row) => (
+                    <div key={row.k} className="grid sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 px-4 py-2.5">
+                      <span className="text-neutral-500 text-xs font-semibold">{row.k}</span>
+                      <span className="text-neutral-700 text-xs leading-relaxed">{row.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <StepList steps={[
+                { title: "Choose Node.js", desc: "Select the Node.js card under Backend Language on the editor or Generated Code page." },
+                { title: "Default URL in the React preview", desc: "The preview targets port 3600 with a primary API path /api/{kebab-case-title} (no automatic plural \"s\" suffix, unlike Spring)." },
+                { title: "Download fullstack", desc: "Download fullstack places this Express app under backend/ and pairs it with your React or HTML/Bootstrap frontend." },
+              ]} />
+              <Callout type="tip" title="Standalone backend ZIP">Gateway path <code className="text-xs bg-neutral-100 px-1 rounded">/node-backend/generate</code> returns <code className="text-xs bg-neutral-100 px-1 rounded">node-express-backend.zip</code>.</Callout>
+            </DocSection>
+
+            <DocSection id="backend-dotnet" title=".NET (ASP.NET Core) backend" badge="Export">
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                The .NET option produces an <strong>ASP.NET Core Web API</strong> (.NET 8) project under <code className="text-xs bg-neutral-100 px-1 rounded">backend/</code>: <code className="text-xs bg-neutral-100 px-1 rounded">Program.cs</code> registers endpoints and Swagger when enabled; <code className="text-xs bg-neutral-100 px-1 rounded">*.csproj</code> references web and OpenAPI packages; <code className="text-xs bg-neutral-100 px-1 rounded">appsettings.json</code> holds defaults; controllers and DTO-style models are generated per entity with shared exception handling patterns where included by the generator.
+              </p>
+              <p className="text-neutral-600 leading-relaxed mb-4">
+                Run the API with <code className="text-xs bg-neutral-100 px-1 rounded">dotnet run</code> from the backend folder (install the .NET 8 SDK first). The bundle README lists exact prerequisites.
+              </p>
+              <div className="rounded-xl border border-neutral-200 overflow-hidden mb-5">
+                <div className="px-4 py-2 bg-neutral-50 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">ASP.NET Core at a glance</div>
+                <div className="divide-y divide-neutral-100 text-sm">
+                  {[
+                    { k: "Default port", v: "5000 (Kestrel URL in appsettings / launch settings)" },
+                    { k: "Primary POST path", v: "/api/{PluralPascal} — e.g. RegistrationForms from title \"Registration Form\"" },
+                    { k: "Contract", v: "OpenAPI YAML emitted alongside sources; Swagger UI optional in Program.cs" },
+                    { k: "Standalone ZIP API", v: "POST /dotnet-backend/generate → dotnet-webapi-server.zip" },
+                  ].map((row) => (
+                    <div key={row.k} className="grid sm:grid-cols-[minmax(0,11rem)_1fr] gap-2 px-4 py-2.5">
+                      <span className="text-neutral-500 text-xs font-semibold">{row.k}</span>
+                      <span className="text-neutral-700 text-xs leading-relaxed">{row.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <StepList steps={[
+                { title: "Choose .NET", desc: "Select the .NET card under Backend Language on the editor or Generated Code page." },
+                { title: "Default URL in the React preview", desc: "The preview uses port 5000. The primary API path uses plural PascalCase from your schema title, e.g. /api/RegistrationForms for a \"Registration Form\" title." },
+                { title: "Download fullstack", desc: "Download fullstack pairs this Web API under backend/ with your React or HTML/Bootstrap frontend and root README." },
+              ]} />
+              <Callout type="tip" title="Standalone backend ZIP">Gateway path <code className="text-xs bg-neutral-100 px-1 rounded">/dotnet-backend/generate</code> returns <code className="text-xs bg-neutral-100 px-1 rounded">dotnet-webapi-server.zip</code>.</Callout>
             </DocSection>
 
             {/* ═══ PROFILE ═════════════════════════════════════════ */}
@@ -797,6 +986,7 @@ export const Documentation: React.FC = () => {
                   { q: "Are my schemas saved automatically?", a: "No. You must explicitly click Save from the editor toolbar. Unsaved work will be lost on page refresh." },
                   { q: "What file types does SRS Import support?", a: "PDF (.pdf), Word documents (.docx), and plain text (.txt) up to 20 MB." },
                   { q: "Can I use FormSync schemas with my existing codebase?", a: "Yes. FormSync outputs standard JSON Schema Draft-07, which is compatible with AJV, React Hook Form, Pydantic, Ajv, and most modern validation libraries." },
+                  { q: "Which backend frameworks can I generate?", a: "You can target Spring Boot (Java), Node.js with Express, or ASP.NET Core Web API (C#). Pick a backend on the Schema Editor or Generated Code page; see Code Generation and the Spring Boot, Node.js, and .NET sections in this documentation." },
                   { q: "Why does the Enhance button get disabled after 2 uses?", a: "Each AI enhancement is counted against the schema. The limit of 2 prevents over-enhancement and cost runaway. You can still apply and undo the suggestions you already have." },
                 ].map((faq) => <FaqItem key={faq.q} question={faq.q} answer={faq.a} />)}
               </div>

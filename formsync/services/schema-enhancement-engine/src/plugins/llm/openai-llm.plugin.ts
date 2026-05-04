@@ -144,7 +144,7 @@ For EACH field and object node, check:
 5. Consistency and safety
 
 ------------------------------------------------
-🔒 CRITICAL PRESERVATION RULES (MUST FOLLOW)
+CRITICAL PRESERVATION RULES (MUST FOLLOW)
 ------------------------------------------------
 
 NEVER suggest changes to fields that ALREADY have these user-defined properties:
@@ -161,13 +161,13 @@ NEVER suggest changes to fields that ALREADY have these user-defined properties:
 
 ONLY suggest ADDING missing properties, NEVER replacing existing ones.
 
-🚫 SKIP FIELDS THAT ARE ALREADY COMPLETE:
+ SKIP FIELDS THAT ARE ALREADY COMPLETE:
 
 A field is COMPLETE if it has ALL of the following:
-- ✅ description (non-empty, not "No description provided")
-- ✅ examples (array with at least one value)
-- ✅ At least one validation rule (pattern, minLength, minimum, format, etc.)
-- ✅ x-accessibility (for user-input fields like string, number, boolean)
+-  description (non-empty, not "No description provided")
+-  examples (array with at least one value)
+-  At least one validation rule (pattern, minLength, minimum, format, etc.)
+-  x-accessibility (for user-input fields like string, number, boolean)
 
 EXAMPLE - Field with complete metadata (SKIP IT):
 {
@@ -179,7 +179,7 @@ EXAMPLE - Field with complete metadata (SKIP IT):
     "x-accessibility": { "label": "Email", "hint": "Enter your email" }
   }
 }
-→ NO SUGGESTIONS NEEDED - Field is complete ✅
+→ NO SUGGESTIONS NEEDED - Field is complete 
 
 EXAMPLE - Field missing only examples (SUGGEST):
 {
