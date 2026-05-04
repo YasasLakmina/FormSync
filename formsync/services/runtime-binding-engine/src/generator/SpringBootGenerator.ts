@@ -338,15 +338,18 @@ ${entityNames.map(n => `  Contextual${n}Test.java`).join('\n')}
 
 ## How to Run
 
+Contextual tests are **excluded from the default build** (\`mvn clean install\` / \`mvn test\`)
+so they will not block CI or local builds. Run them explicitly when you want to:
+
 \`\`\`bash
-# Run ONLY the contextual tests
+# Run ONLY the contextual tests (explicit class list)
 mvn test -Dtest="${testPattern}"
 
-# Run ALL tests (including contextual)
-mvn test
+# Run ALL tests (standard + contextual) via the opt-in profile
+mvn test -Pcontextual-tests
 
-# Run with verbose output
-mvn test -Dtest="${testPattern}" -Dtest.verbose=true
+# Default build — contextual tests are skipped
+mvn clean install
 
 # Generate a Surefire HTML report
 mvn surefire-report:report
@@ -371,7 +374,8 @@ ${entityNames.map(n => `- \`Contextual${n}Test\` — contextual tests for the **
 
 - These tests use an **embedded H2 database** (same as the standard tests).
 - No external services are required.
-- Tests are fully runnable with a standard \`mvn test\` command.
+- They are excluded from the default build via Surefire's \`<excludes>\` rule on \`**/contextual/**\`.
+  Use \`-Pcontextual-tests\` or \`-Dtest=...\` to run them on demand.
 - If you regenerate the project, this file and the contextual test classes will be refreshed.
 `;
     }

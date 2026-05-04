@@ -11,7 +11,6 @@
 #    formgen-service           → Express               :3014
 #    node-backend-generator    → Express               :3015
 #    dotnet-backend-generator  → Express               :3016
-#    static-frontend-generator → Express               :3017
 #    frontend                  → React (nginx)         :5173
 #
 #  Usage:
@@ -41,7 +40,6 @@ x-common-env: &common-env
   FORMGEN_SERVICE_PORT: 3014
   NODE_BACKEND_GENERATOR_PORT: 3015
   DOTNET_BACKEND_GENERATOR_PORT: 3016
-  STATIC_FRONTEND_GENERATOR_PORT: 3017
   # ── Internal URLs (Docker service names, not localhost) ───
   SCHEMA_ENGINE_URL: http://schema-enhancement-engine:3010
   USER_SERVICE_URL: http://user-management-service:3011
@@ -52,7 +50,6 @@ x-common-env: &common-env
   FRONTEND_URL: http://localhost
   NODE_BACKEND_GENERATOR_URL: http://node-backend-generator:3015
   DOTNET_BACKEND_GENERATOR_URL: http://dotnet-backend-generator:3016
-  STATIC_FRONTEND_GENERATOR_URL: http://static-frontend-generator:3017
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────────
@@ -262,30 +259,6 @@ services:
     networks:
       - formsync-net
 
-  # ── Static frontend generator (Express) ───────────────────────
-  static-frontend-generator:
-    build:
-      context: .
-      dockerfile: services/static-frontend-generator/Dockerfile
-    container_name: formsync-static-frontend
-    restart: unless-stopped
-    environment:
-      <<: *common-env
-    ports:
-      - "3017:3017"
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'node -e "require(''http'').get(''http://localhost:3017/health'', r => { r.statusCode === 200 ? process.exit(0) : process.exit(1) }).on(''error'', () => process.exit(1))"',
-        ]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    networks:
-      - formsync-net
-
   # ── API Gateway (Express) ───────────────────────────────────
   api-gateway:
     build:
@@ -311,8 +284,6 @@ services:
       node-backend-generator:
         condition: service_started
       dotnet-backend-generator:
-        condition: service_started
-      static-frontend-generator:
         condition: service_started
     healthcheck:
       test:

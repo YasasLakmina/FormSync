@@ -7,173 +7,186 @@ name: Deploy FormSync to EC2
 
 on:
   push:
-    branches: [Deployment,net-bug-fix]
+    branches: [Deployment, net-bug-fix]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30 # Increase timeout for Docker builds
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 25m # SSH command timeout
+          command_timeout: 55m
+          envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
-            echo "🏠 Starting in directory: $(pwd)"
+            set -e
+            BRANCH="${{ github.ref_name }}"
+            echo "=== Deploying branch: $BRANCH ==="
 
-            # Ensure we're in the right directory
-            mkdir -p ~/formsync
-            cd ~/formsync
-            echo "📁 Current directory: $(pwd)"
-
-            echo "🔄 Configuring git and pulling latest code..."
-            git config pull.rebase false || true
-
-            # Check if directory is empty or has git repo
-            if [ -d ".git" ]; then
-              echo "📥 Updating existing repository..."
-              git fetch origin
-              git reset --hard origin/Deployment
-            else
-              echo "📥 Cloning fresh repository..."
-              rm -rf ./* ./.* 2>/dev/null || true
-              git clone https://github.com/${{ github.repository }}.git .
-              git checkout Deployment
+            # ── Install Docker if missing ─────────────────────────────────
+            if ! command -v docker &>/dev/null; then
+              echo "Docker not found — installing..."
+              if command -v apt-get &>/dev/null; then
+                curl -fsSL https://get.docker.com | sudo sh
+              elif command -v yum &>/dev/null; then
+                sudo yum install -y docker
+              fi
+              sudo systemctl enable --now docker
             fi
 
-            echo "📁 Navigating to formsync subdirectory..."
+            # Ensure Docker Compose v2 plugin is available
+            if ! sudo docker compose version &>/dev/null; then
+              echo "Installing Docker Compose plugin..."
+              if command -v apt-get &>/dev/null; then
+                sudo apt-get install -y docker-compose-plugin
+              elif command -v yum &>/dev/null; then
+                sudo yum install -y docker-compose-plugin
+              fi
+            fi
+
+            # ── Clone / update repository ─────────────────────────────────
+            mkdir -p ~/formsync && cd ~/formsync
+
+            REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+            if [ -d ".git" ]; then
+              echo "Updating repo to branch: $BRANCH"
+              git fetch origin
+              git checkout "$BRANCH" 2>/dev/null || git checkout -b "$BRANCH" "origin/$BRANCH"
+              git reset --hard "origin/$BRANCH"
+            else
+              echo "Cloning repo (branch: $BRANCH)..."
+              git clone --branch "$BRANCH" --depth 1 "$REPO_URL" .
+            fi
+
+            # ── Navigate to project directory ─────────────────────────────
             cd formsync
-            echo "📂 Current directory: $(pwd)"
-            echo "📄 Files in current directory:"
+            echo "Working directory: $(pwd)"
             ls -la
 
-            # Verify docker-compose.yml exists
             if [ ! -f "docker-compose.yml" ]; then
-              echo "❌ ERROR: docker-compose.yml not found!"
-              echo "📋 Directory contents:"
-              find . -name "docker-compose.yml" -type f
+              echo "ERROR: docker-compose.yml not found in $(pwd)"
+              find ~/formsync -name "docker-compose.yml" 2>/dev/null
               exit 1
             fi
-            echo "✅ Found docker-compose.yml"
+            echo "Found docker-compose.yml"
 
-            echo "⚙️ Creating environment file..."
-            {
-              echo "NODE_ENV=production"
-              echo "JWT_EXPIRES_IN=7d"
-              echo "OPENAI_BASE_URL=https://api.groq.com/openai/v1"
-              echo "OPENAI_MODEL=llama-3.3-70b-versatile"
-              echo "GATEWAY_PORT=3000"
-              echo "SCHEMA_ENGINE_PORT=3010"
-              echo "USER_SERVICE_PORT=3011"
-              echo "DTO_GENERATOR_PORT=3012"
-              echo "RUNTIME_ENGINE_PORT=3013"
-              echo "FORMGEN_SERVICE_PORT=3014"
-              echo "SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010"
-              echo "USER_SERVICE_URL=http://user-management-service:3011"
-              echo "DTO_GENERATOR_URL=http://backend-dto-generator:3012"
-              echo "RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013"
-              echo "FORMGEN_SERVICE_URL=http://formgen-service:3014"
-              echo "NODE_BACKEND_GENERATOR_PORT=3015"
-              echo "DOTNET_BACKEND_GENERATOR_PORT=3016"
-              echo "NODE_BACKEND_GENERATOR_URL=http://node-backend-generator:3015"
-              echo "DOTNET_BACKEND_GENERATOR_URL=http://dotnet-backend-generator:3016"
-              echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema"
-              echo "FRONTEND_URL=http://localhost"
-              echo "DOCKER_BUILDKIT=1"
-              echo "COMPOSE_DOCKER_CLI_BUILD=1"
-              echo "NPM_CONFIG_LOGLEVEL=warn"
-              echo "NPM_CONFIG_PROGRESS=false"
-              echo "NPM_CONFIG_AUDIT=false"
-              echo "NPM_CONFIG_FUND=false"
-              echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
-              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}"
-              echo "DATABASE_URL=${{ secrets.DATABASE_URL }}"
-              echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}"
-              echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}"
-              echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}"
-            } > .env
+            # ── Write environment file ────────────────────────────────────
+            echo "NODE_ENV=production" > .env
+            echo "JWT_EXPIRES_IN=7d" >> .env
+            echo "OPENAI_BASE_URL=https://api.groq.com/openai/v1" >> .env
+            echo "OPENAI_MODEL=llama-3.3-70b-versatile" >> .env
+            echo "GATEWAY_PORT=3000" >> .env
+            echo "SCHEMA_ENGINE_PORT=3010" >> .env
+            echo "USER_SERVICE_PORT=3011" >> .env
+            echo "DTO_GENERATOR_PORT=3012" >> .env
+            echo "RUNTIME_ENGINE_PORT=3013" >> .env
+            echo "FORMGEN_SERVICE_PORT=3014" >> .env
+            echo "NODE_BACKEND_GENERATOR_PORT=3015" >> .env
+            echo "DOTNET_BACKEND_GENERATOR_PORT=3016" >> .env
+            echo "SCHEMA_ENGINE_URL=http://schema-enhancement-engine:3010" >> .env
+            echo "USER_SERVICE_URL=http://user-management-service:3011" >> .env
+            echo "DTO_GENERATOR_URL=http://backend-dto-generator:3012" >> .env
+            echo "RUNTIME_ENGINE_URL=http://runtime-binding-engine:3013" >> .env
+            echo "FORMGEN_SERVICE_URL=http://formgen-service:3014" >> .env
+            echo "NODE_BACKEND_GENERATOR_URL=http://node-backend-generator:3015" >> .env
+            echo "DOTNET_BACKEND_GENERATOR_URL=http://dotnet-backend-generator:3016" >> .env
+            echo "SCHEMA_API_URL=http://schema-enhancement-engine:3010/schema" >> .env
+            echo "FRONTEND_URL=http://localhost" >> .env
+            echo "DOCKER_BUILDKIT=1" >> .env
+            echo "COMPOSE_DOCKER_CLI_BUILD=1" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+            echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
+            echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+            echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
 
-            echo "📋 .env file contents (redacted):"
+            echo ".env contents (secrets redacted):"
             grep -v "SECRET\|PASSWORD\|KEY\|DATABASE_URL" .env || true
 
-            echo "🐳 Stopping existing containers..."
-            docker compose down --rmi local 2>/dev/null || true
+            # ── Authenticate to Docker Hub to avoid anonymous pull rate limits ─
+            if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+              echo "Logging in to Docker Hub as $DOCKERHUB_USERNAME..."
+              echo "$DOCKERHUB_TOKEN" | sudo docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            else
+              echo "WARNING: DOCKERHUB_USERNAME / DOCKERHUB_TOKEN not set — pulls will be anonymous and may hit rate limits"
+            fi
 
-            echo "🧹 Pre-build cleanup — reclaim all unused space..."
-            docker system prune -af --volumes 2>/dev/null || true
-            docker builder prune -af 2>/dev/null || true
+            # ── Stop existing containers — preserve DB volumes ─────────────
+            echo "Stopping existing containers (volumes kept)..."
+            sudo docker compose down --rmi local 2>/dev/null || true
 
-            echo "📊 Disk space before build:"
-            df -h / | tail -1
+            # Prune only dangling images and build cache — NOT volumes
+            sudo docker image prune -f 2>/dev/null || true
+            sudo docker builder prune -af 2>/dev/null || true
 
-            echo "⚙️ Configuring Docker for resource-limited environment..."
-            # Limit Docker build parallelism to prevent resource exhaustion
+            echo "Disk before build: $(df -h / | tail -1)"
+
+            # ── Build services one at a time to conserve disk ──────────────
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
 
-            echo "🔨 Building containers sequentially to conserve disk..."
+            SERVICES="schema-enhancement-engine user-management-service backend-dto-generator runtime-binding-engine formgen-service node-backend-generator dotnet-backend-generator api-gateway frontend"
 
-            # Build each service one at a time, pruning build cache between builds
-            for svc in schema-enhancement-engine user-management-service backend-dto-generator runtime-binding-engine formgen-service node-backend-generator dotnet-backend-generator api-gateway frontend; do
-              echo "   📦 Building $svc..."
-              docker compose build "$svc" || {
-                echo "⚠️  Build failed for $svc, pruning and retrying..."
-                docker builder prune -af 2>/dev/null || true
-                docker compose build "$svc" || echo "❌ $svc build failed"
-              }
-              # Clear build cache after each service to free disk
-              docker builder prune -af 2>/dev/null || true
+            for svc in $SERVICES; do
+              echo "--- Building: $svc ---"
+              if ! sudo docker compose build "$svc"; then
+                echo "Build failed — pruning cache and retrying $svc..."
+                sudo docker builder prune -af 2>/dev/null || true
+                if ! sudo docker compose build "$svc"; then
+                  echo "FATAL: $svc could not be built"
+                  exit 1
+                fi
+              fi
+              # Free build cache between services to prevent disk exhaustion
+              sudo docker builder prune -af 2>/dev/null || true
+              echo "Disk after $svc: $(df -h / | tail -1)"
             done
 
-            echo "🚀 Starting containers..."
-            docker compose up -d --no-build
+            # ── Start all services ────────────────────────────────────────
+            echo "Starting all services..."
+            sudo docker compose up -d --no-build
 
-            # Wait for containers to stabilize
-            echo "⏳ Waiting for containers to start..."
-            sleep 15
+            echo "Waiting 20s for services to stabilise..."
+            sleep 20
 
-            echo "🧹 Cleaning up old images..."
-            docker image prune -f
+            # ── Status report ─────────────────────────────────────────────
+            echo "=== Container status ==="
+            sudo docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-            echo "📊 Final container status (ALL containers):"
-            docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo "=== Health details ==="
+            sudo docker inspect --format '{{.Name}}: {{.State.Health.Status}} ({{.State.Status}})' $(sudo docker ps -aq) 2>/dev/null || true
 
-            echo ""
-            echo "🔍 Health check details:"
-            docker inspect --format '{{.Name}}: {{.State.Health.Status}} ({{.State.Status}})' $(docker ps -aq) 2>/dev/null || echo "No health info"
+            echo "=== Resource usage ==="
+            sudo docker system df || true
 
-            echo ""
-            echo "📈 Resource usage:"
-            docker system df || echo "Could not get resource usage"
+            # Print logs for any unhealthy / stopped containers
+            NOT_RUNNING=$(sudo docker ps -a \
+              --filter "status=exited" \
+              --filter "status=created" \
+              --filter "status=restarting" \
+              --format "{{.Names}}")
 
-            # Check for any non-running containers
-            NOT_RUNNING=$(docker ps -a --filter "status=exited" --filter "status=created" --filter "status=restarting" --format "{{.Names}}" | head -5)
-            if [ ! -z "$NOT_RUNNING" ]; then
-              echo ""
-              echo "⚠️  Non-running containers detected:"
-              echo "$NOT_RUNNING" | while read container; do
-                echo "=== $container logs (last 15 lines) ==="
-                docker logs --tail 15 "$container" 2>&1 || echo "Could not get logs"
-                echo ""
+            if [ -n "$NOT_RUNNING" ]; then
+              echo "=== Non-running containers (last 25 log lines each) ==="
+              echo "$NOT_RUNNING" | while read -r c; do
+                echo "--- $c ---"
+                sudo docker logs --tail 25 "$c" 2>&1 || true
               done
-            else
-              echo "✅ All containers are running"
+              exit 1
             fi
 
-            # Final status check (subtract 1 for header line)
-            RUNNING_COUNT=$(docker ps --filter "status=running" --format "{{.Names}}" | wc -l)
-            TOTAL_COUNT=$(docker ps -a --format "{{.Names}}" | wc -l)
-            if [ "$RUNNING_COUNT" -ge 10 ]; then
-              echo "🎉 Deployment successful! $RUNNING_COUNT/$TOTAL_COUNT containers running"
-            else
-              echo "⚠️  Only $RUNNING_COUNT/$TOTAL_COUNT containers running - check logs above"
-            fi
-
-            echo "✅ Deployment script complete!"
+            RUNNING=$(sudo docker ps --filter "status=running" --format "{{.Names}}" | wc -l)
+            echo "=== Deployment complete: $RUNNING containers running ==="
